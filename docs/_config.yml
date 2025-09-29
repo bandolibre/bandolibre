@@ -1,12 +1,34 @@
-
-# remote_theme: pages-themes/cayman@v0.2.0
 remote_theme: "mmistakes/minimal-mistakes@4.27.3"
-
+repository: piwicode/bandoneo
 rss: rss
+
+title: "Bandonéo"
+title_separator: "-"
+subtitle: "A MIDI Instrument"
 
 titles_from_headings:
   strip_title: true
   collections: true
+
+footer:
+  since: "2025"
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/piwicode/bandoneo"
+    - label: "Mail"
+      icon: "fa-solid fa-square-envelope"
+      url: "mailto:bandono@googlegroups.com"
+
+comments:
+  provider: "giscus"
+  giscus:
+    repo_id: "R_kgDOLGp6nQ"
+    category_name: "General"
+    category_id: "DIC_kwDOLGp6nc4CwCxR"
+    discussion_term: "og:title"
+    reactions_enabled: "1"
+    theme: light
 
 plugins:
   - jekyll-feed

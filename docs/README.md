@@ -6,8 +6,8 @@ hidden: true
 header:
   overlay_color: "#5e616c"
   overlay_image: assets/images/readme_tilted.webp
-excerpt: Un instrument MIDI open sourcepour les badonéonistes
-
+excerpt: Un instrument MIDI open source pour les bandonéonistes
+comments: true
 ---
 
 Le **Bandonéo** est un contrôleur MIDI conçu pour les passionnés, qui recrée
@@ -96,6 +96,6 @@ régulièrement.
 
 ## Rejoignez la Communauté !
 
-Vous avez des questions, des idées ? Contactez-moi et rejoignez la discussion.
+Vous avez des questions, des idées ? [Contactez-moi](mailto:bandoneo@googlegroups.com) et rejoignez la discussion.
 
-Contact : [bandoneo@googlegroups.com](mailto:bandoneo@googlegroups.com)
+{% include comments.html %}

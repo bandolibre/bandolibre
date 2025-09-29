@@ -1,5 +1,13 @@
 Serve locally with:
 
 ```
+sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+bundle
+sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
+sudo sysctl -w net.ipv6.conf.default.disable_ipv6=0
+```
+
+```
 bundle exec jekyll serve
 ```
