@@ -97,6 +97,6 @@ régulièrement.
 ## Rejoignez la Communauté !
 
 Vous avez des questions, des idées ?
-[Contactez-moi](mailto:bandoneo@googlegroups.com) et rejoignez la discussion.
+rejoignez [l'Atelier du Badonéon Libre](atelier)
 
 {% include comments.html %}

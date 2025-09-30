@@ -4,7 +4,7 @@ rss: rss
 
 title: "Bandonéo"
 title_separator: "-"
-subtitle: "A MIDI Instrument"
+subtitle: "MIDI Instrument"
 
 titles_from_headings:
   strip_title: true
