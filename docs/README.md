@@ -6,7 +6,7 @@ hidden: true
 header:
   overlay_color: "#5e616c"
   overlay_image: assets/images/readme_tilted.webp
-excerpt: Un instrument MIDI open source pour les bandonéonistes
+excerpt: un instrument MIDI pour les bandonéonistes
 comments: true
 ---
 
@@ -56,14 +56,14 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 
 - **Le Kit de Développement**
 
-  Pour vous lancer plus facilement, l'Atelier du Bandonéon Libre organise des
-  achats groupés de kits de développement. Ce kit est un Bandonéo MIDI complet
-  et fonctionnel, livré partiellement assemblé avec toutes les pièces
-  mécaniques, électroniques et la visserie nécessaire. C'est le moyen idéal pour
-  commencer à jouer rapidement tout en gardant la possibilité de le modifier,
-  grâce notamment aux connecteurs de reprogrammation ST-LINK présents sur les
-  cartes. Vos retours d'expérience sur ce kit seront précieux pour l'avenir du
-  projet.
+  Pour vous lancer plus facilement, [l'Atelier du Bandonéon Libre](atelier)
+  organise des achats groupés de kits de développement. Ce kit est un Bandonéo
+  MIDI complet et fonctionnel, livré partiellement assemblé avec toutes les
+  pièces mécaniques, électroniques et la visserie nécessaire. C'est le moyen
+  idéal pour commencer à jouer rapidement tout en gardant la possibilité de le
+  modifier, grâce notamment aux connecteurs de reprogrammation ST-LINK présents
+  sur les cartes. Vos retours d'expérience sur ce kit seront précieux pour
+  l'avenir du projet.
 
 ## Characteristiques Techniques
 
@@ -96,6 +96,7 @@ régulièrement.
 
 ## Rejoignez la Communauté !
 
-Vous avez des questions, des idées ? [Contactez-moi](mailto:bandoneo@googlegroups.com) et rejoignez la discussion.
+Vous avez des questions, des idées ?
+[Contactez-moi](mailto:bandoneo@googlegroups.com) et rejoignez la discussion.
 
 {% include comments.html %}
