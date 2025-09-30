@@ -6,13 +6,21 @@ hidden: true
 header:
   overlay_color: "#5e616c"
   overlay_image: assets/images/readme_tilted.webp
-excerpt: un instrument MIDI pour les bandonéonistes
+excerpt: Un instrument MIDI pour les bandonéonistes
 comments: true
+author_profile: true
+# toc: true
+# toc_label: "Sur cette page"
+# toc_icon: "columns"
 ---
 
 Le **Bandonéo** est un contrôleur MIDI conçu pour les passionnés, qui recrée
 fidèlement la disposition du mythique bandonéon argentin et son clavier
 "Rheinische Lage" à 142 voies.
+
+<figure>
+  <img src="{{ '/assets/images/bandoneo-feature.webp' | relative_url }}" alt="Rendu 3d du Bandonéo">
+</figure>
 
 Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque touche
 est mesurée **1000 fois par seconde**, offrant une précision et une réactivité
@@ -31,18 +39,20 @@ Sa connectique étendue le rend universel :
 
    Le Bandonéo est un projet entièrement open-source. Tous les plans des pièces
    mécaniques et des circuits électroniques sont publiés sous licence
-   [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Cela
-   signifie que chacun est libre de le construire, de le réparer, de le modifier
-   et de partager ses améliorations avec la communauté (dans un cadre non
-   commercial).
+   [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). 
+   
+   Cela signifie que chacun est libre de le construire, de le réparer, de le
+   modifier et de partager ses améliorations avec la communauté (dans un cadre
+   non commercial).
 
 2. **Une Plateforme Modulaire**
 
-   Ne vous contentez pas d'un simple instrument,
-   appropriez-vous-le ! La conception modulaire vous invite à expérimenter :
-   personnalisez les claviers, ajoutez de nouveaux capteurs, ou reprogrammez
-   entièrement le logiciel pour créer l'instrument de vos rêves. Les
-   possibilités sont infinies.
+   Ne vous contentez pas d'un simple instrument, appropriez-vous-le !
+   
+   La conception modulaire vous invite à expérimenter : personnalisez les
+   claviers, ajoutez de nouveaux capteurs, ou reprogrammez entièrement le
+   logiciel pour créer l'instrument de vos rêves. Les possibilités sont
+   infinies.
 
 ## Comment Obtenir Votre Bandonéo ?
 
@@ -60,11 +70,12 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
   Pour vous lancer plus facilement, [l'Atelier du Bandonéon Libre](/)
   organise des achats groupés de kits de développement. Ce kit est un Bandonéo
   MIDI complet et fonctionnel, livré partiellement assemblé avec toutes les
-  pièces mécaniques, électroniques et la visserie nécessaire. C'est le moyen
-  idéal pour commencer à jouer rapidement tout en gardant la possibilité de le
-  modifier, grâce notamment aux connecteurs de reprogrammation ST-LINK présents
-  sur les cartes. Vos retours d'expérience sur ce kit seront précieux pour
-  l'avenir du projet.
+  pièces mécaniques, électroniques et la visserie nécessaire.
+  
+  C'est le moyen idéal pour commencer à jouer rapidement tout en gardant la
+  possibilité de le modifier, grâce notamment aux connecteurs de reprogrammation
+  ST-LINK présents sur les cartes. Vos retours d'expérience sur ce kit seront
+  précieux pour l'avenir du projet.
 
 ## Characteristiques Techniques
 
@@ -97,5 +108,5 @@ régulièrement.
 
 ## Rejoignez la Communauté !
 
-Vous avez des questions, des idées ?
-rejoignez [l'Atelier du Badonéon Libre](atelier)
+Vous avez des questions, des idées ?<br>
+rejoignez [l'Atelier du Badonéon Libre](/)

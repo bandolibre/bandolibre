@@ -10,6 +10,17 @@ titles_from_headings:
   strip_title: true
   collections: true
 
+# Site Author
+author:
+  name             : "Pierre Labatut"
+  avatar           : "/assets/images/portrait.webp"
+  bio              : "Je code, je joue, je fabrique… <br>parfois tout en même temps."
+  location         : "Fontainebleau, FR"
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/piwicode"
+
 footer:
   since: "2025"
   links:
@@ -29,6 +40,8 @@ comments:
     discussion_term: "og:title"
     reactions_enabled: "1"
     theme: light
+
+paypal_link: "https://www.paypal.com/donate/?business=H8ARR8VWJVQZY&no_recurring=0&item_name=acheter+les+composants%2C+fabriquer+les+prototypes+et+continuer+%C3%A0+faire+grandir+le+projet+Bandon%C3%A9o&currency_code=EUR"
 
 plugins:
   - jekyll-feed
