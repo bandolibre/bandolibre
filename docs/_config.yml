@@ -1,10 +1,10 @@
 remote_theme: "mmistakes/minimal-mistakes@4.27.3"
-repository: piwicode/bandoneo
+repository: bandolibre/bandolibre.github.io
 rss: rss
 
-title: "Bandonéo"
+title: "L'Atelier"
 title_separator: "-"
-subtitle: "MIDI Instrument"
+subtitle: "du Bandonéon Libre"
 
 titles_from_headings:
   strip_title: true
@@ -18,14 +18,14 @@ footer:
       url: "https://github.com/piwicode/bandoneo"
     - label: "Mail"
       icon: "fa-solid fa-square-envelope"
-      url: "mailto:bandono@googlegroups.com"
+      url: "mailto:bandolibre@googlegroups.com"
 
 comments:
   provider: "giscus"
   giscus:
-    repo_id: "R_kgDOLGp6nQ"
+    repo_id: "R_kgDOP5wWLQ"
     category_name: "General"
-    category_id: "DIC_kwDOLGp6nc4CwCxR"
+    category_id: "DIC_kwDOP5wWLc4CwEw7"
     discussion_term: "og:title"
     reactions_enabled: "1"
     theme: light
