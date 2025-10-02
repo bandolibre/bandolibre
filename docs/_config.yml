@@ -42,6 +42,7 @@ comments:
     theme: light
 
 paypal_link: "https://www.paypal.com/donate/?business=H8ARR8VWJVQZY&no_recurring=0&item_name=acheter+les+composants%2C+fabriquer+les+prototypes+et+continuer+%C3%A0+faire+grandir+le+projet+Bandon%C3%A9o&currency_code=EUR"
+google_site_verification: "7jHNeDulfr7YpmrfV3jkmD2w77aXWxKH7enfrSb5VH8"
 
 plugins:
   - jekyll-feed
