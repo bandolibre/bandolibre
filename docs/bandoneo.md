@@ -35,12 +35,12 @@ Sa connectique étendue le rend universel :
 
 ## Une Philosophie Ouverte et Communautaire
 
-1. **Une Conception Libre**
+1. **Une Conception Libre** <a target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img style="float: right;" src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg"></a>
 
    Le Bandonéo est un projet entièrement open-source. Tous les plans des pièces
    mécaniques et des circuits électroniques sont publiés sous licence
-   [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). 
-   
+   [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/){:target="_blank"}.
+
    Cela signifie que chacun est libre de le construire, de le réparer, de le
    modifier et de partager ses améliorations avec la communauté (dans un cadre
    non commercial).
@@ -48,7 +48,7 @@ Sa connectique étendue le rend universel :
 2. **Une Plateforme Modulaire**
 
    Ne vous contentez pas d'un simple instrument, appropriez-vous-le !
-   
+
    La conception modulaire vous invite à expérimenter : personnalisez les
    claviers, ajoutez de nouveaux capteurs, ou reprogrammez entièrement le
    logiciel pour créer l'instrument de vos rêves. Les possibilités sont
@@ -93,7 +93,7 @@ Le projet Bandonéo progresse à grands pas ! Voici où nous en sommes :
 - ✅ Partie Mécanique : La conception est finalisée et un premier prototype
   physique a été imprimé. Je procéde actuellement aux tests et ajustements pour
   garantir une ergonomie optimale.
-  [Explorez le modèle 3D complet et interactif sur Onshape](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/w/44f56bd9f99346f07c3c93d4/e/c6a89cb028bdc195ff70596f?renderMode=0&uiState=68dae2d4084543739eda2bc5)
+  [Explorez le modèle 3D complet et interactif sur Onshape](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/w/44f56bd9f99346f07c3c93d4/e/c6a89cb028bdc195ff70596f?renderMode=0&uiState=68dae2d4084543739eda2bc5){:target="_blank"}
 - ⏳ Partie Électronique : Les cartes électroniques (carte mère et claviers) sont
   en phase active de conception. Cette étape est cruciale pour assurer la
   réactivité et la fiabilité du signal MIDI.
@@ -108,5 +108,5 @@ régulièrement.
 
 ## Rejoignez la Communauté !
 
-Vous avez des questions, des idées ?<br>
+Vous avez des questions, des idées ?<br/>
 rejoignez [l'Atelier du Badonéon Libre](/)
