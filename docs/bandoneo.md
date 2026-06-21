@@ -66,15 +66,10 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 
 - **Le Kit de Développement**
 
-  Pour vous lancer plus facilement, [l'Atelier du Bandonéon Libre](/)
-  organise des achats groupés de kits de développement. Ce kit est un Bandonéo
-  MIDI complet et fonctionnel, livré partiellement assemblé avec toutes les
-  pièces mécaniques, électroniques et la visserie nécessaire.
-  
-  C'est le moyen idéal pour commencer à jouer rapidement tout en gardant la
-  possibilité de le modifier, grâce notamment aux connecteurs de reprogrammation
-  ST-LINK présents sur les cartes. Vos retours d'expérience sur ce kit seront
-  précieux pour l'avenir du projet.
+  [L'Atelier du Bandonéon Libre](/) permet aux membres de s'organiser pour
+  réaliser des achats groupés de composants et monter leurs kits ensemble.
+  C'est l'occasion de partager les coûts, de s'entraider pendant l'assemblage
+  et de rejoindre une communauté de constructeurs.
 
 ## Characteristiques Techniques
 

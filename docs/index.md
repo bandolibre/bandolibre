@@ -36,9 +36,9 @@ fabriquer les prototypes et continuer à faire grandir le projet.
 
 La conception du [Bandonéo](/bandoneo) est finalisée. Le premier instrument est
 terminé et cinq exemplaires sont en cours d’assemblage pour être prêtés à des
-professeurs de bandonéon. Dès qu’un groupe d’intérêt se formera, l’association
-organisera des achats groupés de kits, permettant à chacun de rejoindre
-l’aventure avec un instrument prêt à jouer.
+professeurs de bandonéon. L’Atelier permet ensuite aux membres de s’organiser
+pour réaliser des achats groupés de composants et monter leurs kits ensemble,
+en partageant les coûts et en s’entraidant pendant l’assemblage.
 
 ## Rejoindre l’Association
 
