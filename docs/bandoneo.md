@@ -41,6 +41,9 @@ par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémenta
    modifier et de partager ses améliorations avec la communauté (dans un cadre
    non commercial).
 
+   Tous les fichiers sources — schémas, PCB, firmware, mécanique — sont
+   disponibles sur [GitHub](https://github.com/piwicode/bandoneo){:target="_blank"}.
+
 2. **Une Plateforme Modulaire**
 
    Ne vous contentez pas d'un simple instrument, appropriez-vous-le !
@@ -96,7 +99,11 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
   l'affinage du modèle d'inertie du soufflet, afin que les notes courtes sonnent naturellement,
   comme sur un instrument acoustique.
 
+Retrouvez tous les détails techniques, le code source et les fichiers de fabrication sur
+[github.com/piwicode/bandoneo](https://github.com/piwicode/bandoneo){:target="_blank"}.
+
 ## Rejoignez la Communauté !
 
 Vous avez des questions, des idées ?<br/>
 rejoignez [l'Atelier du Badonéon Libre](/)
+
