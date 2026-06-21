@@ -48,5 +48,8 @@ encore ouvertes.
 
 Vous êtes invités à consulter ce site régulièrement pour en apprendre plus.
 
+Pour toute question, contactez-nous à
+[bandolibre@googlegroups.com](mailto:bandolibre@googlegroups.com).
+
 {% include comments.html %}
 
