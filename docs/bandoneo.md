@@ -26,12 +26,8 @@ Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque tou
 est mesurée **1000 fois par seconde**, offrant une précision et une réactivité
 exceptionnelles, sans aucune usure mécanique.
 
-Sa connectique étendue le rend universel :
-
-- **Bluetooth LE-MIDI** pour jouer sans fil sur tablettes et ordinateurs.
-- **USB-MIDI** pour une connexion simple et fiable en studio.
-- **MIDI DIN 5** broches pour une compatibilité parfaite avec vos synthétiseurs
-  et équipements matériels.
+Il se connecte en **USB-MIDI** (connecteur Type-B), directement alimenté
+par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémentaire.
 
 ## Une Philosophie Ouverte et Communautaire
 
@@ -82,29 +78,23 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 - **Clavier :** Rheinische Lage 142 voies
 - **Capteurs :** Technologie à effet Hall, sans contact mécanique
 - **Précision :** Mesure de la position des touches 1000 fois par seconde
-- **Connectique :** Bluetooth LE-MIDI, USB-MIDI, MIDI DIN 5 broches
-- **Microcontrôleur :** STM32F103 pour les claviers, et STM32WB55VGY pour la carte mère
+- **Soufflet :** Lame flexion + 2 capteurs Hall → MIDI CC#11 Expression
+- **Entrées expression :** 2 × jack TRS 6.35 mm (CC#1 Modulation, CC#4 Foot Controller)
+- **Connectique :** USB-MIDI (connecteur Type-B, alimentation bus USB)
+- **Microcontrôleur :** STM32G474CBT6 (identique sur les 3 cartes)
 - **Firmware :** Open-source, reprogrammable via connecteur ST-LINK
 
 ## État d'Avancement du Projet
 
-Le projet Bandonéo progresse à grands pas ! Voici où nous en sommes :
-
-- ✅ Partie Mécanique : La conception est finalisée et un premier prototype
-  physique a été imprimé. Je procéde actuellement aux tests et ajustements pour
-  garantir une ergonomie optimale.
+- ✅ **Mécanique** — Conception finalisée.
   [Explorez le modèle 3D complet et interactif sur Onshape](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/w/44f56bd9f99346f07c3c93d4/e/c6a89cb028bdc195ff70596f?renderMode=0&uiState=68dae2d4084543739eda2bc5){:target="_blank"}
-- ⏳ Partie Électronique : Les cartes électroniques (carte mère et claviers) sont
-  en phase active de conception. Cette étape est cruciale pour assurer la
-  réactivité et la fiabilité du signal MIDI.
-- ⏳ Partie Programmation (Firmware) : Le développement du logiciel interne
-  débutera une fois que les cartes électroniques seront finalisées et testées.
-
-Mon objectif principal est de vous offrir un instrument de qualité. Je prends
-donc le temps de soigner chaque détail.
-
-Pour ne rien manquer des prochaines avancées, je vous invite à consulter ce site
-régulièrement.
+- ✅ **Électronique** — Cartes conçues et fabriquées (carte mère + clavier gauche + clavier droit).
+  Le premier Bandonéo est terminé.
+- ⏳ **Assemblage** — Je m'apprête à assembler cinq exemplaires pour les prêter à des
+  professeurs de bandonéon et recueillir des retours terrain.
+- ⏳ **Firmware** — Les touches et l'USB-MIDI fonctionnent. Le travail en cours porte sur
+  l'affinage du modèle d'inertie du soufflet, afin que les notes courtes sonnent naturellement,
+  comme sur un instrument acoustique.
 
 ## Rejoignez la Communauté !
 

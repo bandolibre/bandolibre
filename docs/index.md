@@ -34,10 +34,11 @@ fabriquer les prototypes et continuer à faire grandir le projet.
 
 ## Les Kits de Développement
 
-Quand la conception sera assez avancée, l’association proposera des kits de
-développement [Bandonéo](/bandoneo), issus d’achats groupés de composants. Ce
-sera le moyen idéal de rejoindre l’aventure, avec un instrument prêt à jouer et
-à personnaliser.
+La conception du [Bandonéo](/bandoneo) est finalisée. Le premier instrument est
+terminé et cinq exemplaires sont en cours d’assemblage pour être prêtés à des
+professeurs de bandonéon. Dès qu’un groupe d’intérêt se formera, l’association
+organisera des achats groupés de kits, permettant à chacun de rejoindre
+l’aventure avec un instrument prêt à jouer.
 
 ## Rejoindre l’Association
 
