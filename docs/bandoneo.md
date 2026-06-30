@@ -29,6 +29,10 @@ exceptionnelles, sans aucune usure mécanique.
 Il se connecte en **USB-MIDI** (connecteur Type-B), directement alimenté
 par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémentaire.
 
+<figure class="video_container">
+  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/6s1wlRKlAk4" title="Bandonéo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</figure>
+
 ## Une Philosophie Ouverte et Communautaire
 
 1. **Une Conception Libre** <a target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img style="float: right;" src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg"></a>
