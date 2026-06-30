@@ -46,7 +46,9 @@ par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémenta
    non commercial).
 
    Tous les fichiers sources — schémas, PCB, firmware, mécanique — sont
-   disponibles sur [GitHub](https://github.com/piwicode/bandoneo){:target="_blank"}.
+   disponibles sur GitHub :
+
+   <a href="https://github.com/piwicode/bandoneo" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
 
 2. **Une Plateforme Modulaire**
 
