@@ -1,7 +1,8 @@
 ---
-title: Bandonéo
+title: Bandolibre
 layout: single
-permalink: /bandoneo
+permalink: /bandolibre
+redirect_from: /bandoneo
 hidden: true
 header:
   overlay_color: "#5e616c"
@@ -14,12 +15,12 @@ author_profile: true
 # toc_icon: "columns"
 ---
 
-Le **Bandonéo** est un contrôleur MIDI conçu pour les passionnés, qui recrée
+Le **Bandolibre** est un contrôleur MIDI conçu pour les passionnés, qui recrée
 fidèlement la disposition du mythique bandonéon argentin et son clavier
 "Rheinische Lage" à 142 voies.
 
 <figure>
-  <img src="{{ '/assets/images/bandoneo-feature.webp' | relative_url }}" alt="Rendu 3d du Bandonéo">
+  <img src="{{ '/assets/images/bandolibre-feature.webp' | relative_url }}" alt="Rendu 3d du Bandolibre">
 </figure>
 
 Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque touche
@@ -30,14 +31,14 @@ Il se connecte en **USB-MIDI** (connecteur Type-B), directement alimenté
 par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémentaire.
 
 <figure class="video_container">
-  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/6s1wlRKlAk4" title="Bandonéo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/6s1wlRKlAk4" title="Bandolibre" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </figure>
 
 ## Une Philosophie Ouverte et Communautaire
 
 1. **Une Conception Libre** <a target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img style="float: right;" src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg"></a>
 
-   Le Bandonéo est un projet entièrement open-source. Tous les plans des pièces
+   Le Bandolibre est un projet entièrement open-source. Tous les plans des pièces
    mécaniques et des circuits électroniques sont publiés sous licence
    [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/){:target="_blank"}.
 
@@ -48,7 +49,7 @@ par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémenta
    Tous les fichiers sources — schémas, PCB, firmware, mécanique — sont
    disponibles sur GitHub :
 
-   <a href="https://github.com/piwicode/bandoneo" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
+   <a href="https://github.com/bandolibre/bandolibre.github.io" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
 
 2. **Une Plateforme Modulaire**
 
@@ -59,9 +60,9 @@ par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémenta
    logiciel pour créer l'instrument de vos rêves. Les possibilités sont
    infinies.
 
-## Comment Obtenir Votre Bandonéo ?
+## Comment Obtenir Votre Bandolibre ?
 
-Le Bandonéo n'est pas un produit commercial. C'est une aventure communautaire.
+Le Bandolibre n'est pas un produit commercial. C'est une aventure communautaire.
 Pour obtenir le vôtre, deux chemins s'offrent à vous :
 
 - **La Fabrication Autonome (DIY)**
@@ -93,7 +94,7 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 - ✅ **Mécanique** — Conception finalisée.
   [Explorez le modèle 3D complet et interactif sur Onshape](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/w/44f56bd9f99346f07c3c93d4/e/c6a89cb028bdc195ff70596f?renderMode=0&uiState=68dae2d4084543739eda2bc5){:target="_blank"}
 - ✅ **Électronique** — Cartes conçues et fabriquées (carte mère + clavier gauche + clavier droit).
-  Le premier Bandonéo est terminé.
+  Le premier Bandolibre est terminé.
 - ⏳ **Assemblage** — Je m'apprête à assembler cinq exemplaires pour les prêter à des
   professeurs de bandonéon et recueillir des retours terrain.
 - ⏳ **Firmware** — Les touches et l'USB-MIDI fonctionnent. Le travail en cours porte sur

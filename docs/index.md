@@ -15,7 +15,7 @@ comments: true
 explorons la lutherie numérique sous toutes ses formes : instruments,
 électronique, logiciels et transmission.
 
-Notre projet phare s’appelle [le Bandonéo](/bandoneo) : un bandonéon numérique,
+Notre projet phare s’appelle [le Bandolibre](/bandolibre) : un bandonéon numérique,
 conçu en open source, que chacun peut s’approprier, améliorer et partager.
 
 ## Une Démarche Ouverte
@@ -26,7 +26,7 @@ patrimoine musical unique.
 
 ## Un Projet Autofinancé
 
-Le développement du [Bandonéo](/bandoneo) avance grâce aux moyens personnels de
+Le développement du [Bandolibre](/bandolibre) avance grâce aux moyens personnels de
 ses membres fondateurs. Les dons permettent d’acheter les composants,
 fabriquer les prototypes et continuer à faire grandir le projet.
 
@@ -34,7 +34,7 @@ fabriquer les prototypes et continuer à faire grandir le projet.
 
 ## Les Kits de Développement
 
-La conception du [Bandonéo](/bandoneo) est finalisée. Le premier instrument est
+La conception du [Bandolibre](/bandolibre) est finalisée. Le premier instrument est
 terminé et cinq exemplaires sont en cours d’assemblage pour être prêtés à des
 professeurs de bandonéon. L’Atelier permet ensuite aux membres de s’organiser
 pour réaliser des achats groupés de composants et monter leurs kits ensemble,

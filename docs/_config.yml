@@ -49,6 +49,7 @@ plugins:
   - jekyll-gist
   - jekyll-include-cache
   - jekyll-paginate
+  - jekyll-redirect-from
   - jekyll-remote-theme
   - jekyll-sitemap
   - jemoji
