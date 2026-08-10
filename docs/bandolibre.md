@@ -20,7 +20,7 @@ fidèlement la disposition du mythique bandonéon argentin et son clavier
 "Rheinische Lage" à 142 voies.
 
 <figure>
-  <img src="{{ '/assets/images/bandolibre-feature.webp' | relative_url }}" alt="Rendu 3d du Bandolibre">
+  <img src="{{ '/assets/images/bandolibre_sideview.webp' | relative_url }}" alt="Vue de coté du bandolibre">
 </figure>
 
 Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque touche
@@ -90,16 +90,6 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 - **Firmware :** Open-source, reprogrammable via connecteur ST-LINK
 
 ## État d'Avancement du Projet
-
-- ✅ **Mécanique** — Conception finalisée.
-  [Explorez le modèle 3D complet et interactif sur Onshape](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/w/44f56bd9f99346f07c3c93d4/e/c6a89cb028bdc195ff70596f?renderMode=0&uiState=68dae2d4084543739eda2bc5){:target="_blank"}
-- ✅ **Électronique** — Cartes conçues et fabriquées (carte mère + clavier gauche + clavier droit).
-  Le premier Bandolibre est terminé.
-- ⏳ **Assemblage** — Je m'apprête à assembler cinq exemplaires pour les prêter à des
-  professeurs de bandonéon et recueillir des retours terrain.
-- ⏳ **Firmware** — Les touches et l'USB-MIDI fonctionnent. Le travail en cours porte sur
-  l'affinage du modèle d'inertie du soufflet, afin que les notes courtes sonnent naturellement,
-  comme sur un instrument acoustique.
 
 Retrouvez tous les détails techniques, le code source et les fichiers de fabrication sur
 [github.com/piwicode/bandoneo](https://github.com/piwicode/bandoneo){:target="_blank"}.
