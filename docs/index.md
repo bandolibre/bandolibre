@@ -27,10 +27,8 @@ patrimoine musical unique.
 ## Un Projet Autofinancé
 
 Le développement du [Bandolibre](/bandolibre) avance grâce aux moyens personnels de
-ses membres fondateurs. Les dons permettent d’acheter les composants,
+ses membres fondateurs. Des dons permettent d’acheter les composants,
 fabriquer les prototypes et continuer à faire grandir le projet.
-
-[![Support via PayPal](https://cdn.jsdelivr.net/gh/twolfson/paypal-github-button@1.0.0/dist/button.svg)](https://www.paypal.me/pierrelabatut)
 
 ## Les Kits de Développement
 
