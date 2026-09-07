@@ -26,7 +26,7 @@ footer:
   links:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/piwicode/bandoneo"
+      url: "https://github.com/bandolibre/bandolibre.github.io"
     - label: "Mail"
       icon: "fa-solid fa-square-envelope"
       url: "mailto:bandolibre@googlegroups.com"
