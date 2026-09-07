@@ -19,8 +19,8 @@ Le **Bandolibre** est un contrôleur MIDI conçu pour les passionnés, qui recr�
 fidèlement la disposition du mythique bandonéon argentin et son clavier
 "Rheinische Lage" à 142 voies.
 
-<figure>
-  <img src="{{ '/assets/images/bandolibre_sideview.webp' | relative_url }}" alt="Vue de coté du bandolibre">
+<figure class="video_container">
+  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/6s1wlRKlAk4" title="Bandolibre" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </figure>
 
 Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque touche
@@ -30,8 +30,8 @@ exceptionnelles, sans aucune usure mécanique.
 Il se connecte en **USB-MIDI** (connecteur Type-B), directement alimenté
 par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémentaire.
 
-<figure class="video_container">
-  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/6s1wlRKlAk4" title="Bandolibre" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<figure>
+  <img src="{{ '/assets/images/bandolibre_sideview.webp' | relative_url }}" alt="Vue de coté du bandolibre">
 </figure>
 
 ## Une Philosophie Ouverte et Communautaire
