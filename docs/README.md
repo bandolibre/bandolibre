@@ -1,4 +1,4 @@
-Website at bandolibre.github.io
+Website at http://bandolibre.github.io
 
 ## Serve locally with Jekyll:
 
