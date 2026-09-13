@@ -4,6 +4,7 @@
 #include "stm32g4xx_hal.h"
 #include <array>
 #include <gsl/span>
+#include "midi.h"
 
 void usb_app_init(void)
 {
@@ -49,7 +50,7 @@ static void midi_input_process(gsl::span<const uint8_t, 4> packet)
     } else if (byte == MIDI_SYSEX_END && sysex_len > 0) {
       if (sysex_len < MAX_SYSEX) {
         sysex_buf[sysex_len++] = byte;
-        midi_sysex_received(sysex_buf.data(), sysex_len);
+        midi_sysex_received(gsl::span<const uint8_t>(sysex_buf.data(), sysex_len));
       }
       sysex_len = 0;
     } else if (sysex_len > 0 && sysex_len < MAX_SYSEX) {

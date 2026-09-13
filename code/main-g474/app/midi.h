@@ -3,23 +3,20 @@
 
 /* MIDI helpers for the main board: a periodic Active Sensing task and a
  * console / microrl command layer for sending messages by hand. Kept separate
- * from usb_app.c (which stays printf-free) so these helpers can print
+ * from usb_app.cc (which stays printf-free) so these helpers can print
  * usage/errors via printf (\r\n line endings) and parse argv tokens. */
 
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <gsl/span>
 
 /* Call from the main loop on every iteration. When midi_active_sensing_enable
  * is set, sends an Active Sensing byte (0xFE) every midi_active_sensing_period
  * milliseconds so a receiver can detect a dropped link. */
 void midi_poll(void);
 
-/* argv is the usual token array with argv[0] = the command word. If argv[0] is
+/* argv_span is the token array with argv[0] = the command word. If argv[0] is
  * one of the MIDI commands below it is executed (sending one message on cable 0)
  * and true is returned; otherwise false is returned so the caller can keep
  * dispatching. A recognised-but-malformed command prints usage and still
@@ -29,7 +26,7 @@ void midi_poll(void);
  *   send_note_off <channel> <note>
  *   send_cc       <channel> <controller> <value>
  */
-bool midi_console_execute(int argc, const char *const *argv);
+bool midi_console_execute(gsl::span<const char* const> argv_span);
 
 /* Lists the MIDI command usage. */
 void midi_console_help(void);
@@ -38,12 +35,8 @@ void midi_console_help(void);
  * be NULL/"" to match all); returns the count. Backs a completion callback. */
 size_t midi_console_complete(const char *prefix, const char **out, size_t cap);
 
-/* Handles incoming System Exclusive (sysex) MIDI messages. Called from usb_app.c
+/* Handles incoming System Exclusive (sysex) MIDI messages. Called from usb_app.cc
  * when a complete sysex message (0xF0...0xF7) is received. */
-void midi_sysex_received(const uint8_t *data, size_t len);
-
-#ifdef __cplusplus
-}
-#endif
+void midi_sysex_received(gsl::span<const uint8_t> data);
 
 #endif /* MIDI_H_ */

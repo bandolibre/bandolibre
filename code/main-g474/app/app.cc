@@ -7,13 +7,13 @@ extern "C" {
 #include "app/buttons.h"
 #include "app/keyboard.h"
 #include "app/app.h"
-#include "app/midi.h"
 #include "app/pedals.h"
 #include "app/report.h"
 
 extern UART_HandleTypeDef huart1;
 }
 
+#include "app/midi.h"
 #include "usb_app.h"
 
 static void print_startup_info(void)

@@ -7,13 +7,68 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <array>
+#include <gsl/span>
 
-extern "C" {
+namespace {
 
-#define MIDI_SYSEX_START 0xF0
-#define MIDI_SYSEX_END 0xF7
+void midi_sysex_received_impl(gsl::span<const uint8_t> data)
+{
+  printf("sysex received (%zu bytes): ", data.size());
+  for (size_t i = 0; i < data.size(); i++) printf("%02X ", data[i]);
+  printf("\r\n");
 
-#define MIDI_DEFAULT_VELOCITY 64
+  // The sysex frames have the following format.
+  // 0-1  : 16 bit checksum
+  // 2    :
+}
+
+bool parse_arg_impl(gsl::span<const char* const> argv, size_t idx,
+                    long lo, long hi, const char *what, long *out)
+{
+  if (idx >= argv.size()) { printf("missing %s\r\n", what); return false; }
+  char *end;
+  long v = strtol(argv[idx], &end, 0);
+  if (argv[idx][0] == '\0' || *end != '\0') { printf("not a number: %s\r\n", argv[idx]); return false; }
+  if (v < lo || v > hi) { printf("%s out of range [%ld,%ld]: %ld\r\n", what, lo, hi, v); return false; }
+  *out = v;
+  return true;
+}
+
+void cmd_send_sysex_impl(gsl::span<const char* const> argv)
+{
+  if (argv.size() < 2) {
+    printf("usage: send_sysex <byte0> [byte1] ...\r\n");
+    printf("  sends sysex message with given data bytes (in hex, decimal, or 0x prefix)\r\n");
+    printf("  example: send_sysex 0xF0 0x7E 0x00 0x09 0x01 0xF7\r\n");
+    return;
+  }
+
+  std::array<uint8_t, 256> msg;
+  size_t len = 0;
+
+  for (size_t i = 1; i < argv.size() && len < msg.size(); i++) {
+    char *end;
+    long val = strtol(argv[i], &end, 0);
+    if (argv[i][0] == '\0' || *end != '\0') {
+      printf("not a number: %s\r\n", argv[i]);
+      return;
+    }
+    if (val < 0 || val > 255) {
+      printf("byte out of range [0,255]: %ld\r\n", val);
+      return;
+    }
+    msg[len++] = (uint8_t)val;
+  }
+
+  usb_app_midi_send_sysex(msg.data(), len);
+  printf("sysex sent: ");
+  for (size_t i = 0; i < len; i++) printf("%02X ", msg[i]);
+  printf("\r\n");
+}
+
+}  /* namespace */
+
 
 void midi_poll(void)
 {
@@ -25,39 +80,26 @@ void midi_poll(void)
   usb_app_midi_active_sensing();
 }
 
-/* Parse argv[idx] as an integer in [lo,hi]. Prints an error and returns false
- * if missing, not a number, or out of range. */
-static bool parse_arg(int argc, const char *const *argv, int idx,
-                      long lo, long hi, const char *what, long *out)
-{
-  if (idx >= argc) { printf("missing %s\r\n", what); return false; }
-  char *end;
-  long v = strtol(argv[idx], &end, 0);
-  if (argv[idx][0] == '\0' || *end != '\0') { printf("not a number: %s\r\n", argv[idx]); return false; }
-  if (v < lo || v > hi) { printf("%s out of range [%ld,%ld]: %ld\r\n", what, lo, hi, v); return false; }
-  *out = v;
-  return true;
-}
-
-static void cmd_note_on(int argc, const char *const *argv)
+constexpr uint8_t MIDI_DEFAULT_VELOCITY = 64;
+static void cmd_note_on(gsl::span<const char* const> argv_span)
 {
   long channel, note, velocity = MIDI_DEFAULT_VELOCITY;
-  if (!parse_arg(argc, argv, 1, 1, 16, "channel", &channel) ||
-      !parse_arg(argc, argv, 2, 0, 127, "note", &note))
+  if (!parse_arg_impl(argv_span, 1, 1, 16, "channel", &channel) ||
+      !parse_arg_impl(argv_span, 2, 0, 127, "note", &note))
   {
     printf("usage: send_note_on <channel 1-16> <note 0-127> [velocity 0-127]\r\n");
     return;
   }
-  if (argc > 3 && !parse_arg(argc, argv, 3, 0, 127, "velocity", &velocity)) return;
+  if (argv_span.size() > 3 && !parse_arg_impl(argv_span, 3, 0, 127, "velocity", &velocity)) return;
   usb_app_midi_note_on((uint8_t)(channel - 1), (uint8_t)note, (uint8_t)velocity);
   printf("note on  ch %ld note %ld vel %ld\r\n", channel, note, velocity);
 }
 
-static void cmd_note_off(int argc, const char *const *argv)
+static void cmd_note_off(gsl::span<const char* const> argv_span)
 {
   long channel, note;
-  if (!parse_arg(argc, argv, 1, 1, 16, "channel", &channel) ||
-      !parse_arg(argc, argv, 2, 0, 127, "note", &note))
+  if (!parse_arg_impl(argv_span, 1, 1, 16, "channel", &channel) ||
+      !parse_arg_impl(argv_span, 2, 0, 127, "note", &note))
   {
     printf("usage: send_note_off <channel 1-16> <note 0-127>\r\n");
     return;
@@ -66,12 +108,12 @@ static void cmd_note_off(int argc, const char *const *argv)
   printf("note off ch %ld note %ld\r\n", channel, note);
 }
 
-static void cmd_cc(int argc, const char *const *argv)
+static void cmd_cc(gsl::span<const char* const> argv_span)
 {
   long channel, controller, value;
-  if (!parse_arg(argc, argv, 1, 1, 16, "channel", &channel) ||
-      !parse_arg(argc, argv, 2, 0, 127, "controller", &controller) ||
-      !parse_arg(argc, argv, 3, 0, 127, "value", &value))
+  if (!parse_arg_impl(argv_span, 1, 1, 16, "channel", &channel) ||
+      !parse_arg_impl(argv_span, 2, 0, 127, "controller", &controller) ||
+      !parse_arg_impl(argv_span, 3, 0, 127, "value", &value))
   {
     printf("usage: send_cc <channel 1-16> <controller 0-127> <value 0-127>\r\n");
     return;
@@ -80,15 +122,15 @@ static void cmd_cc(int argc, const char *const *argv)
   printf("cc       ch %ld ctrl %ld val %ld\r\n", channel, controller, value);
 }
 
-static void cmd_send_sysex(int argc, const char *const *argv);
+static void cmd_send_sysex(gsl::span<const char* const> argv_span);
 
-bool midi_console_execute(int argc, const char *const *argv)
+bool midi_console_execute(gsl::span<const char* const> argv_span)
 {
-  if (argc == 0) return false;
-  if (strcmp(argv[0], "send_note_on") == 0)       cmd_note_on(argc, argv);
-  else if (strcmp(argv[0], "send_note_off") == 0) cmd_note_off(argc, argv);
-  else if (strcmp(argv[0], "send_cc") == 0)       cmd_cc(argc, argv);
-  else if (strcmp(argv[0], "send_sysex") == 0)    cmd_send_sysex(argc, argv);
+  if (argv_span.empty()) return false;
+  if (strcmp(argv_span[0], "send_note_on") == 0)       cmd_note_on(argv_span);
+  else if (strcmp(argv_span[0], "send_note_off") == 0) cmd_note_off(argv_span);
+  else if (strcmp(argv_span[0], "send_cc") == 0)       cmd_cc(argv_span);
+  else if (strcmp(argv_span[0], "send_sysex") == 0)    cmd_send_sysex(argv_span);
   else return false;
   return true;
 }
@@ -112,47 +154,12 @@ size_t midi_console_complete(const char *prefix, const char **out, size_t cap)
   return n;
 }
 
-static void cmd_send_sysex(int argc, const char *const *argv)
+void midi_sysex_received(gsl::span<const uint8_t> data)
 {
-  if (argc < 2) {
-    printf("usage: send_sysex <byte0> [byte1] ...\r\n");
-    printf("  sends sysex message with given data bytes (in hex, decimal, or 0x prefix)\r\n");
-    printf("  example: send_sysex 0xF0 0x7E 0x00 0x09 0x01 0xF7\r\n");
-    return;
-  }
-
-  uint8_t msg[256];
-  size_t len = 0;
-
-  for (int i = 1; i < argc && len < sizeof(msg); i++) {
-    char *end;
-    long val = strtol(argv[i], &end, 0);
-    if (argv[i][0] == '\0' || *end != '\0') {
-      printf("not a number: %s\r\n", argv[i]);
-      return;
-    }
-    if (val < 0 || val > 255) {
-      printf("byte out of range [0,255]: %ld\r\n", val);
-      return;
-    }
-    msg[len++] = (uint8_t)val;
-  }
-
-  usb_app_midi_send_sysex(msg, len);
-  printf("sysex sent: ");
-  for (size_t i = 0; i < len; i++) printf("%02X ", msg[i]);
-  printf("\r\n");
+  midi_sysex_received_impl(data);
 }
 
-void midi_sysex_received(const uint8_t *data, size_t len)
+static void cmd_send_sysex(gsl::span<const char* const> argv_span)
 {
-  printf("sysex received (%zu bytes): ", len);
-  for (size_t i = 0; i < len; i++) printf("%02X ", data[i]);
-  printf("\r\n");
-
-  // The sysex frames have the following format.
-  // 0-1  : 16 bit checksum
-  // 2    :
+  cmd_send_sysex_impl(argv_span);
 }
-
-}  /* extern "C" */
