@@ -4,3 +4,6 @@
 [submodule "code/third_party/microrl"]
 	path = code/third_party/microrl
 	url = https://github.com/Helius/microrl.git
+[submodule "code/third_party/gsl"]
+	path = code/third_party/gsl
+	url = https://github.com/microsoft/gsl

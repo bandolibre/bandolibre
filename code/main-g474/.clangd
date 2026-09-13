@@ -1,2 +1,19 @@
 CompileFlags:
   CompilationDatabase: build/Debug
+  Add:
+    - -isystem/usr/include/c++/12
+    - -isystem/usr/include/x86_64-linux-gnu/c++/12
+  Remove:
+    - -fno-threadsafe-statics
+    - -mcpu=*
+    - -mfpu=*
+    - -mfloat-abi=*
+
+Index:
+  Background: Build
+
+InlayHints:
+  Enabled: true
+
+Hover:
+  ShowAKA: true

@@ -2,6 +2,9 @@
 #include <string.h>
 
 extern "C" {
+void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity);
+void usb_app_midi_note_off(uint8_t channel, uint8_t note);
+
 #include "main.h"
 #include "spi_link.h"
 #include "hall_report.h"
@@ -11,7 +14,6 @@ extern "C" {
 #include "console.h"
 #include "properties.h"
 #include "report.h"
-#include "usb_app.h"
 #include "keyboard.h"
 
 /* SPI handles for the two wing links, defined by the CubeMX-generated main.c. */
@@ -584,3 +586,5 @@ void keyboard_print_rates(uint32_t dt_ms)
     bus_print_rates(&g_bus[i], dt_ms);
 }
 }  /* extern "C" */
+
+#include "usb_app.h"

@@ -2,6 +2,8 @@
 
 #include "tusb.h"
 #include "stm32g4xx_hal.h"
+#include <array>
+#include <gsl/span>
 
 void usb_app_init(void)
 {
@@ -28,14 +30,42 @@ bool usb_app_mounted(void)
   return tud_mounted();
 }
 
+static void midi_input_process(gsl::span<const uint8_t, 4> packet)
+{
+  constexpr uint8_t MIDI_SYSEX_START = 0xF0;
+  constexpr uint8_t MIDI_SYSEX_END = 0xF7;
+  constexpr size_t MAX_SYSEX = 256;
+
+  static std::array<uint8_t, MAX_SYSEX> sysex_buf;
+  static size_t sysex_len = 0;
+
+  for (size_t i = 1; i < packet.size(); i++) {
+    uint8_t byte = packet[i];
+    if (byte == 0) break;
+
+    if (byte == MIDI_SYSEX_START) {
+      sysex_len = 1;
+      sysex_buf[0] = byte;
+    } else if (byte == MIDI_SYSEX_END && sysex_len > 0) {
+      if (sysex_len < MAX_SYSEX) {
+        sysex_buf[sysex_len++] = byte;
+        midi_sysex_received(sysex_buf.data(), sysex_len);
+      }
+      sysex_len = 0;
+    } else if (sysex_len > 0 && sysex_len < MAX_SYSEX) {
+      sysex_buf[sysex_len++] = byte;
+    }
+  }
+}
+
 void usb_app_task(void)
 {
   tud_task();
 
-  /* No MIDI input handling yet: drain the FIFO so it never sits full. */
-  uint8_t packet[4];
+  std::array<uint8_t, 4> packet;
   while (tud_midi_available()) {
-    tud_midi_packet_read(packet);
+    tud_midi_packet_read(packet.data());
+    midi_input_process(packet);
   }
 }
 
@@ -71,6 +101,12 @@ void usb_app_midi_active_sensing(void)
   uint8_t const cable = 0;
   uint8_t msg = 0xFE;
   tud_midi_stream_write(cable, &msg, 1);
+}
+
+void usb_app_midi_send_sysex(const uint8_t *data, size_t len)
+{
+  uint8_t const cable = 0;
+  tud_midi_stream_write(cable, data, len);
 }
 
 /* USB interrupt handlers (override the weak defaults from the startup file) */

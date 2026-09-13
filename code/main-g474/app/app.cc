@@ -3,7 +3,6 @@
 extern "C" {
 #include "main.h"
 #include "console.h"
-#include "usb_app.h"
 #include "app/bellow.h"
 #include "app/buttons.h"
 #include "app/keyboard.h"
@@ -14,6 +13,8 @@ extern "C" {
 
 extern UART_HandleTypeDef huart1;
 }
+
+#include "usb_app.h"
 
 static void print_startup_info(void)
 {

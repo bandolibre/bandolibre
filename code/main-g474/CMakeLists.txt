@@ -75,7 +75,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/keyboard.cpp
     app/app.cc
     app/keyboard_layout.c
-    app/midi.c
+    app/midi.cc
     app/pedals.c
     app/report.c
     Core/Src/swo.c
@@ -85,7 +85,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/console/console.c
     ../common/hall_report/hall_report.c
     usb/usb_descriptors.c
-    usb/usb_app.c
+    usb/usb_app.cc
     # TinyUSB device stack with MIDI on the STM32 fsdev port
     ../third_party/tinyusb/src/tusb.c
     ../third_party/tinyusb/src/common/tusb_fifo.c
@@ -123,6 +123,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # memmap.h: the flash split and the DFU hand-off flag, shared with the
     # bootloader so the two cannot disagree about them.
     ../boot-g474
+    ../third_party/gsl/include
 )
 
 # Add project symbols (macros)

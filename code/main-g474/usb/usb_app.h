@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +38,14 @@ void usb_app_midi_control_change(uint8_t channel, uint8_t controller, uint8_t va
 
 /* Sends a single Active Sensing real-time byte (0xFE) on cable 0. */
 void usb_app_midi_active_sensing(void);
+
+/* Sends a System Exclusive (sysex) message on cable 0. data should include
+ * the 0xF0 prefix and 0xF7 suffix. */
+void usb_app_midi_send_sysex(const uint8_t *data, size_t len);
+
+/* Called when a complete System Exclusive message is received. The data
+ * includes the 0xF0 prefix and 0xF7 suffix. Implemented in midi.cc. */
+void midi_sysex_received(const uint8_t *data, size_t len);
 
 #ifdef __cplusplus
 }
