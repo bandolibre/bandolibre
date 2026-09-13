@@ -12,16 +12,246 @@
 
 namespace {
 
-void midi_sysex_received_impl(gsl::span<const uint8_t> data)
-{
-  printf("sysex received (%zu bytes): ", data.size());
-  for (size_t i = 0; i < data.size(); i++) printf("%02X ", data[i]);
-  printf("\r\n");
+/* Placeholder until firmware builds carry a real version string. */
+constexpr const char *FIRMWARE_VERSION_STRING = "Bandolibre v0.0.1";
 
-  // The sysex frames have the following format.
-  // 0-1  : 16 bit checksum
-  // 2    :
+enum sysex_message_id : uint8_t {
+  SYSEX_MSG_HELLO                    = 0x00,
+  SYSEX_MSG_GET_PROPERTY             = 0x01,
+  SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02,
+  SYSEX_MSG_SET_PROPERTY             = 0x03,
+};
+
+/* Reads sysex message fields off the front of a span, advancing an internal
+ * cursor. Each read returns false (leaving the cursor at the short read) if
+ * not enough bytes remain. */
+class DataReader {
+ public:
+  explicit DataReader(gsl::span<const uint8_t> data) : data_(data) {}
+
+  bool readUInt8(uint8_t *out)
+  {
+    if (pos_ >= data_.size()) return false;
+    *out = data_[pos_++];
+    return true;
+  }
+
+  bool readUInt16(uint16_t *out)
+  {
+    uint8_t lo, hi;
+    if (!readUInt8(&lo) || !readUInt8(&hi)) return false;
+    *out = (uint16_t)(lo | (uint16_t)(hi << 8));
+    return true;
+  }
+
+  /* Reads a NUL-terminated string, returning it (without the NUL) as a span
+   * into the original buffer. */
+  bool readString(gsl::span<const char> *out)
+  {
+    size_t start = pos_;
+    while (pos_ < data_.size() && data_[pos_] != '\0') pos_++;
+    if (pos_ >= data_.size()) return false;
+    *out = gsl::span<const char>(reinterpret_cast<const char *>(data_.data() + start), pos_ - start);
+    pos_++;
+    return true;
+  }
+
+  size_t position() const { return pos_; }
+
+ private:
+  gsl::span<const uint8_t> data_;
+  size_t pos_ = 0;
+};
+
+/* Writes sysex message fields into a fixed buffer, advancing an internal
+ * cursor. getSpan() returns the portion written so far, ready to hand to
+ * usb_app_midi_send_sysex. */
+class DataWriter {
+ public:
+  explicit DataWriter(gsl::span<uint8_t> buf) : buf_(buf) {}
+
+  bool write(uint8_t v)
+  {
+    if (pos_ >= buf_.size()) return false;
+    buf_[pos_++] = v;
+    return true;
+  }
+
+  bool write(uint16_t v)
+  {
+    return write((uint8_t)(v & 0xff)) && write((uint8_t)(v >> 8));
+  }
+
+  /* Writes the string's bytes followed by a NUL, the counterpart to
+   * DataReader::readString. */
+  bool write(gsl::span<const char> s)
+  {
+    for (char c : s)
+      if (!write((uint8_t)c)) return false;
+    return write((uint8_t)'\0');
+  }
+
+  size_t position() const { return pos_; }
+
+  gsl::span<const uint8_t> getSpan() const { return buf_.first(pos_); }
+
+ private:
+  gsl::span<uint8_t> buf_;
+  size_t pos_ = 0;
+};
+
+void send_hello_response()
+{
+  std::array<uint8_t, 128> payload;
+  DataWriter writer(payload);
+
+  writer.write((uint8_t)SYSEX_MSG_HELLO);
+  writer.write(gsl::span<const char>(FIRMWARE_VERSION_STRING, strlen(FIRMWARE_VERSION_STRING)));
+  writer.write((uint16_t)property_count());
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
 }
+
+/* Reads a property's current value regardless of its underlying type (bool
+ * reads back as 0/1). False if index is out of range. */
+bool get_property_raw(size_t index, uint16_t *out)
+{
+  const property_desc_t *d = property_at(index);
+  if (!d) return false;
+  if (d->type == PROPERTY_TYPE_BOOL) {
+    bool b;
+    if (!property_get_bool(index, &b)) return false;
+    *out = b ? 1 : 0;
+    return true;
+  }
+  return property_get_u16(index, out);
+}
+
+/* Writes a property's value regardless of its underlying type (bool takes
+ * value != 0); property_set_u16 clamps to [min,max]. False if index is out
+ * of range. */
+bool set_property_raw(size_t index, uint16_t value)
+{
+  const property_desc_t *d = property_at(index);
+  if (!d) return false;
+  if (d->type == PROPERTY_TYPE_BOOL) return property_set_bool(index, value != 0);
+  return property_set_u16(index, value);
+}
+
+void send_index_value_response(sysex_message_id message_id, uint16_t index, uint16_t value)
+{
+  std::array<uint8_t, 8> payload;
+  DataWriter writer(payload);
+
+  writer.write((uint8_t)message_id);
+  writer.write(index);
+  writer.write(value);
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
+}
+
+void handle_get_property(gsl::span<const uint8_t> body)
+{
+  DataReader reader(body);
+  uint16_t index;
+  if (!reader.readUInt16(&index)) {
+    printf("sysex: get_property: malformed request\r\n");
+    return;
+  }
+
+  uint16_t value;
+  if (!get_property_raw(index, &value)) {
+    printf("sysex: get_property: bad index %u\r\n", index);
+    return;
+  }
+
+  send_index_value_response(SYSEX_MSG_GET_PROPERTY, index, value);
+}
+
+void handle_get_property_description(gsl::span<const uint8_t> body)
+{
+  DataReader reader(body);
+  uint16_t index;
+  if (!reader.readUInt16(&index)) {
+    printf("sysex: get_property_description: malformed request\r\n");
+    return;
+  }
+
+  const property_desc_t *d = property_at(index);
+  if (!d) {
+    printf("sysex: get_property_description: bad index %u\r\n", index);
+    return;
+  }
+
+  std::array<uint8_t, 160> payload;
+  DataWriter writer(payload);
+
+  writer.write((uint8_t)SYSEX_MSG_GET_PROPERTY_DESCRIPTION);
+  writer.write(index);
+  writer.write((uint8_t)d->type);
+  writer.write(gsl::span<const char>(d->description, strlen(d->description)));
+
+  gsl::span<const uint8_t> response_body = writer.getSpan();
+  usb_app_midi_send_sysex(response_body.data(), response_body.size());
+}
+
+void handle_set_property(gsl::span<const uint8_t> body)
+{
+  DataReader reader(body);
+  uint16_t index, value;
+  if (!reader.readUInt16(&index) || !reader.readUInt16(&value)) {
+    printf("sysex: set_property: malformed request\r\n");
+    return;
+  }
+
+  if (!set_property_raw(index, value)) {
+    printf("sysex: set_property: bad index %u\r\n", index);
+    return;
+  }
+
+  /* Echo back the value actually in effect: property_set_u16 clamps to
+   * [min,max], so it may differ from what was requested. */
+  uint16_t new_value;
+  get_property_raw(index, &new_value);
+  send_index_value_response(SYSEX_MSG_SET_PROPERTY, index, new_value);
+}
+
+}  /* namespace */
+
+void midi_sysex_received(gsl::span<const uint8_t> data)
+{
+  // `data` is the message identifier and body: usb_app.cc has already
+  // stripped and checksum-verified the 0xF0/checksum/0xF7 framing (dumping
+  // the raw frame and logging any discard along the way) before calling this.
+  if (data.empty()) {
+    printf("sysex: empty message\r\n");
+    return;
+  }
+
+  uint8_t message_id = data[0];
+  gsl::span<const uint8_t> body = data.subspan(1);
+  switch (message_id) {
+    case SYSEX_MSG_HELLO:
+      send_hello_response();
+      break;
+    case SYSEX_MSG_GET_PROPERTY:
+      handle_get_property(body);
+      break;
+    case SYSEX_MSG_GET_PROPERTY_DESCRIPTION:
+      handle_get_property_description(body);
+      break;
+    case SYSEX_MSG_SET_PROPERTY:
+      handle_set_property(body);
+      break;
+    default:
+      printf("sysex: unknown message id %u\r\n", message_id);
+      break;
+  }
+}
+
+namespace {
 
 bool parse_arg_impl(gsl::span<const char* const> argv, size_t idx,
                     long lo, long hi, const char *what, long *out)
@@ -35,12 +265,13 @@ bool parse_arg_impl(gsl::span<const char* const> argv, size_t idx,
   return true;
 }
 
-void cmd_send_sysex_impl(gsl::span<const char* const> argv)
+static void cmd_send_sysex(gsl::span<const char* const> argv)
 {
   if (argv.size() < 2) {
     printf("usage: send_sysex <byte0> [byte1] ...\r\n");
-    printf("  sends sysex message with given data bytes (in hex, decimal, or 0x prefix)\r\n");
-    printf("  example: send_sysex 0xF0 0x7E 0x00 0x09 0x01 0xF7\r\n");
+    printf("  sends sysex message id + body bytes (in hex, decimal, or 0x prefix);\r\n");
+    printf("  the 0xF0/checksum header and 0xF7 footer are added automatically\r\n");
+    printf("  example: send_sysex 0x00\r\n");
     return;
   }
 
@@ -122,8 +353,6 @@ static void cmd_cc(gsl::span<const char* const> argv_span)
   printf("cc       ch %ld ctrl %ld val %ld\r\n", channel, controller, value);
 }
 
-static void cmd_send_sysex(gsl::span<const char* const> argv_span);
-
 bool midi_console_execute(gsl::span<const char* const> argv_span)
 {
   if (argv_span.empty()) return false;
@@ -141,7 +370,7 @@ void midi_console_help(void)
   printf("  send_note_on  <channel> <note> [velocity]   velocity defaults to %d\r\n", MIDI_DEFAULT_VELOCITY);
   printf("  send_note_off <channel> <note>\r\n");
   printf("  send_cc       <channel> <controller> <value>\r\n");
-  printf("  send_sysex    <byte0> [byte1] ...           sends raw sysex (hex/decimal)\r\n");
+  printf("  send_sysex    <byte0> [byte1] ...           sends id+body (hex/decimal); framing is automatic\r\n");
 }
 
 size_t midi_console_complete(const char *prefix, const char **out, size_t cap)
@@ -152,14 +381,4 @@ size_t midi_console_complete(const char *prefix, const char **out, size_t cap)
   for (size_t i = 0; i < sizeof(names) / sizeof(names[0]) && n < cap; i++)
     if (strncmp(names[i], prefix ? prefix : "", plen) == 0) out[n++] = names[i];
   return n;
-}
-
-void midi_sysex_received(gsl::span<const uint8_t> data)
-{
-  midi_sysex_received_impl(data);
-}
-
-static void cmd_send_sysex(gsl::span<const char* const> argv_span)
-{
-  cmd_send_sysex_impl(argv_span);
 }

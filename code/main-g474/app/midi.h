@@ -3,8 +3,8 @@
 
 /* MIDI helpers for the main board: a periodic Active Sensing task and a
  * console / microrl command layer for sending messages by hand. Kept separate
- * from usb_app.cc (which stays printf-free) so these helpers can print
- * usage/errors via printf (\r\n line endings) and parse argv tokens. */
+ * from usb_app.cc's USB/TinyUSB glue so these helpers can print usage/errors
+ * via printf (\r\n line endings) and parse argv tokens. */
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -35,8 +35,9 @@ void midi_console_help(void);
  * be NULL/"" to match all); returns the count. Backs a completion callback. */
 size_t midi_console_complete(const char *prefix, const char **out, size_t cap);
 
-/* Handles incoming System Exclusive (sysex) MIDI messages. Called from usb_app.cc
- * when a complete sysex message (0xF0...0xF7) is received. */
+/* Handles an incoming System Exclusive (sysex) message: data is the message
+ * identifier and body. Called from usb_app.cc once a complete frame
+ * (0xF0...0xF7) has been received and its checksum verified. */
 void midi_sysex_received(gsl::span<const uint8_t> data);
 
 #endif /* MIDI_H_ */
