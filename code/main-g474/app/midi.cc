@@ -3,6 +3,11 @@
 #include "properties.h"
 #include "usb_app.h"
 
+extern "C" {
+#include "bellow.h"
+#include "pedals.h"
+}
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +25,7 @@ enum sysex_message_id : uint8_t {
   SYSEX_MSG_GET_PROPERTY             = 0x01,
   SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02,
   SYSEX_MSG_SET_PROPERTY             = 0x03,
+  SYSEX_MSG_GET_PERIPHERALS          = 0x04,
 };
 
 /* Reads sysex message fields off the front of a span, advancing an internal
@@ -108,6 +114,33 @@ void send_hello_response()
   writer.write((uint8_t)SYSEX_MSG_HELLO);
   writer.write(gsl::span<const char>(FIRMWARE_VERSION_STRING, strlen(FIRMWARE_VERSION_STRING)));
   writer.write((uint16_t)property_count());
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
+}
+
+/* Raw ADC readings, for diagnostics/calibration: the bellows' two hall
+ * sensors and both pedal wipers (each paired with its presence flag, since a
+ * disconnected pedal's ADC value is floating and meaningless). */
+void send_peripherals_response()
+{
+  uint16_t hall0, hall1;
+  bellow_get_raw(&hall0, &hall1);
+
+  uint16_t pedal1_sample, pedal2_sample;
+  bool pedal1_connected, pedal2_connected;
+  pedals_get_raw(&pedal1_sample, &pedal1_connected, &pedal2_sample, &pedal2_connected);
+
+  std::array<uint8_t, 16> payload;
+  DataWriter writer(payload);
+
+  writer.write((uint8_t)SYSEX_MSG_GET_PERIPHERALS);
+  writer.write(hall0);
+  writer.write(hall1);
+  writer.write((uint8_t)(pedal1_connected ? 1 : 0));
+  writer.write(pedal1_sample);
+  writer.write((uint8_t)(pedal2_connected ? 1 : 0));
+  writer.write(pedal2_sample);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -244,6 +277,9 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
       break;
     case SYSEX_MSG_SET_PROPERTY:
       handle_set_property(body);
+      break;
+    case SYSEX_MSG_GET_PERIPHERALS:
+      send_peripherals_response();
       break;
     default:
       printf("sysex: unknown message id %u\r\n", message_id);

@@ -3,12 +3,41 @@
 #include "tusb.h"
 #include "stm32g4xx_hal.h"
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <gsl/span>
 #include "midi.h"
 
 constexpr uint8_t MIDI_SYSEX_START = 0xF0;
 constexpr uint8_t MIDI_SYSEX_END = 0xF7;
+
+/* Byte-stuffing escape for the checksum+payload region between the literal
+ * 0xF0/0xF7 markers above. Property values (and any future binary payload,
+ * e.g. raw hall sensor readings) are arbitrary 16-bit numbers, so a byte in
+ * there can equal 0xF0 or 0xF7 by pure chance and would otherwise be
+ * misread as a spurious frame boundary. Real MIDI sysex avoids this by
+ * repacking every byte into 7-bit groups (7 bytes -> 8) so no data byte can
+ * ever have its high bit set - but that reshapes the whole message
+ * unconditionally, and exists to satisfy generic MIDI gear that enforces
+ * the 7-bit rule. This is a closed protocol between this firmware and
+ * code/tool/sysex/sysex_dump.py / site/midi.html, so instead we escape only
+ * the 3 byte values that actually collide with our own framing (the
+ * SLIP/PPP scheme): MIDI_SYSEX_START, MIDI_SYSEX_END or MIDI_SYSEX_ESCAPE
+ * itself is sent as MIDI_SYSEX_ESCAPE followed by (byte ^
+ * MIDI_SYSEX_ESCAPE_XOR) - cheaper in the common case (most bytes need no
+ * escaping at all) and simpler than bit-level repacking. */
+constexpr uint8_t MIDI_SYSEX_ESCAPE = 0xF6;
+constexpr uint8_t MIDI_SYSEX_ESCAPE_XOR = 0x20;
+
+/* Max size of an unescaped (checksum + payload) sysex body. Also bounds how
+ * large an incoming escaped wire frame we're willing to accumulate (see
+ * midi_input_process) - matched by CFG_TUD_MIDI_TX_BUFSIZE in
+ * tusb_config.h. */
+constexpr size_t MAX_SYSEX = 256;
+
+/* Outgoing scratch buffer for the escaped checksum+payload: worst case
+ * every byte needs escaping, doubling its size. */
+constexpr size_t MAX_ESCAPED_SYSEX = 2 * MAX_SYSEX;
 
 /* [seconds.millis] prefix matching the format the host-side sysex_dump.py
  * tool uses, so the two logs can be compared line by line. */
@@ -56,6 +85,42 @@ static uint16_t sysex_checksum(const uint8_t *data, size_t len)
   return cs;
 }
 
+/* Appends the byte-stuffed encoding of in[0..len) to out, advancing *n (see
+ * MIDI_SYSEX_ESCAPE above). Returns false, leaving out and *n unspecified
+ * past the point of failure, if out_cap is too small. */
+static bool sysex_stuff_append(const uint8_t *in, size_t len, uint8_t *out, size_t out_cap, size_t *n)
+{
+  for (size_t i = 0; i < len; i++) {
+    uint8_t b = in[i];
+    if (b == MIDI_SYSEX_START || b == MIDI_SYSEX_END || b == MIDI_SYSEX_ESCAPE) {
+      if (*n >= out_cap) return false;
+      out[(*n)++] = MIDI_SYSEX_ESCAPE;
+      b = (uint8_t)(b ^ MIDI_SYSEX_ESCAPE_XOR);
+    }
+    if (*n >= out_cap) return false;
+    out[(*n)++] = b;
+  }
+  return true;
+}
+
+/* Reverses sysex_stuff_append: unstuffs in[0..len) into out. Returns the
+ * number of bytes written, or SIZE_MAX if out is too small or `in` ends on
+ * a dangling escape byte (truncated frame). */
+static size_t sysex_unstuff(const uint8_t *in, size_t len, uint8_t *out, size_t out_cap)
+{
+  size_t n = 0;
+  for (size_t i = 0; i < len; i++) {
+    uint8_t b = in[i];
+    if (b == MIDI_SYSEX_ESCAPE) {
+      if (++i >= len) return SIZE_MAX;
+      b = (uint8_t)(in[i] ^ MIDI_SYSEX_ESCAPE_XOR);
+    }
+    if (n >= out_cap) return SIZE_MAX;
+    out[n++] = b;
+  }
+  return n;
+}
+
 /* Strips a complete raw sysex frame (0xF0 ... 0xF7, as accumulated by
  * midi_input_process) down to its checksum-verified payload (message
  * identifier + body). On success returns nullptr and sets *payload; on
@@ -66,8 +131,14 @@ static const char *unpack_sysex(gsl::span<const uint8_t> frame, gsl::span<const 
   if (frame.size() < 5) return "frame too short";
   if (frame.front() != MIDI_SYSEX_START || frame.back() != MIDI_SYSEX_END) return "missing 0xF0/0xF7 markers";
 
-  uint16_t received_checksum = (uint16_t)(frame[1] | (uint16_t)(frame[2] << 8));
-  gsl::span<const uint8_t> covered = frame.subspan(3, frame.size() - 4);
+  static std::array<uint8_t, MAX_SYSEX> unescaped;
+  gsl::span<const uint8_t> escaped_body = frame.subspan(1, frame.size() - 2);
+  size_t unescaped_len = sysex_unstuff(escaped_body.data(), escaped_body.size(), unescaped.data(), unescaped.size());
+  if (unescaped_len == SIZE_MAX) return "malformed escape sequence";
+  if (unescaped_len < 3) return "frame too short";
+
+  uint16_t received_checksum = (uint16_t)(unescaped[0] | (uint16_t)(unescaped[1] << 8));
+  gsl::span<const uint8_t> covered(unescaped.data() + 2, unescaped_len - 2);
   if (sysex_checksum(covered.data(), covered.size()) != received_checksum) return "checksum mismatch";
 
   *payload = covered;
@@ -76,8 +147,6 @@ static const char *unpack_sysex(gsl::span<const uint8_t> frame, gsl::span<const 
 
 static void midi_input_process(gsl::span<const uint8_t, 4> packet)
 {
-  constexpr size_t MAX_SYSEX = 256;
-
   static std::array<uint8_t, MAX_SYSEX> sysex_buf;
   static size_t sysex_len = 0;
 
@@ -178,17 +247,27 @@ void usb_app_midi_send_sysex(const uint8_t *data, size_t len)
   uint8_t const cable = 0;
 
   uint16_t checksum = sysex_checksum(data, len);
-  uint8_t header[3] = { MIDI_SYSEX_START, (uint8_t)(checksum & 0xff), (uint8_t)(checksum >> 8) };
+  uint8_t checksum_bytes[2] = { (uint8_t)(checksum & 0xff), (uint8_t)(checksum >> 8) };
+
+  static std::array<uint8_t, MAX_ESCAPED_SYSEX> escaped;
+  size_t n = 0;
+  bool ok = sysex_stuff_append(checksum_bytes, sizeof(checksum_bytes), escaped.data(), escaped.size(), &n) &&
+            sysex_stuff_append(data, len, escaped.data(), escaped.size(), &n);
+  if (!ok) {
+    print_timestamp();
+    printf("sysex: outgoing frame too large to escape (%zu body bytes), not sent\r\n", len);
+    return;
+  }
 
   print_timestamp();
-  printf("-> ");
-  for (size_t i = 0; i < sizeof(header); i++) printf("%02X ", header[i]);
-  for (size_t i = 0; i < len; i++) printf("%02X ", data[i]);
+  printf("-> %02X ", MIDI_SYSEX_START);
+  for (size_t i = 0; i < n; i++) printf("%02X ", escaped[i]);
   printf("%02X \r\n", MIDI_SYSEX_END);
 
-  tud_midi_stream_write(cable, header, sizeof(header));
+  uint8_t const header = MIDI_SYSEX_START;
+  tud_midi_stream_write(cable, &header, 1);
 
-  tud_midi_stream_write(cable, data, len);
+  tud_midi_stream_write(cable, escaped.data(), n);
 
   uint8_t const footer = MIDI_SYSEX_END;
   tud_midi_stream_write(cable, &footer, 1);

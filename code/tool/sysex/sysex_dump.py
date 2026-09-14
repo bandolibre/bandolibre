@@ -74,16 +74,27 @@ CIN_VALID_BYTES = {0x4: 3, 0x5: 1, 0x6: 2, 0x7: 3}
 SYSEX_START = 0xF0
 SYSEX_END = 0xF7
 
+# Byte-stuffing escape for the checksum+payload region between SYSEX_START
+# and SYSEX_END. Mirrors MIDI_SYSEX_ESCAPE/MIDI_SYSEX_ESCAPE_XOR in
+# usb_app.cc - see the comment there for why escaping (only these 3 byte
+# values collide with our own framing) was chosen over real MIDI's 7-bit
+# sysex encoding (which reshapes every byte, unconditionally, to satisfy
+# generic MIDI gear this closed protocol doesn't need to interoperate with).
+SYSEX_ESCAPE = 0xF6
+SYSEX_ESCAPE_XOR = 0x20
+
 MSG_HELLO = 0x00
 MSG_GET_PROPERTY = 0x01
 MSG_GET_PROPERTY_DESCRIPTION = 0x02
 MSG_SET_PROPERTY = 0x03
+MSG_GET_PERIPHERALS = 0x04
 
 MESSAGE_NAMES = {
     MSG_HELLO: "HELLO",
     MSG_GET_PROPERTY: "GET_PROPERTY",
     MSG_GET_PROPERTY_DESCRIPTION: "GET_PROPERTY_DESCRIPTION",
     MSG_SET_PROPERTY: "SET_PROPERTY",
+    MSG_GET_PERIPHERALS: "GET_PERIPHERALS",
 }
 
 PROPERTY_TYPE_NAMES = {0: "bool", 1: "u16"}
@@ -120,9 +131,39 @@ def checksum(data: bytes) -> int:
     return cs & 0xFFFF
 
 
+def stuff(data: bytes) -> bytes:
+    """Byte-stuffs data (the checksum + payload region): any literal
+    SYSEX_START/SYSEX_END/SYSEX_ESCAPE byte becomes SYSEX_ESCAPE followed by
+    (byte ^ SYSEX_ESCAPE_XOR). Mirrors sysex_stuff_append() in usb_app.cc."""
+    out = bytearray()
+    for b in data:
+        if b in (SYSEX_START, SYSEX_END, SYSEX_ESCAPE):
+            out.append(SYSEX_ESCAPE)
+            out.append(b ^ SYSEX_ESCAPE_XOR)
+        else:
+            out.append(b)
+    return bytes(out)
+
+
+def unstuff(data: bytes) -> bytes:
+    """Reverses stuff(). Mirrors sysex_unstuff() in usb_app.cc. Raises
+    FrameError if data ends on a dangling escape byte."""
+    out = bytearray()
+    it = iter(data)
+    for b in it:
+        if b == SYSEX_ESCAPE:
+            try:
+                b = next(it) ^ SYSEX_ESCAPE_XOR
+            except StopIteration:
+                raise FrameError("dangling escape byte")
+        out.append(b)
+    return bytes(out)
+
+
 def build_frame(payload: bytes) -> list:
     cs = checksum(payload)
-    return [SYSEX_START, cs & 0xFF, (cs >> 8) & 0xFF, *payload, SYSEX_END]
+    body = stuff(bytes([cs & 0xFF, (cs >> 8) & 0xFF]) + payload)
+    return [SYSEX_START, *body, SYSEX_END]
 
 
 def hexdump(data) -> str:
@@ -141,8 +182,11 @@ def unpack_frame(frame: bytes) -> bytes:
         raise FrameError("frame too short")
     if frame[0] != SYSEX_START or frame[-1] != SYSEX_END:
         raise FrameError("missing 0xF0/0xF7 markers")
-    received_checksum = frame[1] | (frame[2] << 8)
-    covered = frame[3:-1]
+    body = unstuff(frame[1:-1])
+    if len(body) < 3:
+        raise FrameError("frame too short")
+    received_checksum = body[0] | (body[1] << 8)
+    covered = body[2:]
     computed = checksum(covered)
     if computed != received_checksum:
         raise FrameError(f"checksum mismatch (got {received_checksum:04X}, want {computed:04X})")
@@ -208,6 +252,19 @@ def decode_payload(payload: bytes) -> str:
             description = reader.read_string()
             type_name = PROPERTY_TYPE_NAMES.get(ptype, f"0x{ptype:02X}")
             return f"{name} (response) index={index} type={type_name} description={description!r}"
+
+        if message_id == MSG_GET_PERIPHERALS:
+            if reader.pos >= len(payload):
+                return f"{name} (request, no body)"
+            hall0 = reader.read_u16()
+            hall1 = reader.read_u16()
+            pedal1_connected = reader.read_u8()
+            pedal1_sample = reader.read_u16()
+            pedal2_connected = reader.read_u8()
+            pedal2_sample = reader.read_u16()
+            return (f"{name} hall0={hall0} hall1={hall1} "
+                    f"pedal1={'connected' if pedal1_connected else 'disconnected'}:{pedal1_sample} "
+                    f"pedal2={'connected' if pedal2_connected else 'disconnected'}:{pedal2_sample}")
 
         return f"{name} body={hexdump(payload[1:])}"
     except FrameError as e:
@@ -386,6 +443,21 @@ class Bandolibre:
         reader.read_u16()  # echoed index
         return reader.read_u16()
 
+    def get_peripherals(self, timeout: float):
+        """Returns (hall0, hall1, pedal1_connected, pedal1_sample,
+        pedal2_connected, pedal2_sample): the bellows' two raw hall ADC
+        readings and both pedals' wiper ADC readings + presence flags."""
+        response = self.transact(bytes([MSG_GET_PERIPHERALS]), timeout)
+        reader = DataReader(response)
+        reader.read_u8()  # message id
+        hall0 = reader.read_u16()
+        hall1 = reader.read_u16()
+        pedal1_connected = bool(reader.read_u8())
+        pedal1_sample = reader.read_u16()
+        pedal2_connected = bool(reader.read_u8())
+        pedal2_sample = reader.read_u16()
+        return hall0, hall1, pedal1_connected, pedal1_sample, pedal2_connected, pedal2_sample
+
 
 def format_value(ptype: int, value: int) -> str:
     if ptype == 0:  # PROPERTY_TYPE_BOOL
@@ -436,6 +508,15 @@ def main():
             log.log(f"{index:3d}  {name:<{name_width}}  {value:<{value_width}}  {description}")
         if len(rows) != count:
             log.log(f"({count - len(rows)} of {count} properties failed - see above)")
+
+        log.log("")
+        try:
+            hall0, hall1, p1_conn, p1_val, p2_conn, p2_val = board.get_peripherals(args.timeout)
+            log.log(f"peripherals: hall0={hall0} hall1={hall1}  "
+                    f"pedal1={'connected' if p1_conn else 'disconnected'}:{p1_val}  "
+                    f"pedal2={'connected' if p2_conn else 'disconnected'}:{p2_val}")
+        except (TimeoutError, FrameError) as e:
+            log.log(f"peripherals: FAILED ({e})")
     finally:
         log.log("closing (releasing USB interface, reattaching kernel driver)")
         board.close()

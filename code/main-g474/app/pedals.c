@@ -35,6 +35,26 @@ typedef struct {
   uint32_t sample_prev;     /* wiper sample at the last logged line */
 } pedal_state_t;
 
+/* Latest raw wiper reading and presence flag, for pedals_get_raw() below.
+ * Updated unconditionally every poll, unlike pedal_state_t's *_prev fields
+ * above (which only move when a diagnostic line is actually logged). */
+typedef struct {
+  uint16_t sample;
+  bool     connected;
+} pedal_raw_t;
+
+static pedal_raw_t g_pedal1_raw;
+static pedal_raw_t g_pedal2_raw;
+
+void pedals_get_raw(uint16_t *pedal1_sample, bool *pedal1_connected,
+                    uint16_t *pedal2_sample, bool *pedal2_connected)
+{
+  *pedal1_sample = g_pedal1_raw.sample;
+  *pedal1_connected = g_pedal1_raw.connected;
+  *pedal2_sample = g_pedal2_raw.sample;
+  *pedal2_connected = g_pedal2_raw.connected;
+}
+
 /* Polls one pedal: logs detect/movement changes, and while a pedal is connected
  * runs the wiper through directional hysteresis (see hysteresis.h) and emits its
  * Effect Controller CC whenever hyst_update() says the cleaned value is worth
@@ -42,10 +62,13 @@ typedef struct {
  * jack switch biases it to VCC), so a connected pedal reads GPIO_PIN_RESET. */
 static void pedal_poll_one(const char *name, GPIO_TypeDef *det_port, uint16_t det_pin,
                            ADC_HandleTypeDef *adc, uint8_t controller,
-                           const hyst_config_t *cfg, pedal_state_t *st)
+                           const hyst_config_t *cfg, pedal_state_t *st, pedal_raw_t *raw)
 {
   uint8_t connected = HAL_GPIO_ReadPin(det_port, det_pin) == GPIO_PIN_RESET;
   uint32_t sample = HAL_ADC_GetValue(adc);
+
+  raw->sample = (uint16_t)sample;
+  raw->connected = connected;
 
   /* Always log a presence change; otherwise only when log_pedals is set and the
    * wiper has moved enough to be worth a line. */
@@ -101,7 +124,7 @@ void pedals_poll(void)
   HAL_ADC_PollForConversion(&hadc2, 1);
 
   pedal_poll_one("PEDAL1", EXP_PEDAL_INT_GPIO_Port, EXP_PEDAL_INT_Pin, &hadc1,
-                 PEDAL1_CC, &cfg1, &pedal1);
+                 PEDAL1_CC, &cfg1, &pedal1, &g_pedal1_raw);
   pedal_poll_one("PEDAL2", SUS_PEDAL_INT_GPIO_Port, SUS_PEDAL_INT_Pin, &hadc2,
-                 PEDAL2_CC, &cfg2, &pedal2);
+                 PEDAL2_CC, &cfg2, &pedal2, &g_pedal2_raw);
 }

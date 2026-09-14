@@ -36,6 +36,10 @@ uint16_t bellow_sens_scale_q8(void);
  * bellow_direction(); consumers track changes themselves. */
 void bellow_poll(void);
 
+/* Raw ADC readings from the last bellow_poll(), before centering or
+ * classification: hall0/hall1 correspond to hadc3/hadc4 in bellow.c. */
+void bellow_get_raw(uint16_t *hall0, uint16_t *hall1);
+
 /* Diagnostic sweep over a range of the bellow_settle_us property: for each
  * value, repeatedly samples both hall sensors and prints a table of their mean
  * and standard deviation, to pick the smallest settling delay that reads

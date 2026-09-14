@@ -40,6 +40,10 @@ typedef struct {
 
 static bellow_output_t g_bellow_out = {.direction = BELLOWS_NEUTRAL, .intensity = 0};
 
+/* Latest raw hall readings, for bellow_get_raw() below. */
+static uint16_t g_bellow_last_hall0;
+static uint16_t g_bellow_last_hall1;
+
 /* Combined-hall calibration: center is the at-rest reading, hard push/pull
  * the readings at full travel. The deadzone sets how far from center the
  * bellows must move to leave BELLOWS_NEUTRAL (no air moves there, so
@@ -56,6 +60,12 @@ bellows_t bellow_direction(void)
 uint16_t bellow_intensity(void)
 {
   return g_bellow_out.intensity;
+}
+
+void bellow_get_raw(uint16_t *hall0, uint16_t *hall1)
+{
+  *hall0 = g_bellow_last_hall0;
+  *hall1 = g_bellow_last_hall1;
 }
 
 /* Bellows sensitivity multiplier (Q8, 256 = x1.0) for the level FN1 currently
@@ -347,6 +357,8 @@ void bellow_poll(void)
   static bellow_physical_simulation_state_t phys = {0};
 
   bellow_sample_t s = bellow_sample();
+  g_bellow_last_hall0 = s.hall0;
+  g_bellow_last_hall1 = s.hall1;
   uint32_t hall_total = s.hall0 + s.hall1;
   bellow_naive(hall_total, &naive);
   bellow_physical_simulation(hall_total, keyboard_keys_pressed(), naive.direction, &phys);

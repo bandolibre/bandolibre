@@ -41,7 +41,10 @@ void usb_app_midi_active_sensing(void);
 
 /* Sends a System Exclusive (sysex) message on cable 0: data is the message
  * identifier and body (matching what midi_sysex_received expects on the way
- * in), wrapped with a leading 0xF0 + 2-byte checksum and a trailing 0xF7. */
+ * in), wrapped with a leading 0xF0 + 2-byte checksum and a trailing 0xF7.
+ * The checksum and data bytes are byte-stuffed in between (see
+ * MIDI_SYSEX_ESCAPE in usb_app.cc) so a literal 0xF0/0xF7 occurring in
+ * either can never be mistaken for the frame markers. */
 void usb_app_midi_send_sysex(const uint8_t *data, size_t len);
 
 #ifdef __cplusplus
