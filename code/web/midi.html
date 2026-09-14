@@ -98,7 +98,7 @@
   #log {
     font-family: var(--mono);
     font-size: 0.78rem;
-    max-height: 260px;
+    height: 260px;
     overflow-y: auto;
     display: flex;
     flex-direction: column-reverse;
@@ -113,6 +113,16 @@
   #log div:first-child {
     color: var(--fg);
   }
+  .log-filters {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
+    font-size: 0.8rem; color: var(--fg);
+  }
+  .log-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+  .log-filters label {
+    display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer;
+  }
+  .log-filters input[type="checkbox"] { margin: 0; accent-color: var(--muted); cursor: pointer; }
+  .log-filter-master { font-weight: 600; padding-right: 14px; border-right: 1px solid var(--border); }
   .hint {
     font-size: 0.8rem;
     color: var(--muted);
@@ -429,8 +439,7 @@
         </div>
         <svg class="pedal-plot" viewBox="0 0 400 80" role="img" aria-label="Pedal 1 sensor range, minimum and maximum">
           <line class="bp-grid" x1="20" y1="55" x2="380" y2="55"></line>
-          <text class="bp-axis-label" x="20" y="72" text-anchor="start">0</text>
-          <text class="bp-axis-label" x="380" y="72" text-anchor="end">4095</text>
+          <g id="p1-xticks"></g>
           <rect id="p1-range-rect" class="ped-range" y="15" height="40"></rect>
           <line id="p1-hit-min" class="bp-vline-hit"></line>
           <line id="p1-vline-min" class="bp-vline ped-min"></line>
@@ -460,8 +469,7 @@
         </div>
         <svg class="pedal-plot" viewBox="0 0 400 80" role="img" aria-label="Pedal 2 sensor range, minimum and maximum">
           <line class="bp-grid" x1="20" y1="55" x2="380" y2="55"></line>
-          <text class="bp-axis-label" x="20" y="72" text-anchor="start">0</text>
-          <text class="bp-axis-label" x="380" y="72" text-anchor="end">4095</text>
+          <g id="p2-xticks"></g>
           <rect id="p2-range-rect" class="ped-range" y="15" height="40"></rect>
           <line id="p2-hit-min" class="bp-vline-hit"></line>
           <line id="p2-vline-min" class="bp-vline ped-min"></line>
@@ -499,6 +507,23 @@
 
   <div class="card">
     <label>Activity</label>
+    <div class="log-filters" id="logFilters">
+      <div class="log-filter-row">
+        <label><input type="checkbox" data-kind="note" checked> Notes</label>
+        <label><input type="checkbox" data-kind="cc" checked> CC</label>
+        <label><input type="checkbox" data-kind="activeSensing"> Active Sensing</label>
+        <label><input type="checkbox" data-kind="other" checked> Other</label>
+      </div>
+      <div class="log-filter-row">
+        <label class="log-filter-master"><input type="checkbox" id="logFilterSysexAll" checked> Sysex</label>
+        <label><input type="checkbox" data-kind="sysexHello" data-group="sysex" checked> Hello</label>
+        <label><input type="checkbox" data-kind="sysexGetProperty" data-group="sysex" checked> Get Property</label>
+        <label><input type="checkbox" data-kind="sysexGetPropertyDescription" data-group="sysex" checked> Get Property Description</label>
+        <label><input type="checkbox" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
+        <label><input type="checkbox" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
+        <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
+      </div>
+    </div>
     <div id="log"></div>
   </div>
 </main>
@@ -640,6 +665,13 @@
     }
   }
 
+  /* English note name + octave for a MIDI note number, using the common
+   * "middle C (note 60) = C4" convention. */
+  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  function noteName(note) {
+    return NOTE_NAMES[note % 12] + (Math.floor(note / 12) - 1);
+  }
+
   /* Names for the handful of Control Change numbers this project actually
    * uses (mirrors usb_app.cc's cc_name); anything else is logged by number
    * alone. */
@@ -660,10 +692,10 @@
     const status = bytes[0];
     const ch = (status & 0x0f) + 1;
     switch (status & 0xf0) {
-      case 0x80: return "Note Off ch " + ch + " note " + bytes[1] + " vel " + bytes[2];
+      case 0x80: return "Note Off ch " + ch + " note " + noteName(bytes[1]) + " (" + bytes[1] + ") vel " + bytes[2];
       case 0x90: return bytes[2] === 0
-        ? "Note On ch " + ch + " note " + bytes[1] + " vel 0 (= Note Off)"
-        : "Note On ch " + ch + " note " + bytes[1] + " vel " + bytes[2];
+        ? "Note On ch " + ch + " note " + noteName(bytes[1]) + " (" + bytes[1] + ") vel 0 (= Note Off)"
+        : "Note On ch " + ch + " note " + noteName(bytes[1]) + " (" + bytes[1] + ") vel " + bytes[2];
       case 0xa0: return "Poly Aftertouch ch " + ch + " note " + bytes[1] + " pressure " + bytes[2];
       case 0xb0: return "Control Change ch " + ch + " " + ccName(bytes[1]) + "(" + bytes[1] + ") = " + bytes[2];
       case 0xc0: return "Program Change ch " + ch + " program " + bytes[1];
@@ -682,6 +714,30 @@
     }
   }
 
+  /* Activity-log filter category for an incoming short (non-sysex) message.
+   * Active Sensing is classified by handleMidiMessage before this is called
+   * (it never reaches here - see the early return there). `startingSysex` is
+   * true for a message that is (or continues) a sysex frame: when this
+   * event's bytes are a complete, self-contained 0xF0...0xF7 frame (the
+   * common case for this protocol's small messages), it's speculatively
+   * unpacked just to read its message id, so the raw dump lands in the same
+   * filter bucket as its "→ ..." completion line below rather than always
+   * falling into the "sysexOther" catch-all. A frame split across multiple
+   * events can't be classified yet at this point and falls back to
+   * "sysexOther" for its earlier chunks. */
+  function messageKind(bytes, startingSysex) {
+    if (startingSysex) {
+      const selfContained = bytes[0] === 0xf0 && bytes[bytes.length - 1] === 0xf7;
+      const peeked = selfContained ? unpackSysexFrame(Uint8Array.from(bytes)) : null;
+      return peeked ? sysexKindFromId(peeked[0]) : "sysexOther";
+    }
+    switch (bytes[0] & 0xf0) {
+      case 0x80: case 0x90: return "note";
+      case 0xb0: return "cc";
+      default: return "other";
+    }
+  }
+
   function sysexMessageName(id) {
     switch (id) {
       case SYSEX_MSG_HELLO: return "HELLO";
@@ -690,6 +746,21 @@
       case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
       case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
       default: return "0x" + id.toString(16).padStart(2, "0");
+    }
+  }
+
+  /* Activity-log filter category for a sysex message, by its message id.
+   * Anything that isn't a recognized request/response (a malformed frame,
+   * or a diagnostic that isn't about one specific message) falls back to
+   * the "sysexOther" catch-all. */
+  function sysexKindFromId(id) {
+    switch (id) {
+      case SYSEX_MSG_HELLO: return "sysexHello";
+      case SYSEX_MSG_GET_PROPERTY: return "sysexGetProperty";
+      case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "sysexGetPropertyDescription";
+      case SYSEX_MSG_SET_PROPERTY: return "sysexSetProperty";
+      case SYSEX_MSG_GET_PERIPHERALS: return "sysexGetPeripherals";
+      default: return "sysexOther";
     }
   }
 
@@ -760,12 +831,13 @@
       // kept quiet on the success path. Timeouts/errors still log: those are
       // signal, not routine chatter.
       const silent = payload[0] === SYSEX_MSG_GET_PERIPHERALS;
+      const kind = sysexKindFromId(payload[0]);
       const frame = buildSysexFrame(payload);
       const hex = Array.from(frame, (b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
       const desc = describeSysexPayload(payload);
       const sentAt = Date.now();
       if (!silent) {
-        log("» " + hex + "  (" + desc + ")");
+        log("» " + hex + "  (" + desc + ")", kind);
         console.log("[sysex send]", { desc, frameLen: frame.length, payloadLen: payload.length, timeoutMs, sentAt });
       }
       const timeoutId = setTimeout(() => {
@@ -773,12 +845,12 @@
         const reqDesc = pending ? pending.requestDesc : "unknown";
         pending = null;
         const msg = "timed out waiting for a response after " + elapsed + "ms";
-        log("⏱ TIMEOUT: " + msg + " (" + reqDesc + ")");
+        log("⏱ TIMEOUT: " + msg + " (" + reqDesc + ")", kind);
         console.log("[sysex timeout]", { requestDesc: reqDesc, elapsed, timeoutMs });
         reject(new Error(msg));
         pumpWriteQueue();
       }, timeoutMs);
-      pending = { resolve, reject, timeoutId, sentAt, requestDesc: desc, silent };
+      pending = { resolve, reject, timeoutId, sentAt, requestDesc: desc, silent, kind };
       try {
         activeOutput.send(frame);
         if (!silent) console.log("[sysex sent]", { desc, elapsed: Date.now() - sentAt });
@@ -797,10 +869,11 @@
     clearTimeout(pending.timeoutId);
     const desc = pending.requestDesc;
     const silent = pending.silent;
+    const kind = pending.kind;
     const resolve = pending.resolve;
     pending = null;
     if (!silent) {
-      log("« response (" + desc + ")");
+      log("« response (" + desc + ")", kind);
       console.log("[sysex response]", { desc, elapsed, payloadLen: payload.length });
     }
     resolve(payload);
@@ -879,7 +952,7 @@
     writeQueue.delete(index);
     writeInFlight = true;
     requestSetProperty(index, value)
-      .catch((err) => log("set property " + index + " failed: " + err.message))
+      .catch((err) => log("set property " + index + " failed: " + err.message, "sysexSetProperty"))
       .finally(() => { writeInFlight = false; pumpWriteQueue(); });
   }
 
@@ -954,7 +1027,7 @@
       const helloStart = Date.now();
       const hello = await requestHello();
       const helloTime = Date.now() - helloStart;
-      log("hello: " + hello.version + ", " + hello.count + " properties");
+      log("hello: " + hello.version + ", " + hello.count + " properties", "sysexHello");
       console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
       propertiesTable.hidden = false;
       const fetched = new Map(); // index -> { value, description }
@@ -985,13 +1058,13 @@
         updatePedalLiveState(p);
         startPeripheralPolling();
       } catch (err) {
-        log("peripherals request failed: " + err.message);
+        log("peripherals request failed: " + err.message, "sysexGetPeripherals");
         console.log("[peripherals error]", { error: err.message });
       }
     } catch (err) {
       const enumTime = Date.now();
       setPropertiesStatus("Failed to load properties: " + err.message);
-      log("property enumeration failed: " + err.message);
+      log("property enumeration failed: " + err.message, "sysexOther");
       console.log("[enum failed]", { error: err.message, timestamp: enumTime });
       if (err.message.includes("timed out")) propertiesRetryBtn.hidden = false;
     }
@@ -1129,6 +1202,7 @@
       liveLine: bp("p1-live-line"), liveDot: bp("p1-live-dot"),
       roAdc: bp("p1-ro-adc"), roCc: bp("p1-ro-cc"),
       numMin: bp("num-p1-min"), numMax: bp("num-p1-max"),
+      xticks: bp("p1-xticks"),
     },
     p2: {
       svg: document.querySelectorAll("svg.pedal-plot")[1],
@@ -1140,6 +1214,7 @@
       liveLine: bp("p2-live-line"), liveDot: bp("p2-live-dot"),
       roAdc: bp("p2-ro-adc"), roCc: bp("p2-ro-cc"),
       numMin: bp("num-p2-min"), numMax: bp("num-p2-max"),
+      xticks: bp("p2-xticks"),
     },
   };
 
@@ -1490,7 +1565,7 @@
       if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
         ok = false;
         log("bellows graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
-            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.");
+            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
         break;
       }
     }
@@ -1525,7 +1600,7 @@
       if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
         ok = false;
         log("pedal graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
-            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.");
+            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
         break;
       }
     }
@@ -1549,6 +1624,30 @@
   function pedalAdcToPx(adc) {
     return PEDAL_PLOT_LEFT + (clamp(adc, 0, PEDAL_DOMAIN_MAX) / PEDAL_DOMAIN_MAX) * (PEDAL_PLOT_RIGHT - PEDAL_PLOT_LEFT);
   }
+
+  // The domain is fixed, so these are drawn once rather than on every
+  // redraw (unlike the bellows graph's renderXTicks, whose range moves with
+  // bellow_full_push/pull).
+  const PEDAL_X_TICK_STEP = 1000;
+  function renderPedalXTicks(group) {
+    while (group.firstChild) group.removeChild(group.firstChild);
+    for (let v = 0; v <= PEDAL_DOMAIN_MAX; v += PEDAL_X_TICK_STEP) {
+      const x = pedalAdcToPx(v);
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("class", "bp-tick");
+      tick.setAttribute("x1", x); tick.setAttribute("y1", PEDAL_PLOT_BOTTOM);
+      tick.setAttribute("x2", x); tick.setAttribute("y2", PEDAL_PLOT_BOTTOM + 6);
+      group.appendChild(tick);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("class", "bp-axis-label bp-axis-label-x");
+      label.setAttribute("x", x); label.setAttribute("y", PEDAL_PLOT_BOTTOM + 17);
+      label.setAttribute("text-anchor", v === 0 ? "start" : "middle");
+      label.textContent = v;
+      group.appendChild(label);
+    }
+  }
+  renderPedalXTicks(pedalEls.p1.xticks);
+  renderPedalXTicks(pedalEls.p2.xticks);
 
   function redrawPedalGraph(p) {
     const st = pg[p];
@@ -1712,10 +1811,48 @@
     return !!name && BANDOLIBRE_RE.test(name);
   }
 
-  function log(message) {
+  // Activity log filters: one checkbox per message kind (see messageKind()
+  // above for how incoming MIDI is classified; sysex/other log calls pass
+  // their kind explicitly at the call site). Read from the checkboxes'
+  // markup-defined `checked` state, so that state lives in one place. The
+  // "Sysex" checkbox is a master for the sysexHello/.../sysexOther group -
+  // it has no data-kind of its own (nothing is ever logged under it).
+  const logFilters = {};
+  function applyLogFilters() {
+    for (const line of logEl.children) line.hidden = logFilters[line.dataset.kind] === false;
+  }
+  document.querySelectorAll("#logFilters input[data-kind]").forEach((cb) => {
+    logFilters[cb.dataset.kind] = cb.checked;
+    cb.addEventListener("change", () => {
+      logFilters[cb.dataset.kind] = cb.checked;
+      applyLogFilters();
+      if (cb.dataset.group === "sysex") updateSysexMasterCheckbox();
+    });
+  });
+
+  const sysexGroupCheckboxes = document.querySelectorAll('#logFilters input[data-group="sysex"]');
+  const sysexMasterCheckbox = document.getElementById("logFilterSysexAll");
+  function updateSysexMasterCheckbox() {
+    const checkedCount = Array.from(sysexGroupCheckboxes).filter((cb) => cb.checked).length;
+    sysexMasterCheckbox.checked = checkedCount === sysexGroupCheckboxes.length;
+    sysexMasterCheckbox.indeterminate = checkedCount > 0 && checkedCount < sysexGroupCheckboxes.length;
+  }
+  sysexMasterCheckbox.addEventListener("change", () => {
+    sysexMasterCheckbox.indeterminate = false;
+    sysexGroupCheckboxes.forEach((cb) => {
+      cb.checked = sysexMasterCheckbox.checked;
+      logFilters[cb.dataset.kind] = cb.checked;
+    });
+    applyLogFilters();
+  });
+  updateSysexMasterCheckbox();
+
+  function log(message, kind = "other") {
     const line = document.createElement("div");
     const time = new Date().toLocaleTimeString();
     line.textContent = "[" + time + "] " + message;
+    line.dataset.kind = kind;
+    line.hidden = logFilters[kind] === false;
     logEl.prepend(line);
     while (logEl.childNodes.length > MAX_LOG_LINES) {
       logEl.removeChild(logEl.lastChild);
@@ -1809,11 +1946,27 @@
   function handleMidiMessage(event) {
     const bytes = Array.from(event.data);
     const isActiveSensing = bytes.length === 1 && bytes[0] === 0xfe;
-    if (isActiveSensing) return; // skip keepalive messages
+    if (isActiveSensing) {
+      // Never fed into the sysex accumulator below: Active Sensing is a
+      // real-time byte that can legally interleave mid-frame, and stripping
+      // it here (rather than in the byte loop) keeps that interleaving from
+      // ever touching sysexBuf.
+      log("« FE  (Active Sensing)", "activeSensing");
+      return;
+    }
+    const startingSysex = bytes[0] === 0xf0 || inSysex;
+    // A GET_PERIPHERALS exchange (polled several times a second - see
+    // startPeripheralPolling) is kept quiet the same way sendSysexRequest/
+    // resolvePendingRequest already silence its outgoing request and
+    // resolved-response logs: pending.silent is set for exactly the request
+    // this reply is answering, since only one request is ever in flight.
+    const silentSysex = startingSysex && !!pending && pending.silent;
     const hex = bytes.map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
-    const description = (bytes[0] === 0xf0 || inSysex) ? null : describeShortMessage(bytes);
-    log("« " + hex + (description ? "  (" + description + ")" : ""));
-    console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
+    const description = startingSysex ? null : describeShortMessage(bytes);
+    if (!silentSysex) {
+      log("« " + hex + (description ? "  (" + description + ")" : ""), messageKind(bytes, startingSysex));
+      console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
+    }
 
     for (const b of bytes) {
       if (b === 0xf0) {
@@ -1828,11 +1981,13 @@
           inSysex = false;
           const payload = unpackSysexFrame(Uint8Array.from(sysexBuf));
           if (payload) {
-            log("  → " + describeSysexPayload(payload));
-            console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
+            if (!silentSysex) {
+              log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
+              console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
+            }
             resolvePendingRequest(payload);
           } else {
-            log("sysex: malformed frame or checksum mismatch");
+            log("sysex: malformed frame or checksum mismatch", "sysexOther");
             console.log("[sysex error]", { frameLen: sysexBuf.length, error: "parse failed" });
           }
           sysexBuf = [];
@@ -1871,7 +2026,7 @@
 
     log("connected to \"" + device.name + "\"" +
         (device.input ? "" : " (no input)") +
-        (device.output ? "" : " (no output)"));
+        (device.output ? "" : " (no output)"), "other");
     renderSelector();
     updateStatus();
     enumerateProperties();
@@ -1890,11 +2045,11 @@
 
   function onStateChange(event) {
     const port = event.port;
-    log((port.name || "(unnamed)") + " [" + port.type + "] " + port.state);
+    log((port.name || "(unnamed)") + " [" + port.type + "] " + port.state, "other");
 
     if (port.id === activeKey || (activeInput && port.id === activeInput.id) || (activeOutput && port.id === activeOutput.id)) {
       if (port.state === "disconnected") {
-        log("\"" + activeName + "\" disconnected");
+        log("\"" + activeName + "\" disconnected", "other");
         disconnect();
       }
     }
