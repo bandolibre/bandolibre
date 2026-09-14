@@ -178,7 +178,9 @@
     margin-top: 8px;
   }
   .bp-grid { stroke: var(--border); stroke-width: 1; }
+  .bp-tick { stroke: var(--muted); stroke-width: 1; }
   .bp-axis-label { fill: var(--muted); font-family: var(--mono); font-size: 15px; }
+  .bp-axis-label-x, .bp-axis-label-y { font-size: 11px; }
   .bp-curve { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .bp-curve.push { stroke: var(--push); }
   .bp-curve.pull { stroke: var(--pull); }
@@ -205,8 +207,9 @@
   .bp-live-drop { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; }
   .bp-live-dot { fill: var(--fg); stroke: var(--card); stroke-width: 2; }
   .bp-readout {
-    display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline;
-    font-family: var(--mono); font-size: 1.15rem; margin-top: 6px;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; align-items: baseline;
+    font-family: var(--mono); font-size: 1.15rem; margin: 10px auto 0; width: fit-content;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 20px;
   }
   .bp-readout b { font-weight: 700; font-variant-numeric: tabular-nums; }
   .bp-readout .sep { color: var(--muted); }
@@ -237,17 +240,32 @@
   .bp-swatch.pull { background: var(--pull); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
   .bp-cp-row-label { font-size: 0.72rem; color: var(--muted); }
-  .bp-xy { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .bp-xy label {
+  .bp-xy, .bp-xyz { display: grid; gap: 6px; }
+  .bp-xy { grid-template-columns: 1fr 1fr; }
+  .bp-xyz { grid-template-columns: 1fr 1fr 1fr; }
+  .bp-xy label, .bp-xyz label {
     display: flex; align-items: center; gap: 5px; margin: 0;
     border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px;
   }
-  .bp-xy label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
-  .bp-xy input[type="number"] {
+  .bp-xy label span, .bp-xyz label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
+  .bp-xy input[type="number"], .bp-xyz input[type="number"] {
     width: 100%; border: none; background: transparent; color: var(--fg);
     font-family: var(--mono); font-size: 0.82rem; padding: 2px 0; font-variant-numeric: tabular-nums;
   }
-  .bp-xy input[type="number"]:focus { outline: none; }
+  .bp-xy input[type="number"]:focus, .bp-xyz input[type="number"]:focus { outline: none; }
+
+  /* ---- Pedal calibration graphs ---- */
+  .pedal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+  @media (max-width: 520px) { .pedal-grid { grid-template-columns: 1fr; } }
+  .pedal-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .pedal-title { font-family: var(--mono); font-size: 0.85rem; font-weight: 600; }
+  svg.pedal-plot { width: 100%; height: auto; display: block; touch-action: none; }
+  .ped-range { fill: var(--muted); opacity: 0.15; }
+  .bp-vline.ped-min { stroke: var(--push); }
+  .bp-vline.ped-max { stroke: var(--pull); }
 </style>
 </head>
 <body>
@@ -274,14 +292,20 @@
     <label>Bellows curve</label>
     <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
 
-    <svg class="bellow-plot" viewBox="0 0 900 420" role="img" aria-label="ADC to CC conversion curve for the bellows, push and pull">
+    <svg class="bellow-plot" viewBox="0 0 900 420" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
       <line class="bp-grid" x1="70" y1="340" x2="860" y2="340"></line>
       <line class="bp-grid" x1="70" y1="30" x2="860" y2="30"></line>
-      <text class="bp-axis-label" x="60" y="344" text-anchor="end">0</text>
-      <text class="bp-axis-label" x="60" y="34" text-anchor="end">127</text>
-      <text class="bp-axis-label" id="bp-lbl-xmin" x="70" y="364" text-anchor="start"></text>
-      <text class="bp-axis-label" id="bp-lbl-xmax" x="860" y="364" text-anchor="end"></text>
-      <text class="bp-axis-label" x="465" y="388" text-anchor="middle">ADC</text>
+      <text class="bp-axis-label bp-axis-label-y" x="60" y="344" text-anchor="end">0</text>
+      <text class="bp-axis-label bp-axis-label-y" x="60" y="34" text-anchor="end">127</text>
+      <line class="bp-tick" x1="64" y1="107.5" x2="70" y2="107.5"></line>
+      <text class="bp-axis-label bp-axis-label-y" x="60" y="111.5" text-anchor="end">95</text>
+      <line class="bp-tick" x1="64" y1="185" x2="70" y2="185"></line>
+      <text class="bp-axis-label bp-axis-label-y" x="60" y="189" text-anchor="end">64</text>
+      <line class="bp-tick" x1="64" y1="262.5" x2="70" y2="262.5"></line>
+      <text class="bp-axis-label bp-axis-label-y" x="60" y="266.5" text-anchor="end">32</text>
+      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">CC#11</text>
+      <text class="bp-axis-label bp-axis-label-x" x="465" y="388" text-anchor="middle">sensor</text>
+      <g id="bp-xticks"></g>
 
       <line id="vline-dead-push" class="bp-vline dead"></line>
       <line id="vline-dead-pull" class="bp-vline dead"></line>
@@ -296,7 +320,6 @@
       <text class="bp-vline-label" id="lbl-fullpush" text-anchor="middle" y="20"></text>
       <text class="bp-vline-label" id="lbl-fullpull" text-anchor="middle" y="20"></text>
       <text class="bp-vline-label" id="lbl-center" text-anchor="middle" y="20"></text>
-      <text class="bp-vline-label" id="lbl-dead" text-anchor="middle" y="356"></text>
 
       <line id="guide-push-1" class="bp-guide"></line>
       <line id="guide-push-2" class="bp-guide"></line>
@@ -321,7 +344,7 @@
     </svg>
 
     <div class="bp-readout">
-      ADC <b id="bp-ro-adc">—</b>
+      sensor <b id="bp-ro-adc">—</b>
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
@@ -335,6 +358,17 @@
     </div>
 
     <div class="bp-params">
+      <div class="bp-group bp-group-full">
+        <div class="bp-group-title">bellow_full_push / bellow_center / bellow_full_pull</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">Combined hall sensor reading</span>
+          <div class="bp-xyz">
+            <label><span>min</span><input type="number" id="num-full-push" min="0" max="30000" value="9500"></label>
+            <label><span>center</span><input type="number" id="num-center" min="0" max="30000" value="11280"></label>
+            <label><span>max</span><input type="number" id="num-full-pull" min="0" max="30000" value="13000"></label>
+          </div>
+        </div>
+      </div>
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch push"></span>bellow_push_curve</div>
         <div class="bp-cp-row">
@@ -377,6 +411,75 @@
             <input type="range" id="slider-dead" min="0" max="64" value="64">
             <span class="bp-slider-value" id="slider-dead-value">64</span>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Pedals</label>
+    <p class="bp-caption">Drag the min / max lines (or edit the numbers) to calibrate each pedal's sensor range. Hold Shift while dragging for fine adjustment.</p>
+
+    <div class="pedal-grid">
+      <div class="pedal-card">
+        <div class="pedal-title">Pedal 1 — Expression</div>
+        <div class="status-row">
+          <span class="dot" id="p1-status-dot"></span>
+          <span id="p1-status-text">Not connected to device.</span>
+        </div>
+        <svg class="pedal-plot" viewBox="0 0 400 80" role="img" aria-label="Pedal 1 sensor range, minimum and maximum">
+          <line class="bp-grid" x1="20" y1="55" x2="380" y2="55"></line>
+          <text class="bp-axis-label" x="20" y="72" text-anchor="start">0</text>
+          <text class="bp-axis-label" x="380" y="72" text-anchor="end">4095</text>
+          <rect id="p1-range-rect" class="ped-range" y="15" height="40"></rect>
+          <line id="p1-hit-min" class="bp-vline-hit"></line>
+          <line id="p1-vline-min" class="bp-vline ped-min"></line>
+          <line id="p1-hit-max" class="bp-vline-hit"></line>
+          <line id="p1-vline-max" class="bp-vline ped-max"></line>
+          <text class="bp-vline-label" id="p1-lbl-min" text-anchor="middle" y="12"></text>
+          <text class="bp-vline-label" id="p1-lbl-max" text-anchor="middle" y="12"></text>
+          <line id="p1-live-line" class="bp-live-drop"></line>
+          <circle id="p1-live-dot" class="bp-live-dot" r="5"></circle>
+        </svg>
+        <div class="bp-readout">
+          sensor <b id="p1-ro-adc">—</b>
+          <span class="sep">→</span>
+          CC <b id="p1-ro-cc">—</b>
+        </div>
+        <div class="bp-xy">
+          <label><span>min</span><input type="number" id="num-p1-min" min="0" max="4095" value="920"></label>
+          <label><span>max</span><input type="number" id="num-p1-max" min="0" max="4095" value="3100"></label>
+        </div>
+      </div>
+
+      <div class="pedal-card">
+        <div class="pedal-title">Pedal 2 — Sustain</div>
+        <div class="status-row">
+          <span class="dot" id="p2-status-dot"></span>
+          <span id="p2-status-text">Not connected to device.</span>
+        </div>
+        <svg class="pedal-plot" viewBox="0 0 400 80" role="img" aria-label="Pedal 2 sensor range, minimum and maximum">
+          <line class="bp-grid" x1="20" y1="55" x2="380" y2="55"></line>
+          <text class="bp-axis-label" x="20" y="72" text-anchor="start">0</text>
+          <text class="bp-axis-label" x="380" y="72" text-anchor="end">4095</text>
+          <rect id="p2-range-rect" class="ped-range" y="15" height="40"></rect>
+          <line id="p2-hit-min" class="bp-vline-hit"></line>
+          <line id="p2-vline-min" class="bp-vline ped-min"></line>
+          <line id="p2-hit-max" class="bp-vline-hit"></line>
+          <line id="p2-vline-max" class="bp-vline ped-max"></line>
+          <text class="bp-vline-label" id="p2-lbl-min" text-anchor="middle" y="12"></text>
+          <text class="bp-vline-label" id="p2-lbl-max" text-anchor="middle" y="12"></text>
+          <line id="p2-live-line" class="bp-live-drop"></line>
+          <circle id="p2-live-dot" class="bp-live-dot" r="5"></circle>
+        </svg>
+        <div class="bp-readout">
+          sensor <b id="p2-ro-adc">—</b>
+          <span class="sep">→</span>
+          CC <b id="p2-ro-cc">—</b>
+        </div>
+        <div class="bp-xy">
+          <label><span>min</span><input type="number" id="num-p2-min" min="0" max="4095" value="920"></label>
+          <label><span>max</span><input type="number" id="num-p2-max" min="0" max="4095" value="3100"></label>
         </div>
       </div>
     </div>
@@ -873,11 +976,13 @@
       setPropertiesStatus(hello.count + " propert" + (hello.count === 1 ? "y" : "ies"));
 
       applyBellowGraphFromFetched(fetched);
+      applyPedalGraphFromFetched(fetched);
 
       try {
         const p = await requestPeripherals();
         liveAdcTotal = p.hall0 + p.hall1;
         updateLiveDot();
+        updatePedalLiveState(p);
         startPeripheralPolling();
       } catch (err) {
         log("peripherals request failed: " + err.message);
@@ -926,6 +1031,21 @@
   };
   let bellowGraphLive = false;
   let liveAdcTotal = null;
+
+  // Same drift-risk assumption as PROP_INDEX/PROP_EXPECT above, for the two
+  // pedal calibration ranges.
+  const PEDAL_PROP_INDEX = { p1Min: 12, p1Max: 13, p2Min: 14, p2Max: 15 };
+  const PEDAL_PROP_EXPECT = {
+    [PEDAL_PROP_INDEX.p1Min]: "Pedal 1 (expression) ADC at minimum",
+    [PEDAL_PROP_INDEX.p1Max]: "Pedal 1 (expression) ADC at maximum",
+    [PEDAL_PROP_INDEX.p2Min]: "Pedal 2 (sustain) ADC at minimum",
+    [PEDAL_PROP_INDEX.p2Max]: "Pedal 2 (sustain) ADC at maximum",
+  };
+  let pedalGraphLive = false;
+  const pg = {
+    p1: { min: 920, max: 3100, sample: null, connected: null },
+    p2: { min: 920, max: 3100, sample: null, connected: null },
+  };
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
   // Newton-Raphson + bisection solve for x(t)=x, then evaluate y(t).
@@ -977,14 +1097,14 @@
   const bp = (id) => document.getElementById(id);
   const bpEls = {
     status: bp("bellowStatus"),
-    lblXmin: bp("bp-lbl-xmin"), lblXmax: bp("bp-lbl-xmax"),
+    xticks: bp("bp-xticks"),
     vlineDeadPush: bp("vline-dead-push"),
     vlineDeadPull: bp("vline-dead-pull"),
     hitFullPush: bp("hit-fullpush"), vlineFullPush: bp("vline-fullpush"),
     hitFullPull: bp("hit-fullpull"), vlineFullPull: bp("vline-fullpull"),
     hitCenter: bp("hit-center"), vlineCenter: bp("vline-center"),
     lblFullPush: bp("lbl-fullpush"), lblFullPull: bp("lbl-fullpull"),
-    lblCenter: bp("lbl-center"), lblDead: bp("lbl-dead"),
+    lblCenter: bp("lbl-center"),
     guidePush1: bp("guide-push-1"), guidePush2: bp("guide-push-2"),
     guidePull1: bp("guide-pull-1"), guidePull2: bp("guide-pull-2"),
     curvePathPush: bp("curve-path-push"), curvePathPull: bp("curve-path-pull"),
@@ -997,6 +1117,31 @@
     sliderDead: bp("slider-dead"), sliderDeadValue: bp("slider-dead-value"),
   };
   const bellowSvg = document.querySelector("svg.bellow-plot");
+
+  const pedalEls = {
+    p1: {
+      svg: document.querySelectorAll("svg.pedal-plot")[0],
+      statusDot: bp("p1-status-dot"), statusText: bp("p1-status-text"),
+      hitMin: bp("p1-hit-min"), vlineMin: bp("p1-vline-min"),
+      hitMax: bp("p1-hit-max"), vlineMax: bp("p1-vline-max"),
+      lblMin: bp("p1-lbl-min"), lblMax: bp("p1-lbl-max"),
+      rangeRect: bp("p1-range-rect"),
+      liveLine: bp("p1-live-line"), liveDot: bp("p1-live-dot"),
+      roAdc: bp("p1-ro-adc"), roCc: bp("p1-ro-cc"),
+      numMin: bp("num-p1-min"), numMax: bp("num-p1-max"),
+    },
+    p2: {
+      svg: document.querySelectorAll("svg.pedal-plot")[1],
+      statusDot: bp("p2-status-dot"), statusText: bp("p2-status-text"),
+      hitMin: bp("p2-hit-min"), vlineMin: bp("p2-vline-min"),
+      hitMax: bp("p2-hit-max"), vlineMax: bp("p2-vline-max"),
+      lblMin: bp("p2-lbl-min"), lblMax: bp("p2-lbl-max"),
+      rangeRect: bp("p2-range-rect"),
+      liveLine: bp("p2-live-line"), liveDot: bp("p2-live-dot"),
+      roAdc: bp("p2-ro-adc"), roCc: bp("p2-ro-cc"),
+      numMin: bp("num-p2-min"), numMax: bp("num-p2-max"),
+    },
+  };
 
   // ---- Geometry: a plain linear ADC axis, 10% beyond bellow_full_push/pull
   // on each side, and a CC (0..127) axis. ----
@@ -1056,6 +1201,8 @@
   function placeCircle(el, x, y) { el.setAttribute("cx", x); el.setAttribute("cy", y); }
 
   function syncParamInputs() {
+    bp("num-full-push").value = bg.fullPush; bp("num-center").value = bg.center;
+    bp("num-full-pull").value = bg.fullPull;
     bp("num-push-x1").value = bg.push.x1; bp("num-push-y1").value = bg.push.y1;
     bp("num-push-x2").value = bg.push.x2; bp("num-push-y2").value = bg.push.y2;
     bp("num-pull-x1").value = bg.pull.x1; bp("num-pull-y1").value = bg.pull.y1;
@@ -1086,10 +1233,30 @@
     bpEls.roCc.textContent = Math.round(cc);
   }
 
+  const X_TICK_STEP = 500;
+  function renderXTicks(xMin, xMax) {
+    const group = bpEls.xticks;
+    while (group.firstChild) group.removeChild(group.firstChild);
+    const start = Math.ceil(xMin / X_TICK_STEP) * X_TICK_STEP;
+    for (let v = start; v <= xMax; v += X_TICK_STEP) {
+      const x = adcToPx(v);
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("class", "bp-tick");
+      tick.setAttribute("x1", x); tick.setAttribute("y1", PLOT_BOTTOM);
+      tick.setAttribute("x2", x); tick.setAttribute("y2", PLOT_BOTTOM + 6);
+      group.appendChild(tick);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("class", "bp-axis-label bp-axis-label-x");
+      label.setAttribute("x", x); label.setAttribute("y", PLOT_BOTTOM + 20);
+      label.setAttribute("text-anchor", "middle");
+      label.textContent = v;
+      group.appendChild(label);
+    }
+  }
+
   function redrawGraph() {
     const { xMin, xMax } = axisRange();
-    bpEls.lblXmin.textContent = Math.round(xMin);
-    bpEls.lblXmax.textContent = Math.round(xMax);
+    renderXTicks(xMin, xMax);
 
     const { pushEdge, pullEdge } = edges();
     const centerPx = adcToPx(bg.center);
@@ -1109,10 +1276,8 @@
     bpEls.lblFullPush.setAttribute("x", fullPushPx);
     bpEls.lblFullPull.textContent = "full pull " + Math.round(bg.fullPull);
     bpEls.lblFullPull.setAttribute("x", fullPullPx);
-    bpEls.lblCenter.textContent = "center " + Math.round(bg.center);
+    bpEls.lblCenter.textContent = "center " + Math.round(bg.center) + "  ·  dead " + Math.round(bg.dead);
     bpEls.lblCenter.setAttribute("x", centerPx);
-    bpEls.lblDead.textContent = "dead " + Math.round(bg.dead);
-    bpEls.lblDead.setAttribute("x", centerPx);
 
     // Flat saturation, push ramp (true Bezier), flat deadzone, pull ramp
     // (true Bezier), flat saturation. An affine remap of a Bezier's control
@@ -1152,10 +1317,13 @@
     updateLiveDot();
   }
 
-  function svgPoint(clientX, clientY) {
-    const pt = bellowSvg.createSVGPoint();
+  function svgPointIn(svg, clientX, clientY) {
+    const pt = svg.createSVGPoint();
     pt.x = clientX; pt.y = clientY;
-    return pt.matrixTransform(bellowSvg.getScreenCTM().inverse());
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function svgPoint(clientX, clientY) {
+    return svgPointIn(bellowSvg, clientX, clientY);
   }
 
   /* Draggable vertical line (center / full push / full pull): horizontal
@@ -1279,6 +1447,20 @@
     });
   });
 
+  function bindRangeNum(id, bgKey, propIndex) {
+    const input = bp(id);
+    input.addEventListener("input", () => {
+      if (input.value === "") return;
+      const v = clamp(Math.round(+input.value), 0, 30000);
+      bg[bgKey] = v;
+      if (bellowGraphLive) queueSetProperty(propIndex, v);
+      redrawGraph();
+    });
+  }
+  bindRangeNum("num-full-push", "fullPush", PROP_INDEX.fullPush);
+  bindRangeNum("num-center", "center", PROP_INDEX.center);
+  bindRangeNum("num-full-pull", "fullPull", PROP_INDEX.fullPull);
+
   bpEls.sliderDead.addEventListener("input", () => {
     bg.dead = clamp(Math.round(+bpEls.sliderDead.value), 0, 64);
     bpEls.sliderDeadValue.textContent = bg.dead;
@@ -1335,6 +1517,161 @@
     redrawGraph();
   }
 
+  function applyPedalGraphFromFetched(fetched) {
+    let ok = true;
+    for (const [indexStr, expectedPrefix] of Object.entries(PEDAL_PROP_EXPECT)) {
+      const index = Number(indexStr);
+      const entry = fetched.get(index);
+      if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
+        ok = false;
+        log("pedal graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
+            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.");
+        break;
+      }
+    }
+    pedalGraphLive = ok;
+    if (ok) {
+      pg.p1.min = fetched.get(PEDAL_PROP_INDEX.p1Min).value;
+      pg.p1.max = fetched.get(PEDAL_PROP_INDEX.p1Max).value;
+      pg.p2.min = fetched.get(PEDAL_PROP_INDEX.p2Min).value;
+      pg.p2.max = fetched.get(PEDAL_PROP_INDEX.p2Max).value;
+    }
+    redrawPedalGraph("p1");
+    redrawPedalGraph("p2");
+  }
+
+  // ---- Pedal graphs: a fixed 0..4095 ADC axis (the STM32G474's ADC is
+  // 12-bit), with draggable min/max lines and a live sample marker. Much
+  // simpler than the bellows plot - one axis, no curve - so it gets its own
+  // small geometry/redraw rather than reusing the bellows constants. ----
+  const PEDAL_PLOT_LEFT = 20, PEDAL_PLOT_RIGHT = 380, PEDAL_PLOT_TOP = 15, PEDAL_PLOT_BOTTOM = 55;
+  const PEDAL_DOMAIN_MAX = 4095;
+  function pedalAdcToPx(adc) {
+    return PEDAL_PLOT_LEFT + (clamp(adc, 0, PEDAL_DOMAIN_MAX) / PEDAL_DOMAIN_MAX) * (PEDAL_PLOT_RIGHT - PEDAL_PLOT_LEFT);
+  }
+
+  function redrawPedalGraph(p) {
+    const st = pg[p];
+    const els = pedalEls[p];
+    const minPx = pedalAdcToPx(st.min), maxPx = pedalAdcToPx(st.max);
+
+    setLine(els.vlineMin, minPx, PEDAL_PLOT_TOP, minPx, PEDAL_PLOT_BOTTOM);
+    setLine(els.hitMin, minPx, PEDAL_PLOT_TOP, minPx, PEDAL_PLOT_BOTTOM);
+    setLine(els.vlineMax, maxPx, PEDAL_PLOT_TOP, maxPx, PEDAL_PLOT_BOTTOM);
+    setLine(els.hitMax, maxPx, PEDAL_PLOT_TOP, maxPx, PEDAL_PLOT_BOTTOM);
+    els.lblMin.textContent = "min " + Math.round(st.min);
+    els.lblMin.setAttribute("x", minPx);
+    els.lblMax.textContent = "max " + Math.round(st.max);
+    els.lblMax.setAttribute("x", maxPx);
+
+    const rectX1 = Math.min(minPx, maxPx), rectX2 = Math.max(minPx, maxPx);
+    els.rangeRect.setAttribute("x", rectX1);
+    els.rangeRect.setAttribute("width", Math.max(0, rectX2 - rectX1));
+
+    els.numMin.value = st.min;
+    els.numMax.value = st.max;
+
+    if (st.connected === null) {
+      els.statusDot.className = "dot";
+      els.statusText.textContent = "Not connected to device.";
+    } else if (!st.connected) {
+      els.statusDot.className = "dot warn";
+      els.statusText.textContent = "Disconnected";
+    } else {
+      els.statusDot.className = "dot ok";
+      els.statusText.textContent = "Connected";
+    }
+
+    if (st.connected && st.sample !== null) {
+      const samplePx = pedalAdcToPx(st.sample);
+      els.liveLine.style.visibility = "";
+      els.liveDot.style.visibility = "";
+      setLine(els.liveLine, samplePx, PEDAL_PLOT_TOP, samplePx, PEDAL_PLOT_BOTTOM);
+      placeCircle(els.liveDot, samplePx, PEDAL_PLOT_BOTTOM);
+      const span = st.max - st.min;
+      const cc = span !== 0 ? clamp(Math.round((st.sample - st.min) / span * 127), 0, 127) : 0;
+      els.roAdc.textContent = st.sample;
+      els.roCc.textContent = cc;
+    } else {
+      els.liveLine.style.visibility = "hidden";
+      els.liveDot.style.visibility = "hidden";
+      els.roAdc.textContent = "—";
+      els.roCc.textContent = "—";
+    }
+  }
+
+  /* Draggable vertical line for a pedal graph: same interaction model as
+   * makeDraggableVLine above, but parameterized over the pedal's own SVG and
+   * fixed 0..4095 domain rather than the bellows graph's globals. */
+  function makeDraggablePedalVLine(svg, hitEl, getValue, setValue, minVal, maxVal, step, onChange) {
+    let dragging = false, lastClientX = 0, value = 0;
+    hitEl.setAttribute("tabindex", "0");
+    hitEl.setAttribute("role", "slider");
+    hitEl.addEventListener("pointerdown", (e) => {
+      dragging = true; hitEl.setPointerCapture(e.pointerId);
+      lastClientX = e.clientX; value = getValue();
+    });
+    hitEl.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const gain = e.shiftKey ? 0.12 : 1;
+      const dxSvg = (svgPointIn(svg, e.clientX, 0).x - svgPointIn(svg, lastClientX, 0).x) * gain;
+      lastClientX = e.clientX;
+      const adcPerSvgPx = PEDAL_DOMAIN_MAX / (PEDAL_PLOT_RIGHT - PEDAL_PLOT_LEFT);
+      value = clamp(value + dxSvg * adcPerSvgPx, minVal, maxVal);
+      setValue(Math.round(value));
+      onChange();
+    });
+    hitEl.addEventListener("pointerup", () => { dragging = false; });
+    hitEl.addEventListener("pointercancel", () => { dragging = false; });
+    hitEl.addEventListener("keydown", (e) => {
+      let d = 0;
+      if (e.key === "ArrowRight") d = step; else if (e.key === "ArrowLeft") d = -step;
+      else return;
+      if (e.shiftKey) d *= 0.2;
+      e.preventDefault();
+      setValue(clamp(Math.round(getValue() + d), minVal, maxVal));
+      onChange();
+    });
+  }
+  makeDraggablePedalVLine(pedalEls.p1.svg, pedalEls.p1.hitMin, () => pg.p1.min, (v) => {
+    pg.p1.min = v;
+    if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX.p1Min, v);
+  }, 0, PEDAL_DOMAIN_MAX, 20, () => redrawPedalGraph("p1"));
+  makeDraggablePedalVLine(pedalEls.p1.svg, pedalEls.p1.hitMax, () => pg.p1.max, (v) => {
+    pg.p1.max = v;
+    if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX.p1Max, v);
+  }, 0, PEDAL_DOMAIN_MAX, 20, () => redrawPedalGraph("p1"));
+  makeDraggablePedalVLine(pedalEls.p2.svg, pedalEls.p2.hitMin, () => pg.p2.min, (v) => {
+    pg.p2.min = v;
+    if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX.p2Min, v);
+  }, 0, PEDAL_DOMAIN_MAX, 20, () => redrawPedalGraph("p2"));
+  makeDraggablePedalVLine(pedalEls.p2.svg, pedalEls.p2.hitMax, () => pg.p2.max, (v) => {
+    pg.p2.max = v;
+    if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX.p2Max, v);
+  }, 0, PEDAL_DOMAIN_MAX, 20, () => redrawPedalGraph("p2"));
+
+  function bindPedalNum(p, field, propIndex) {
+    const input = pedalEls[p]["num" + field[0].toUpperCase() + field.slice(1)];
+    input.addEventListener("input", () => {
+      if (input.value === "") return;
+      const v = clamp(Math.round(+input.value), 0, PEDAL_DOMAIN_MAX);
+      pg[p][field] = v;
+      if (pedalGraphLive) queueSetProperty(propIndex, v);
+      redrawPedalGraph(p);
+    });
+  }
+  bindPedalNum("p1", "min", PEDAL_PROP_INDEX.p1Min);
+  bindPedalNum("p1", "max", PEDAL_PROP_INDEX.p1Max);
+  bindPedalNum("p2", "min", PEDAL_PROP_INDEX.p2Min);
+  bindPedalNum("p2", "max", PEDAL_PROP_INDEX.p2Max);
+
+  function updatePedalLiveState(p) {
+    pg.p1.connected = p.pedal1Connected; pg.p1.sample = p.pedal1Sample;
+    pg.p2.connected = p.pedal2Connected; pg.p2.sample = p.pedal2Sample;
+    redrawPedalGraph("p1");
+    redrawPedalGraph("p2");
+  }
+
   let peripheralsTimer = null;
   async function pollPeripheralsOnce() {
     if (!activeOutput) return;
@@ -1342,6 +1679,7 @@
       const p = await requestPeripherals();
       liveAdcTotal = p.hall0 + p.hall1;
       updateLiveDot();
+      updatePedalLiveState(p);
     } catch (err) {
       // Transient: another request may have been in flight. Retried next tick.
     }
@@ -1354,9 +1692,15 @@
     if (peripheralsTimer) { clearInterval(peripheralsTimer); peripheralsTimer = null; }
     liveAdcTotal = null;
     updateLiveDot();
+    pg.p1.sample = null; pg.p1.connected = null;
+    pg.p2.sample = null; pg.p2.connected = null;
+    redrawPedalGraph("p1");
+    redrawPedalGraph("p2");
   }
 
   redrawGraph();
+  redrawPedalGraph("p1");
+  redrawPedalGraph("p2");
 
   let midiAccess = null;
   let activeKey = null;
