@@ -159,7 +159,20 @@
   table.properties-table td.value {
     font-family: var(--mono);
     white-space: nowrap;
+    height: 22px;
+    vertical-align: middle;
   }
+  table.properties-table td.value input[type="checkbox"] {
+    margin: 0; accent-color: var(--muted); cursor: pointer;
+    width: 15px; height: 15px; vertical-align: middle;
+  }
+  .prop-value-input {
+    width: 6em; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--fg); font-family: var(--mono);
+    font-size: 0.85rem; padding: 2px 6px; font-variant-numeric: tabular-nums;
+    box-sizing: border-box; height: 22px; vertical-align: middle;
+  }
+  .prop-value-input:focus { outline: none; border-color: var(--muted); }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -956,11 +969,6 @@
       .finally(() => { writeInFlight = false; pumpWriteQueue(); });
   }
 
-  function formatValue(type, value) {
-    if (type === PROPERTY_TYPE_BOOL) return value ? "on" : "off";
-    return String(value);
-  }
-
   function setPropertiesStatus(text) {
     propertiesStatus.textContent = text;
   }
@@ -995,6 +1003,35 @@
     "show_bellow", "show_spi", "show_keyboard", "show_keyboard_stats",
   ];
 
+  /* Editable value cell: the sysex protocol never sends a property's
+   * min/max (GET_PROPERTY_DESCRIPTION only returns type + description - see
+   * the PROPERTY_NAMES comment above), so these inputs can't be bounded
+   * client-side. That's fine: set_property_raw() on the device clamps to its
+   * own [min,max] and echoes back the value actually in effect, the same way
+   * every other live-editing control on this page already relies on
+   * (bellows curve, pedal calibration). Writes are queued through the same
+   * queueSetProperty used there, so a table edit and a graph drag never race. */
+  function addPropertyValueInput(cell, index, type, value) {
+    if (type === PROPERTY_TYPE_BOOL) {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = !!value;
+      input.addEventListener("change", () => queueSetProperty(index, input.checked ? 1 : 0));
+      cell.appendChild(input);
+      return;
+    }
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.value = value;
+    input.className = "prop-value-input";
+    input.addEventListener("input", () => {
+      if (input.value === "") return;
+      queueSetProperty(index, Math.max(0, Math.round(+input.value)));
+    });
+    cell.appendChild(input);
+  }
+
   function addPropertyRow(index, value, desc) {
     const row = document.createElement("tr");
     const indexCell = document.createElement("td");
@@ -1005,7 +1042,7 @@
     nameCell.textContent = PROPERTY_NAMES[index] || "?";
     const valueCell = document.createElement("td");
     valueCell.className = "value";
-    valueCell.textContent = formatValue(desc.type, value);
+    addPropertyValueInput(valueCell, index, desc.type, value);
     const descCell = document.createElement("td");
     descCell.textContent = desc.description;
     row.append(indexCell, nameCell, valueCell, descCell);
@@ -1039,7 +1076,7 @@
           const value = await requestPropertyValue(i);
           const propTime = Date.now() - propStart;
           console.log("[property fetched]", { index: i, desc: desc.description.substring(0, 50), value, elapsed: propTime });
-          addPropertyRow(i, value, desc);
+          if (!PROPS_EDITED_ELSEWHERE.has(i)) addPropertyRow(i, value, desc);
           fetched.set(i, { value, description: desc.description });
         } catch (err) {
           console.log("[property fetch error]", { index: i, error: err.message });
@@ -1119,6 +1156,13 @@
     p1: { min: 920, max: 3100, sample: null, connected: null },
     p2: { min: 920, max: 3100, sample: null, connected: null },
   };
+
+  // Properties already editable next to the bellows/pedal graphs are left
+  // out of the generic Properties table below, so there's one place to edit
+  // each of them rather than two that could drift out of sync.
+  const PROPS_EDITED_ELSEWHERE = new Set([
+    ...Object.values(PROP_INDEX), ...Object.values(PEDAL_PROP_INDEX),
+  ]);
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
   // Newton-Raphson + bisection solve for x(t)=x, then evaluate y(t).
