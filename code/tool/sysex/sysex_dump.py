@@ -235,7 +235,10 @@ def decode_payload(payload: bytes) -> str:
                 return f"{name} (request, no body)"
             version = reader.read_string()
             count = reader.read_u16()
-            return f"{name} version={version!r} property_count={count}"
+            left_wing_id = reader.read_u8()
+            right_wing_id = reader.read_u8()
+            return (f"{name} version={version!r} property_count={count} "
+                    f"left_wing_id={left_wing_id} right_wing_id={right_wing_id}")
 
         if message_id in (MSG_GET_PROPERTY, MSG_SET_PROPERTY):
             index = reader.read_u16()
@@ -418,12 +421,17 @@ class Bandolibre:
         raise TimeoutError(f"no response within {timeout}s")
 
     def hello(self, timeout: float):
+        """Returns (version, property_count, left_wing_id, right_wing_id).
+        A wing id of 0 means that side hasn't sent a good frame yet (e.g. not
+        connected)."""
         response = self.transact(bytes([MSG_HELLO]), timeout)
         reader = DataReader(response)
         reader.read_u8()  # message id
         version = reader.read_string()
         count = reader.read_u16()
-        return version, count
+        left_wing_id = reader.read_u8()
+        right_wing_id = reader.read_u8()
+        return version, count, left_wing_id, right_wing_id
 
     def get_property_description(self, index: int, timeout: float):
         payload = bytes([MSG_GET_PROPERTY_DESCRIPTION]) + index.to_bytes(2, "little")
@@ -484,8 +492,9 @@ def main():
 
     board = Bandolibre(log)
     try:
-        version, count = board.hello(args.timeout)
-        log.log(f"hello OK: {version}, {count} properties")
+        version, count, left_wing_id, right_wing_id = board.hello(args.timeout)
+        log.log(f"hello OK: {version}, {count} properties, "
+                f"left_wing_id={left_wing_id} right_wing_id={right_wing_id}")
 
         if args.hello_only:
             return

@@ -141,6 +141,13 @@ unsigned keyboard_keys_pressed(void)
   return g_bus[0].mapped_keys_pressed + g_bus[1].mapped_keys_pressed;
 }
 
+/* Wing id last seen on the given side's bus (0 if no good frame has been
+ * received yet), for reporting which physical keyboards are attached. */
+uint8_t keyboard_wing_id(side_t side)
+{
+  return (side == SIDE_LEFT) ? g_bus[0].last_good_wing : g_bus[1].last_good_wing;
+}
+
 /* Effective bellows direction used to map and gate notes. Table mode pins it to
  * PULL so keys sound while the instrument rests on a table (bellows neutral),
  * playing each key's pull note; otherwise it follows the real bellows. */

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "keyboard_layout.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,6 +47,10 @@ void keyboard_print_rates(uint32_t dt_ms);
  * it to pick how fast chamber pressure bleeds: air escapes through an open pallet
  * whether or not its reed is sounding. */
 unsigned keyboard_keys_pressed(void);
+
+/* Wing id last seen on the given side's bus, or 0 if that wing hasn't sent a
+ * good frame yet (e.g. not connected). */
+uint8_t keyboard_wing_id(side_t side);
 
 #ifdef __cplusplus
 }

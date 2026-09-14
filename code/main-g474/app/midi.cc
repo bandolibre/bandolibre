@@ -5,6 +5,7 @@
 
 extern "C" {
 #include "bellow.h"
+#include "keyboard.h"
 #include "pedals.h"
 }
 
@@ -114,6 +115,10 @@ void send_hello_response()
   writer.write((uint8_t)SYSEX_MSG_HELLO);
   writer.write(gsl::span<const char>(FIRMWARE_VERSION_STRING, strlen(FIRMWARE_VERSION_STRING)));
   writer.write((uint16_t)property_count());
+  /* Wing id of each keyboard (0 if that side hasn't sent a good frame yet,
+   * e.g. not connected), left then right. */
+  writer.write((uint8_t)keyboard_wing_id(SIDE_LEFT));
+  writer.write((uint8_t)keyboard_wing_id(SIDE_RIGHT));
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());

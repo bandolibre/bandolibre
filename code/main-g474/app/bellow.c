@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "bellow_classify.h"
+#include "bellow_curve.h"
 #include "bellow_phys.h"
 #include "buttons.h"
 #include "console.h"
@@ -92,7 +93,14 @@ static void bellow_naive(uint32_t hall_total, bellow_naive_state_t *state)
                                                g_properties->bellow_dead, g_properties->bellow_hyst,
                                                g_properties->bellow_full_push, g_properties->bellow_full_pull);
   state->direction = r.direction;
-  state->intensity = r.intensity;
+  if (r.direction == BELLOWS_PUSH)
+    state->intensity = bellow_curve_apply(r.intensity,
+        g_properties->bellow_push_curve_x1, g_properties->bellow_push_curve_y1,
+        g_properties->bellow_push_curve_x2, g_properties->bellow_push_curve_y2);
+  else
+    state->intensity = bellow_curve_apply(r.intensity,
+        g_properties->bellow_pull_curve_x1, g_properties->bellow_pull_curve_y1,
+        g_properties->bellow_pull_curve_x2, g_properties->bellow_pull_curve_y2);
 }
 
 /* Physical simulation model: HAL wrapper that derives F from the hall reading,

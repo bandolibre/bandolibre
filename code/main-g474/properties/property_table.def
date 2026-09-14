@@ -134,6 +134,30 @@ PROPERTY(37, bool, bellow_inertia_enable,
 PROPERTY(38, uint16_t, keyboard_tuning,
          .default_value = 0, .min = 0, .max = 2,
          .description = "Note layout: 0 Rheinische (bisonoric), 1 Peguri, 2 Manoury (unisonoric)")
+PROPERTY(39, uint16_t, bellow_push_curve_x1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Push response curve, control point 1 X (near center), cubic Bezier /256")
+PROPERTY(40, uint16_t, bellow_push_curve_y1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Push response curve, control point 1 Y (near center), cubic Bezier /256")
+PROPERTY(41, uint16_t, bellow_push_curve_x2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Push response curve, control point 2 X (near full travel), cubic Bezier /256")
+PROPERTY(42, uint16_t, bellow_push_curve_y2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Push response curve, control point 2 Y (near full travel), cubic Bezier /256")
+PROPERTY(43, uint16_t, bellow_pull_curve_x1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 1 X (near center), cubic Bezier /256")
+PROPERTY(44, uint16_t, bellow_pull_curve_y1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 1 Y (near center), cubic Bezier /256")
+PROPERTY(45, uint16_t, bellow_pull_curve_x2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 2 X (near full travel), cubic Bezier /256")
+PROPERTY(46, uint16_t, bellow_pull_curve_y2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 2 Y (near full travel), cubic Bezier /256")
 PROPERTY(PROPERTY_TAG_NONE, bool, log_bellow,
          .default_value = 0,
          .description = "Log hall readings and bellows direction each poll")
