@@ -51,9 +51,12 @@ extern "C" {
 // one go: usb_app_midi_send_sysex() writes header/body/footer back-to-back
 // with no draining in between, so anything that doesn't fit here gets
 // silently truncated by tud_midi_stream_write() rather than queued. Sized to
-// match MAX_SYSEX (usb_app.cc), the protocol's own max frame size.
+// match MAX_ENCODED_SYSEX + 2 (usb_app.cc: the 7-bit-encoded body, plus the
+// leading 0xF0 and trailing 0xF7), the protocol's own max frame size on the
+// wire - larger than MAX_SYSEX itself since 7-bit encoding costs ~14%
+// overhead.
 #define CFG_TUD_MIDI_RX_BUFSIZE   64
-#define CFG_TUD_MIDI_TX_BUFSIZE   256
+#define CFG_TUD_MIDI_TX_BUFSIZE   298
 
 #ifdef __cplusplus
 }

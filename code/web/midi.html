@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bandolibre MIDI Connect</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --fg: #1c1c1e;
+    --muted: #6b7280;
+    --card: #ffffff;
+    --border: #e2e2e6;
+    --ok: #1f9d55;
+    --warn: #b45309;
+    --bad: #c0392b;
+    --push: #2f7d78;
+    --pull: #b3591a;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --fg: #eaeaec;
+      --muted: #9aa0a6;
+      --card: #202124;
+      --border: #333436;
+      --push: #6cb3ad;
+      --pull: #d99a52;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding-block: 32px;
+    padding-inline: 16px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+  }
+  p.lead {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex: none;
+  }
+  .dot.ok { background: var(--ok); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad { background: var(--bad); }
+  #statusText {
+    font-weight: 600;
+  }
+  select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 0.95rem;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  #log {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+  }
+  #log div {
+    white-space: pre-wrap;
+    word-break: break-all;
+    border-bottom: 1px dotted var(--border);
+    padding-bottom: 2px;
+  }
+  #log div:first-child {
+    color: var(--fg);
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  table.properties-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+  table.properties-table th,
+  table.properties-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.properties-table th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  table.properties-table td.index {
+    color: var(--muted);
+    font-family: var(--mono);
+    width: 2.5em;
+  }
+  table.properties-table td.name {
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  table.properties-table td.value {
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .retry-btn {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    cursor: pointer;
+    flex: none;
+  }
+  .retry-btn:hover {
+    border-color: var(--muted);
+  }
+
+  /* ---- Bellows curve graph ---- */
+  .bellow-status {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .bellow-status.live { color: var(--ok); }
+  svg.bellow-plot {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: none;
+    margin-top: 8px;
+  }
+  .bp-grid { stroke: var(--border); stroke-width: 1; }
+  .bp-axis-label { fill: var(--muted); font-family: var(--mono); font-size: 15px; }
+  .bp-curve { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .bp-curve.push { stroke: var(--push); }
+  .bp-curve.pull { stroke: var(--pull); }
+  .bp-guide { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.7; }
+  .bp-vline { stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+  .bp-vline.center { stroke: var(--fg); opacity: 0.55; }
+  .bp-vline.fullpush, .bp-vline.fullpull { stroke: var(--push); }
+  .bp-vline.fullpull { stroke: var(--pull); }
+  .bp-vline.dead { stroke: var(--muted); opacity: 0.8; pointer-events: none; }
+  .bp-vline-hit { stroke: transparent; stroke-width: 18; cursor: ew-resize; outline: none; }
+  .bp-vline-hit:hover + .bp-vline { opacity: 1; stroke-width: 3; }
+  .bp-vline-label { font-family: var(--mono); font-size: 14px; fill: var(--muted); }
+  .bp-cp-hit { fill: transparent; cursor: grab; outline: none; }
+  .bp-cp-hit:active { cursor: grabbing; }
+  .bp-cp-handle { stroke: var(--card); stroke-width: 2; pointer-events: none; }
+  .bp-cp-handle.push { fill: var(--push); }
+  .bp-cp-handle.pull { fill: var(--pull); }
+  #hit-cp-push-1:hover ~ #h-cp-push-1,
+  #hit-cp-push-2:hover ~ #h-cp-push-2,
+  #hit-cp-pull-1:hover ~ #h-cp-pull-1,
+  #hit-cp-pull-2:hover ~ #h-cp-pull-2 {
+    r: 8;
+  }
+  .bp-live-drop { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; }
+  .bp-live-dot { fill: var(--fg); stroke: var(--card); stroke-width: 2; }
+  .bp-readout {
+    display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline;
+    font-family: var(--mono); font-size: 1.15rem; margin-top: 6px;
+  }
+  .bp-readout b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bp-readout .sep { color: var(--muted); }
+  .bp-caption { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
+
+  .bp-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .bp-presets button {
+    font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+    padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  }
+  .bp-presets button:hover { border-color: var(--muted); }
+
+  .bp-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 520px) { .bp-params { grid-template-columns: 1fr; } }
+  .bp-group {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bp-group-full { grid-column: 1 / -1; }
+  .bp-slider-row { display: flex; align-items: center; gap: 10px; }
+  .bp-slider-row input[type="range"] { flex: 1; accent-color: var(--muted); }
+  .bp-slider-value {
+    font-family: var(--mono); font-size: 0.82rem; min-width: 3.5em; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .bp-group-title { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .bp-swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .bp-swatch.push { background: var(--push); }
+  .bp-swatch.pull { background: var(--pull); }
+  .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
+  .bp-cp-row-label { font-size: 0.72rem; color: var(--muted); }
+  .bp-xy { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .bp-xy label {
+    display: flex; align-items: center; gap: 5px; margin: 0;
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px;
+  }
+  .bp-xy label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
+  .bp-xy input[type="number"] {
+    width: 100%; border: none; background: transparent; color: var(--fg);
+    font-family: var(--mono); font-size: 0.82rem; padding: 2px 0; font-variant-numeric: tabular-nums;
+  }
+  .bp-xy input[type="number"]:focus { outline: none; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>Bandolibre MIDI Connect</h1>
+    <p class="lead">Auto-connects to a Bandolibre over Web MIDI; falls back to another one if the active board disconnects.</p>
+  </div>
+
+  <div class="card">
+    <div class="status-row">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Starting…</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="deviceSelect">MIDI device</label>
+    <select id="deviceSelect"></select>
+    <p class="hint">Bandolibre boards are picked automatically. Pick another device here to override; it stays selected until it disconnects.</p>
+  </div>
+
+  <div class="card">
+    <label>Bellows curve</label>
+    <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
+
+    <svg class="bellow-plot" viewBox="0 0 900 420" role="img" aria-label="ADC to CC conversion curve for the bellows, push and pull">
+      <line class="bp-grid" x1="70" y1="340" x2="860" y2="340"></line>
+      <line class="bp-grid" x1="70" y1="30" x2="860" y2="30"></line>
+      <text class="bp-axis-label" x="60" y="344" text-anchor="end">0</text>
+      <text class="bp-axis-label" x="60" y="34" text-anchor="end">127</text>
+      <text class="bp-axis-label" id="bp-lbl-xmin" x="70" y="364" text-anchor="start"></text>
+      <text class="bp-axis-label" id="bp-lbl-xmax" x="860" y="364" text-anchor="end"></text>
+      <text class="bp-axis-label" x="465" y="388" text-anchor="middle">ADC</text>
+
+      <line id="vline-dead-push" class="bp-vline dead"></line>
+      <line id="vline-dead-pull" class="bp-vline dead"></line>
+
+      <line id="hit-fullpush" class="bp-vline-hit"></line>
+      <line id="vline-fullpush" class="bp-vline fullpush"></line>
+      <line id="hit-fullpull" class="bp-vline-hit"></line>
+      <line id="vline-fullpull" class="bp-vline fullpull"></line>
+      <line id="hit-center" class="bp-vline-hit"></line>
+      <line id="vline-center" class="bp-vline center"></line>
+
+      <text class="bp-vline-label" id="lbl-fullpush" text-anchor="middle" y="20"></text>
+      <text class="bp-vline-label" id="lbl-fullpull" text-anchor="middle" y="20"></text>
+      <text class="bp-vline-label" id="lbl-center" text-anchor="middle" y="20"></text>
+      <text class="bp-vline-label" id="lbl-dead" text-anchor="middle" y="356"></text>
+
+      <line id="guide-push-1" class="bp-guide"></line>
+      <line id="guide-push-2" class="bp-guide"></line>
+      <line id="guide-pull-1" class="bp-guide"></line>
+      <line id="guide-pull-2" class="bp-guide"></line>
+
+      <path id="curve-path-push" class="bp-curve push"></path>
+      <path id="curve-path-pull" class="bp-curve pull"></path>
+
+      <line id="live-drop-v" class="bp-live-drop"></line>
+      <line id="live-drop-h" class="bp-live-drop"></line>
+      <circle id="live-dot" class="bp-live-dot" r="5"></circle>
+
+      <circle id="hit-cp-push-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Push curve control point 1"></circle>
+      <circle id="hit-cp-push-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Push curve control point 2"></circle>
+      <circle id="hit-cp-pull-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Pull curve control point 1"></circle>
+      <circle id="hit-cp-pull-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Pull curve control point 2"></circle>
+      <circle id="h-cp-push-1" class="bp-cp-handle push" r="6"></circle>
+      <circle id="h-cp-push-2" class="bp-cp-handle push" r="6"></circle>
+      <circle id="h-cp-pull-1" class="bp-cp-handle pull" r="6"></circle>
+      <circle id="h-cp-pull-2" class="bp-cp-handle pull" r="6"></circle>
+    </svg>
+
+    <div class="bp-readout">
+      ADC <b id="bp-ro-adc">—</b>
+      <span class="sep">→</span>
+      CC#11 <b id="bp-ro-cc">—</b>
+    </div>
+    <p class="bp-caption">Drag the center / full push / full pull lines and the curve's control points; use the slider below for the deadzone. Hold Shift while dragging for fine adjustment. Shown at unity sensitivity; hysteresis not shown (deadzone lines use <code>bellow_dead</code> only).</p>
+
+    <div class="bp-presets" id="bpPresets">
+      <button type="button" data-preset="linear">Linear</button>
+      <button type="button" data-preset="feather">Feather touch</button>
+      <button type="button" data-preset="firm">Firm press</button>
+      <button type="button" data-preset="cliff">Hard landing</button>
+    </div>
+
+    <div class="bp-params">
+      <div class="bp-group">
+        <div class="bp-group-title"><span class="bp-swatch push"></span>bellow_push_curve</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">P1 — near center</span>
+          <div class="bp-xy">
+            <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
+            <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+          </div>
+        </div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">P2 — near full travel</span>
+          <div class="bp-xy">
+            <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
+            <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+          </div>
+        </div>
+      </div>
+      <div class="bp-group">
+        <div class="bp-group-title"><span class="bp-swatch pull"></span>bellow_pull_curve</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">P1 — near center</span>
+          <div class="bp-xy">
+            <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
+            <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+          </div>
+        </div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">P2 — near full travel</span>
+          <div class="bp-xy">
+            <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
+            <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+          </div>
+        </div>
+      </div>
+      <div class="bp-group bp-group-full">
+        <div class="bp-group-title">bellow_dead</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">Travel each way before registering direction</span>
+          <div class="bp-slider-row">
+            <input type="range" id="slider-dead" min="0" max="64" value="64">
+            <span class="bp-slider-value" id="slider-dead-value">64</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Properties</label>
+    <div class="status-row">
+      <p class="hint" id="propertiesStatus">Not connected.</p>
+      <button type="button" class="retry-btn" id="propertiesRetryBtn" hidden>Retry</button>
+    </div>
+    <table class="properties-table" id="propertiesTable" hidden>
+      <thead><tr><th>#</th><th>Name</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody id="propertiesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <label>Activity</label>
+    <div id="log"></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  const select = document.getElementById("deviceSelect");
+  const logEl = document.getElementById("log");
+  const propertiesStatus = document.getElementById("propertiesStatus");
+  const propertiesTable = document.getElementById("propertiesTable");
+  const propertiesBody = document.getElementById("propertiesBody");
+  const propertiesRetryBtn = document.getElementById("propertiesRetryBtn");
+
+  const BANDOLIBRE_RE = /bandolibre/i;
+  const MAX_LOG_LINES = 200;
+
+  // ---- Bandolibre sysex protocol (mirrors code/main-g474/app/midi.cc and
+  // usb_app.cc: 0xF0, a byte-stuffed 16-bit XOR-fold checksum + message id +
+  // body, 0xF7) ----
+  const SYSEX_MSG_HELLO = 0x00;
+  const SYSEX_MSG_GET_PROPERTY = 0x01;
+  const SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02;
+  const SYSEX_MSG_SET_PROPERTY = 0x03;
+  const SYSEX_MSG_GET_PERIPHERALS = 0x04;
+  const PROPERTY_TYPE_BOOL = 0;
+
+  // 7-bit-safe encoding for the checksum+payload region between 0xF0 and
+  // 0xF7. Mirrors sysex_encode7()/sysex_decode7() in usb_app.cc - see the
+  // comment there: an earlier version escaped only the 3 literal byte
+  // values that collide with our own framing, which broke the moment a
+  // checksum/value byte with bit 7 set passed through this browser's Web
+  // MIDI stack (confirmed: it goes through the Linux kernel's own USB-MIDI
+  // driver feeding ALSA, which reconstructs a standard MIDI byte stream and
+  // misreads such a byte as a new status byte - raw USB access, which never
+  // does that reinterpretation, was unaffected by the same bytes).
+
+  function sysexChecksum(bytes) {
+    let cs = 0;
+    let i = 0;
+    for (; i + 1 < bytes.length; i += 2) cs ^= bytes[i] | (bytes[i + 1] << 8);
+    if (i < bytes.length) cs ^= bytes[i];
+    return cs & 0xffff;
+  }
+
+  /* Encodes bytes (the checksum + payload region) into 7-bit-safe groups:
+   * each run of up to 7 input bytes becomes 8 output bytes - a leading byte
+   * holding the high bit of each input byte (bit j = input byte j's bit 7),
+   * followed by those bytes with bit 7 cleared. Mirrors sysex_encode7() in
+   * usb_app.cc. */
+  function encode7Sysex(bytes) {
+    const out = [];
+    for (let i = 0; i < bytes.length; i += 7) {
+      const group = bytes.slice(i, i + 7);
+      let msb = 0;
+      for (let j = 0; j < group.length; j++) if (group[j] & 0x80) msb |= 1 << j;
+      out.push(msb);
+      for (const b of group) out.push(b & 0x7f);
+    }
+    return out;
+  }
+
+  /* Reverses encode7Sysex(). Mirrors sysex_decode7() in usb_app.cc. Returns
+   * null if bytes ends mid-group (truncated frame). */
+  function decode7Sysex(bytes) {
+    const out = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const msb = bytes[i++];
+      const group = bytes.slice(i, i + 7);
+      if (group.length === 0 && i < bytes.length) return null;
+      for (let j = 0; j < group.length; j++) out.push(group[j] | ((msb & (1 << j)) ? 0x80 : 0));
+      i += group.length;
+    }
+    return out;
+  }
+
+  function buildSysexFrame(payload) {
+    const cs = sysexChecksum(payload);
+    const body = encode7Sysex([cs & 0xff, cs >> 8, ...payload]);
+    return Uint8Array.from([0xf0, ...body, 0xf7]);
+  }
+
+  /* Strips and checksum-verifies a raw 0xF0...0xF7 frame down to its message
+   * id + body, mirroring usb_app.cc's unpack_sysex. Returns null on anything
+   * malformed or checksum-mismatched. */
+  function unpackSysexFrame(frame) {
+    if (frame.length < 5 || frame[0] !== 0xf0 || frame[frame.length - 1] !== 0xf7) return null;
+    const body = decode7Sysex(frame.slice(1, frame.length - 1));
+    if (body === null || body.length < 3) return null;
+    const receivedChecksum = body[0] | (body[1] << 8);
+    const covered = Uint8Array.from(body.slice(2));
+    if (sysexChecksum(covered) !== receivedChecksum) return null;
+    return covered;
+  }
+
+  /* Mirrors DataReader/DataWriter in midi.cc. */
+  class DataReader {
+    constructor(bytes) {
+      this.bytes = bytes;
+      this.pos = 0;
+    }
+    readUint8() {
+      if (this.pos >= this.bytes.length) return null;
+      return this.bytes[this.pos++];
+    }
+    readUInt16() {
+      const lo = this.readUint8();
+      const hi = this.readUint8();
+      return lo === null || hi === null ? null : lo | (hi << 8);
+    }
+    readString() {
+      const start = this.pos;
+      while (this.pos < this.bytes.length && this.bytes[this.pos] !== 0) this.pos++;
+      if (this.pos >= this.bytes.length) return null;
+      const text = new TextDecoder().decode(this.bytes.slice(start, this.pos));
+      this.pos++; // skip NUL
+      return text;
+    }
+  }
+
+  class DataWriter {
+    constructor() {
+      this.bytes = [];
+    }
+    writeUint8(v) {
+      this.bytes.push(v & 0xff);
+      return this;
+    }
+    writeUInt16(v) {
+      this.bytes.push(v & 0xff, (v >> 8) & 0xff);
+      return this;
+    }
+    toBytes() {
+      return Uint8Array.from(this.bytes);
+    }
+  }
+
+  /* Names for the handful of Control Change numbers this project actually
+   * uses (mirrors usb_app.cc's cc_name); anything else is logged by number
+   * alone. */
+  function ccName(controller) {
+    switch (controller) {
+      case 1: return "Modulation";
+      case 4: return "Foot Controller";
+      case 11: return "Expression";
+      case 64: return "Sustain";
+      default: return "CC";
+    }
+  }
+
+  /* Human-readable interpretation of a complete non-sysex MIDI message, as
+   * delivered whole in one Web MIDI event.data. Null for anything not worth
+   * annotating (sysex bytes are handled separately by describeSysexPayload). */
+  function describeShortMessage(bytes) {
+    const status = bytes[0];
+    const ch = (status & 0x0f) + 1;
+    switch (status & 0xf0) {
+      case 0x80: return "Note Off ch " + ch + " note " + bytes[1] + " vel " + bytes[2];
+      case 0x90: return bytes[2] === 0
+        ? "Note On ch " + ch + " note " + bytes[1] + " vel 0 (= Note Off)"
+        : "Note On ch " + ch + " note " + bytes[1] + " vel " + bytes[2];
+      case 0xa0: return "Poly Aftertouch ch " + ch + " note " + bytes[1] + " pressure " + bytes[2];
+      case 0xb0: return "Control Change ch " + ch + " " + ccName(bytes[1]) + "(" + bytes[1] + ") = " + bytes[2];
+      case 0xc0: return "Program Change ch " + ch + " program " + bytes[1];
+      case 0xd0: return "Channel Pressure ch " + ch + " pressure " + bytes[1];
+      case 0xe0: return "Pitch Bend ch " + ch + " value " + (((bytes[2] << 7) | bytes[1]) - 8192);
+    }
+    switch (status) {
+      case 0xf6: return "Tune Request";
+      case 0xf8: return "Timing Clock";
+      case 0xfa: return "Start";
+      case 0xfb: return "Continue";
+      case 0xfc: return "Stop";
+      case 0xfe: return "Active Sensing";
+      case 0xff: return "System Reset";
+      default: return null;
+    }
+  }
+
+  function sysexMessageName(id) {
+    switch (id) {
+      case SYSEX_MSG_HELLO: return "HELLO";
+      case SYSEX_MSG_GET_PROPERTY: return "GET_PROPERTY";
+      case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "GET_PROPERTY_DESCRIPTION";
+      case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
+      case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
+      default: return "0x" + id.toString(16).padStart(2, "0");
+    }
+  }
+
+  /* Human-readable interpretation of a checksum-verified sysex payload
+   * (message id + body, as unpackSysexFrame/buildSysexFrame's input use).
+   * Covers both directions: a short body is a request (just an index, or
+   * nothing for HELLO), a full body is the matching response. */
+  function describeSysexPayload(payload) {
+    if (!payload || payload.length === 0) return "(empty sysex)";
+    const id = payload[0];
+    const name = sysexMessageName(id);
+    const reader = new DataReader(payload.slice(1));
+
+    switch (id) {
+      case SYSEX_MSG_HELLO: {
+        const version = reader.readString();
+        if (version === null) return name;
+        const count = reader.readUInt16();
+        return name + " version=\"" + version + "\" properties=" + count;
+      }
+      case SYSEX_MSG_GET_PROPERTY:
+      case SYSEX_MSG_SET_PROPERTY: {
+        const index = reader.readUInt16();
+        if (index === null) return name;
+        const value = reader.readUInt16();
+        return value === null ? name + " index=" + index
+                               : name + " index=" + index + " value=" + value;
+      }
+      case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: {
+        const index = reader.readUInt16();
+        if (index === null) return name;
+        const type = reader.readUint8();
+        if (type === null) return name + " index=" + index;
+        const description = reader.readString();
+        return name + " index=" + index + " type=" + type +
+               (description !== null ? " desc=\"" + description + "\"" : "");
+      }
+      case SYSEX_MSG_GET_PERIPHERALS: {
+        const hall0 = reader.readUInt16();
+        if (hall0 === null) return name + " (request, no body)";
+        const hall1 = reader.readUInt16();
+        const pedal1Connected = reader.readUint8();
+        const pedal1Sample = reader.readUInt16();
+        const pedal2Connected = reader.readUint8();
+        const pedal2Sample = reader.readUInt16();
+        return name + " hall0=" + hall0 + " hall1=" + hall1 +
+               " pedal1=" + (pedal1Connected ? "connected" : "disconnected") + ":" + pedal1Sample +
+               " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample;
+      }
+      default:
+        return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
+    }
+  }
+
+  // ---- One request in flight at a time: sysex has no request id of its own
+  // (get_property/get_property_description just echo the index back), so
+  // rather than track that correlation we simply never send the next request
+  // until the previous one has resolved or timed out. ----
+  let pending = null; // { resolve, reject, timeoutId, sentAt, requestDesc }
+
+  function sendSysexRequest(payload, timeoutMs = 1500) {
+    return new Promise((resolve, reject) => {
+      if (!activeOutput) { reject(new Error("no MIDI output for the active device")); return; }
+      if (pending) { reject(new Error("another request is already in flight")); return; }
+      // GET_PERIPHERALS is polled several times a second (see
+      // startPeripheralPolling) - logging every request/response would drown
+      // out everything else in the activity log and dev console, so it's
+      // kept quiet on the success path. Timeouts/errors still log: those are
+      // signal, not routine chatter.
+      const silent = payload[0] === SYSEX_MSG_GET_PERIPHERALS;
+      const frame = buildSysexFrame(payload);
+      const hex = Array.from(frame, (b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+      const desc = describeSysexPayload(payload);
+      const sentAt = Date.now();
+      if (!silent) {
+        log("» " + hex + "  (" + desc + ")");
+        console.log("[sysex send]", { desc, frameLen: frame.length, payloadLen: payload.length, timeoutMs, sentAt });
+      }
+      const timeoutId = setTimeout(() => {
+        const elapsed = Date.now() - sentAt;
+        const reqDesc = pending ? pending.requestDesc : "unknown";
+        pending = null;
+        const msg = "timed out waiting for a response after " + elapsed + "ms";
+        log("⏱ TIMEOUT: " + msg + " (" + reqDesc + ")");
+        console.log("[sysex timeout]", { requestDesc: reqDesc, elapsed, timeoutMs });
+        reject(new Error(msg));
+        pumpWriteQueue();
+      }, timeoutMs);
+      pending = { resolve, reject, timeoutId, sentAt, requestDesc: desc, silent };
+      try {
+        activeOutput.send(frame);
+        if (!silent) console.log("[sysex sent]", { desc, elapsed: Date.now() - sentAt });
+      } catch (e) {
+        console.log("[sysex send error]", e.message);
+        clearTimeout(timeoutId);
+        pending = null;
+        reject(e);
+      }
+    });
+  }
+
+  function resolvePendingRequest(payload) {
+    if (!pending) return;
+    const elapsed = Date.now() - pending.sentAt;
+    clearTimeout(pending.timeoutId);
+    const desc = pending.requestDesc;
+    const silent = pending.silent;
+    const resolve = pending.resolve;
+    pending = null;
+    if (!silent) {
+      log("« response (" + desc + ")");
+      console.log("[sysex response]", { desc, elapsed, payloadLen: payload.length });
+    }
+    resolve(payload);
+    pumpWriteQueue();
+  }
+
+  async function requestHello() {
+    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_HELLO).toBytes());
+    const reader = new DataReader(payload);
+    reader.readUint8(); // message id
+    const version = reader.readString();
+    const count = reader.readUInt16();
+    return { version, count };
+  }
+
+  async function requestPropertyDescription(index) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_GET_PROPERTY_DESCRIPTION).writeUInt16(index).toBytes());
+    const reader = new DataReader(payload);
+    reader.readUint8(); // message id
+    reader.readUInt16(); // echoed index
+    const type = reader.readUint8();
+    const description = reader.readString();
+    return { type, description };
+  }
+
+  async function requestPropertyValue(index) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_GET_PROPERTY).writeUInt16(index).toBytes());
+    const reader = new DataReader(payload);
+    reader.readUint8(); // message id
+    reader.readUInt16(); // echoed index
+    return reader.readUInt16();
+  }
+
+  /* The bellows' two raw hall ADC readings and both pedals' wiper ADC
+   * readings + presence flags (a disconnected pedal's sample is floating and
+   * meaningless). */
+  async function requestPeripherals() {
+    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_GET_PERIPHERALS).toBytes());
+    const reader = new DataReader(payload);
+    reader.readUint8(); // message id
+    const hall0 = reader.readUInt16();
+    const hall1 = reader.readUInt16();
+    const pedal1Connected = !!reader.readUint8();
+    const pedal1Sample = reader.readUInt16();
+    const pedal2Connected = !!reader.readUint8();
+    const pedal2Sample = reader.readUInt16();
+    return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample };
+  }
+
+  async function requestSetProperty(index, value) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_SET_PROPERTY).writeUInt16(index).writeUInt16(value).toBytes());
+    const reader = new DataReader(payload);
+    reader.readUint8();   // message id
+    reader.readUInt16();  // echoed index
+    return reader.readUInt16(); // value actually in effect (may be clamped)
+  }
+
+  /* Writes to the live device are queued rather than sent immediately: the
+   * sysex link allows only one request in flight at a time (see
+   * sendSysexRequest above), and a drag gesture can produce many updates per
+   * second. Only the latest value per property index is kept - superseded
+   * intermediate values during a fast drag are simply never sent, which is
+   * fine since only the final position matters. */
+  const writeQueue = new Map(); // index -> latest desired value
+  let writeInFlight = false;
+  function queueSetProperty(index, value) {
+    writeQueue.set(index, value);
+    pumpWriteQueue();
+  }
+  function pumpWriteQueue() {
+    if (writeInFlight || pending || writeQueue.size === 0 || !activeOutput) return;
+    const [index, value] = writeQueue.entries().next().value;
+    writeQueue.delete(index);
+    writeInFlight = true;
+    requestSetProperty(index, value)
+      .catch((err) => log("set property " + index + " failed: " + err.message))
+      .finally(() => { writeInFlight = false; pumpWriteQueue(); });
+  }
+
+  function formatValue(type, value) {
+    if (type === PROPERTY_TYPE_BOOL) return value ? "on" : "off";
+    return String(value);
+  }
+
+  function setPropertiesStatus(text) {
+    propertiesStatus.textContent = text;
+  }
+
+  function clearProperties() {
+    propertiesBody.innerHTML = "";
+    propertiesTable.hidden = true;
+    propertiesRetryBtn.hidden = true;
+    setPropertiesStatus("Not connected.");
+  }
+
+  // The sysex wire protocol deliberately never sends a property's symbolic
+  // name (see midi.cc's GET_PROPERTY_DESCRIPTION handler, which returns only
+  // type and human description) - so this list mirrors property_table.def's
+  // declaration order by hand. It's cosmetic only (unlike PROP_INDEX below,
+  // nothing is written using it), so a drifted firmware just mislabels a
+  // display column rather than risking a wrong write.
+  const PROPERTY_NAMES = [
+    "key_press", "key_release", "bellow_center", "bellow_dead", "bellow_hyst",
+    "bellow_full_push", "bellow_full_pull", "bellow_cchyst", "bellow_cc_period_ms",
+    "bellow_settle_us", "midi_active_sensing_period", "midi_active_sensing_enable",
+    "pedal1_min", "pedal1_max", "pedal2_min", "pedal2_max",
+    "pedal1_hyst_fwd", "pedal1_hyst_rev", "pedal1_ema_alpha", "pedal1_cc_period_ms",
+    "pedal2_hyst_fwd", "pedal2_hyst_rev", "pedal2_ema_alpha", "pedal2_cc_period_ms",
+    "tablemode_velocity", "bellow_scale_low", "bellow_scale_mid", "bellow_scale_high",
+    "bellow_inertia_track_ms", "bellow_inertia_damping", "bellow_inertia_leak_quiet",
+    "bellow_inertia_leak_per_key", "bellow_inertia_impulse_gain", "bellow_inertia_dir_dead",
+    "bellow_inertia_dir_hyst", "bellow_inertia_impulse_directional", "bellow_inertia_enable",
+    "keyboard_tuning", "bellow_push_curve_x1", "bellow_push_curve_y1", "bellow_push_curve_x2",
+    "bellow_push_curve_y2", "bellow_pull_curve_x1", "bellow_pull_curve_y1", "bellow_pull_curve_x2",
+    "bellow_pull_curve_y2", "log_bellow", "log_spi_stat", "log_pedals", "report_hz",
+    "show_bellow", "show_spi", "show_keyboard", "show_keyboard_stats",
+  ];
+
+  function addPropertyRow(index, value, desc) {
+    const row = document.createElement("tr");
+    const indexCell = document.createElement("td");
+    indexCell.className = "index";
+    indexCell.textContent = index;
+    const nameCell = document.createElement("td");
+    nameCell.className = "name";
+    nameCell.textContent = PROPERTY_NAMES[index] || "?";
+    const valueCell = document.createElement("td");
+    valueCell.className = "value";
+    valueCell.textContent = formatValue(desc.type, value);
+    const descCell = document.createElement("td");
+    descCell.textContent = desc.description;
+    row.append(indexCell, nameCell, valueCell, descCell);
+    propertiesBody.appendChild(row);
+  }
+
+  async function enumerateProperties() {
+    propertiesBody.innerHTML = "";
+    propertiesTable.hidden = true;
+    propertiesRetryBtn.hidden = true;
+    if (!activeInput || !activeOutput) {
+      setPropertiesStatus("Properties need both a MIDI input and output on this device.");
+      return;
+    }
+
+    setPropertiesStatus("Requesting property list…");
+    console.log("[enum start]", { timestamp: Date.now() });
+    try {
+      const helloStart = Date.now();
+      const hello = await requestHello();
+      const helloTime = Date.now() - helloStart;
+      log("hello: " + hello.version + ", " + hello.count + " properties");
+      console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
+      propertiesTable.hidden = false;
+      const fetched = new Map(); // index -> { value, description }
+      for (let i = 0; i < hello.count; i++) {
+        setPropertiesStatus("Loading property " + (i + 1) + " / " + hello.count + "…");
+        const propStart = Date.now();
+        try {
+          const desc = await requestPropertyDescription(i);
+          const value = await requestPropertyValue(i);
+          const propTime = Date.now() - propStart;
+          console.log("[property fetched]", { index: i, desc: desc.description.substring(0, 50), value, elapsed: propTime });
+          addPropertyRow(i, value, desc);
+          fetched.set(i, { value, description: desc.description });
+        } catch (err) {
+          console.log("[property fetch error]", { index: i, error: err.message });
+          throw err;
+        }
+      }
+      setPropertiesStatus(hello.count + " propert" + (hello.count === 1 ? "y" : "ies"));
+
+      applyBellowGraphFromFetched(fetched);
+
+      try {
+        const p = await requestPeripherals();
+        liveAdcTotal = p.hall0 + p.hall1;
+        updateLiveDot();
+        startPeripheralPolling();
+      } catch (err) {
+        log("peripherals request failed: " + err.message);
+        console.log("[peripherals error]", { error: err.message });
+      }
+    } catch (err) {
+      const enumTime = Date.now();
+      setPropertiesStatus("Failed to load properties: " + err.message);
+      log("property enumeration failed: " + err.message);
+      console.log("[enum failed]", { error: err.message, timestamp: enumTime });
+      if (err.message.includes("timed out")) propertiesRetryBtn.hidden = false;
+    }
+  }
+
+  propertiesRetryBtn.addEventListener("click", enumerateProperties);
+
+  // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
+  //
+  // The sysex wire protocol deliberately never sends a property's symbolic
+  // name (see midi.cc) - GET_PROPERTY_DESCRIPTION only returns its type and
+  // human description. So which numeric index is "bellow_center" etc. is an
+  // assumption about property_table.def's declaration order matching this
+  // page's build. PROP_INDEX below encodes that assumption; PROP_EXPECT
+  // cross-checks each assumed index's fetched description against a known
+  // prefix before any live editing is enabled, so a firmware whose property
+  // layout has drifted degrades to a local-only (read-only-to-the-device)
+  // graph instead of silently writing to the wrong property.
+  const PROP_INDEX = {
+    center: 2, dead: 3, fullPush: 5, fullPull: 6,
+    pushX1: 38, pushY1: 39, pushX2: 40, pushY2: 41,
+    pullX1: 42, pullY1: 43, pullX2: 44, pullY2: 45,
+  };
+  const PROP_EXPECT = {
+    [PROP_INDEX.center]: "Combined hall reading at rest",
+    [PROP_INDEX.dead]: "Travel each way before registering direction",
+    [PROP_INDEX.fullPush]: "Combined hall reading at full push",
+    [PROP_INDEX.fullPull]: "Combined hall reading at full pull",
+    [PROP_INDEX.pushX1]: "Push response curve, control point 1 X",
+    [PROP_INDEX.pushY1]: "Push response curve, control point 1 Y",
+    [PROP_INDEX.pushX2]: "Push response curve, control point 2 X",
+    [PROP_INDEX.pushY2]: "Push response curve, control point 2 Y",
+    [PROP_INDEX.pullX1]: "Pull response curve, control point 1 X",
+    [PROP_INDEX.pullY1]: "Pull response curve, control point 1 Y",
+    [PROP_INDEX.pullX2]: "Pull response curve, control point 2 X",
+    [PROP_INDEX.pullY2]: "Pull response curve, control point 2 Y",
+  };
+  let bellowGraphLive = false;
+  let liveAdcTotal = null;
+
+  // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
+  // Newton-Raphson + bisection solve for x(t)=x, then evaluate y(t).
+  function bezierComponent(t, p1, p2) {
+    const u = 1 - t;
+    return 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t;
+  }
+  function bezierComponentDeriv(t, p1, p2) {
+    const u = 1 - t;
+    return 3 * u * u * p1 + 6 * u * t * (p2 - p1) + 3 * t * t * (1 - p2);
+  }
+  function solveTForX(x, cx1, cx2) {
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const err = bezierComponent(t, cx1, cx2) - x;
+      if (Math.abs(err) < 1e-4) return t;
+      const d = bezierComponentDeriv(t, cx1, cx2);
+      if (Math.abs(d) < 1e-6) break;
+      t -= err / d;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+    }
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 24; i++) {
+      t = 0.5 * (lo + hi);
+      if (bezierComponent(t, cx1, cx2) < x) lo = t; else hi = t;
+    }
+    return t;
+  }
+  function curveApply(intensity1024, cx1, cy1, cx2, cy2) {
+    const x = intensity1024 / 1024;
+    const t = solveTForX(x, cx1 / 256, cx2 / 256);
+    let y = bezierComponent(t, cy1 / 256, cy2 / 256);
+    if (y < 0) y = 0; else if (y > 1) y = 1;
+    return y * 1024;
+  }
+
+  const bg = {
+    center: 11280, dead: 64, fullPush: 9500, fullPull: 13000,
+    push: { x1: 85, y1: 85, x2: 171, y2: 171 },
+    pull: { x1: 85, y1: 85, x2: 171, y2: 171 },
+  };
+  const bgPresets = {
+    linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
+    feather: { x1: 40, y1: 220, x2: 150, y2: 235 },
+    firm: { x1: 200, y1: 20, x2: 235, y2: 50 },
+    cliff: { x1: 245, y1: 8, x2: 250, y2: 25 },
+  };
+
+  const bp = (id) => document.getElementById(id);
+  const bpEls = {
+    status: bp("bellowStatus"),
+    lblXmin: bp("bp-lbl-xmin"), lblXmax: bp("bp-lbl-xmax"),
+    vlineDeadPush: bp("vline-dead-push"),
+    vlineDeadPull: bp("vline-dead-pull"),
+    hitFullPush: bp("hit-fullpush"), vlineFullPush: bp("vline-fullpush"),
+    hitFullPull: bp("hit-fullpull"), vlineFullPull: bp("vline-fullpull"),
+    hitCenter: bp("hit-center"), vlineCenter: bp("vline-center"),
+    lblFullPush: bp("lbl-fullpush"), lblFullPull: bp("lbl-fullpull"),
+    lblCenter: bp("lbl-center"), lblDead: bp("lbl-dead"),
+    guidePush1: bp("guide-push-1"), guidePush2: bp("guide-push-2"),
+    guidePull1: bp("guide-pull-1"), guidePull2: bp("guide-pull-2"),
+    curvePathPush: bp("curve-path-push"), curvePathPull: bp("curve-path-pull"),
+    liveDropV: bp("live-drop-v"), liveDropH: bp("live-drop-h"), liveDot: bp("live-dot"),
+    hitCpPush1: bp("hit-cp-push-1"), hitCpPush2: bp("hit-cp-push-2"),
+    hitCpPull1: bp("hit-cp-pull-1"), hitCpPull2: bp("hit-cp-pull-2"),
+    hCpPush1: bp("h-cp-push-1"), hCpPush2: bp("h-cp-push-2"),
+    hCpPull1: bp("h-cp-pull-1"), hCpPull2: bp("h-cp-pull-2"),
+    roAdc: bp("bp-ro-adc"), roCc: bp("bp-ro-cc"),
+    sliderDead: bp("slider-dead"), sliderDeadValue: bp("slider-dead-value"),
+  };
+  const bellowSvg = document.querySelector("svg.bellow-plot");
+
+  // ---- Geometry: a plain linear ADC axis, 10% beyond bellow_full_push/pull
+  // on each side, and a CC (0..127) axis. ----
+  const PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_TOP = 30, PLOT_BOTTOM = 340;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function axisRange() {
+    const lo = Math.min(bg.fullPush, bg.fullPull), hi = Math.max(bg.fullPush, bg.fullPull);
+    const margin = Math.max(1, (hi - lo) * 0.1);
+    return { xMin: lo - margin, xMax: hi + margin };
+  }
+  function adcToPx(adc) {
+    const { xMin, xMax } = axisRange();
+    return PLOT_LEFT + ((adc - xMin) / (xMax - xMin)) * (PLOT_RIGHT - PLOT_LEFT);
+  }
+  function ccToPx(cc) {
+    return PLOT_BOTTOM - (cc / 127) * (PLOT_BOTTOM - PLOT_TOP);
+  }
+  function edges() {
+    const half = bg.dead / 2;
+    return { pushEdge: bg.center - half, pullEdge: bg.center + half };
+  }
+
+  /* CC for a raw ADC total: 0 in the deadzone, saturating at 127 beyond
+   * bellow_full_push/pull (never negative, never implies the opposite
+   * direction), a cubic-Bezier ramp (bellow_push_curve/bellow_pull_curve) in
+   * between - mirrors bellow_classify() + bellow_curve_apply() in the
+   * firmware, at unity sensitivity (bellow_scale_* depends on the FN1
+   * button level, out of scope for this static graph). */
+  function ccForAdc(adc) {
+    const { pushEdge, pullEdge } = edges();
+    if (adc >= Math.min(pushEdge, pullEdge) && adc <= Math.max(pushEdge, pullEdge)) return 0;
+    if (adc < pushEdge) {
+      const span = pushEdge - bg.fullPush;
+      const d = pushEdge - adc;
+      const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
+      return curveApply(u, bg.push.x1, bg.push.y1, bg.push.x2, bg.push.y2) / 1024 * 127;
+    } else {
+      const span = bg.fullPull - pullEdge;
+      const d = adc - pullEdge;
+      const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
+      return curveApply(u, bg.pull.x1, bg.pull.y1, bg.pull.x2, bg.pull.y2) / 1024 * 127;
+    }
+  }
+  function pushRampPoint(xfrac, yfrac) {
+    const { pushEdge } = edges();
+    return { adc: pushEdge + xfrac * (bg.fullPush - pushEdge), cc: yfrac * 127 };
+  }
+  function pullRampPoint(xfrac, yfrac) {
+    const { pullEdge } = edges();
+    return { adc: pullEdge + xfrac * (bg.fullPull - pullEdge), cc: yfrac * 127 };
+  }
+  function toPx(pt) { return { x: adcToPx(pt.adc), y: ccToPx(pt.cc) }; }
+  function setLine(el, x1, y1, x2, y2) {
+    el.setAttribute("x1", x1); el.setAttribute("y1", y1);
+    el.setAttribute("x2", x2); el.setAttribute("y2", y2);
+  }
+  function placeCircle(el, x, y) { el.setAttribute("cx", x); el.setAttribute("cy", y); }
+
+  function syncParamInputs() {
+    bp("num-push-x1").value = bg.push.x1; bp("num-push-y1").value = bg.push.y1;
+    bp("num-push-x2").value = bg.push.x2; bp("num-push-y2").value = bg.push.y2;
+    bp("num-pull-x1").value = bg.pull.x1; bp("num-pull-y1").value = bg.pull.y1;
+    bp("num-pull-x2").value = bg.pull.x2; bp("num-pull-y2").value = bg.pull.y2;
+    bpEls.sliderDead.value = bg.dead; bpEls.sliderDeadValue.textContent = bg.dead;
+  }
+
+  function updateLiveDot() {
+    if (liveAdcTotal === null) {
+      bpEls.liveDot.style.visibility = "hidden";
+      bpEls.liveDropV.style.visibility = "hidden";
+      bpEls.liveDropH.style.visibility = "hidden";
+      bpEls.roAdc.textContent = "—";
+      bpEls.roCc.textContent = "—";
+      return;
+    }
+    const { xMin, xMax } = axisRange();
+    const adcClamped = clamp(liveAdcTotal, xMin, xMax);
+    const cc = ccForAdc(adcClamped);
+    const px = adcToPx(adcClamped), py = ccToPx(cc);
+    bpEls.liveDot.style.visibility = "";
+    bpEls.liveDropV.style.visibility = "";
+    bpEls.liveDropH.style.visibility = "";
+    placeCircle(bpEls.liveDot, px, py);
+    setLine(bpEls.liveDropV, px, PLOT_BOTTOM, px, py);
+    setLine(bpEls.liveDropH, PLOT_LEFT, py, px, py);
+    bpEls.roAdc.textContent = Math.round(liveAdcTotal);
+    bpEls.roCc.textContent = Math.round(cc);
+  }
+
+  function redrawGraph() {
+    const { xMin, xMax } = axisRange();
+    bpEls.lblXmin.textContent = Math.round(xMin);
+    bpEls.lblXmax.textContent = Math.round(xMax);
+
+    const { pushEdge, pullEdge } = edges();
+    const centerPx = adcToPx(bg.center);
+    const fullPushPx = adcToPx(bg.fullPush), fullPullPx = adcToPx(bg.fullPull);
+    const deadPushPx = adcToPx(pushEdge), deadPullPx = adcToPx(pullEdge);
+
+    setLine(bpEls.vlineCenter, centerPx, PLOT_TOP, centerPx, PLOT_BOTTOM);
+    setLine(bpEls.hitCenter, centerPx, PLOT_TOP, centerPx, PLOT_BOTTOM);
+    setLine(bpEls.vlineFullPush, fullPushPx, PLOT_TOP, fullPushPx, PLOT_BOTTOM);
+    setLine(bpEls.hitFullPush, fullPushPx, PLOT_TOP, fullPushPx, PLOT_BOTTOM);
+    setLine(bpEls.vlineFullPull, fullPullPx, PLOT_TOP, fullPullPx, PLOT_BOTTOM);
+    setLine(bpEls.hitFullPull, fullPullPx, PLOT_TOP, fullPullPx, PLOT_BOTTOM);
+    setLine(bpEls.vlineDeadPush, deadPushPx, PLOT_TOP, deadPushPx, PLOT_BOTTOM);
+    setLine(bpEls.vlineDeadPull, deadPullPx, PLOT_TOP, deadPullPx, PLOT_BOTTOM);
+
+    bpEls.lblFullPush.textContent = "full push " + Math.round(bg.fullPush);
+    bpEls.lblFullPush.setAttribute("x", fullPushPx);
+    bpEls.lblFullPull.textContent = "full pull " + Math.round(bg.fullPull);
+    bpEls.lblFullPull.setAttribute("x", fullPullPx);
+    bpEls.lblCenter.textContent = "center " + Math.round(bg.center);
+    bpEls.lblCenter.setAttribute("x", centerPx);
+    bpEls.lblDead.textContent = "dead " + Math.round(bg.dead);
+    bpEls.lblDead.setAttribute("x", centerPx);
+
+    // Flat saturation, push ramp (true Bezier), flat deadzone, pull ramp
+    // (true Bezier), flat saturation. An affine remap of a Bezier's control
+    // points is still the same Bezier curve, so the ramps are drawn as
+    // exact native SVG "C" commands rather than sampled.
+    const p0 = toPx({ adc: xMin, cc: ccForAdc(xMin) });
+    const pushStart = toPx(pushRampPoint(0, 0));
+    const push1 = toPx(pushRampPoint(bg.push.x1 / 256, bg.push.y1 / 256));
+    const push2 = toPx(pushRampPoint(bg.push.x2 / 256, bg.push.y2 / 256));
+    const pushEnd = toPx(pushRampPoint(1, 1));
+    const pullStart = toPx(pullRampPoint(0, 0));
+    const pull1 = toPx(pullRampPoint(bg.pull.x1 / 256, bg.pull.y1 / 256));
+    const pull2 = toPx(pullRampPoint(bg.pull.x2 / 256, bg.pull.y2 / 256));
+    const pullEnd = toPx(pullRampPoint(1, 1));
+    const pEnd = toPx({ adc: xMax, cc: ccForAdc(xMax) });
+
+    bpEls.curvePathPush.setAttribute("d",
+      `M${p0.x},${p0.y} L${pushEnd.x},${pushEnd.y} ` +
+      `C${push2.x},${push2.y} ${push1.x},${push1.y} ${pushStart.x},${pushStart.y} ` +
+      `L${centerPx},${PLOT_BOTTOM}`);
+    bpEls.curvePathPull.setAttribute("d",
+      `M${centerPx},${PLOT_BOTTOM} L${pullStart.x},${pullStart.y} ` +
+      `C${pull1.x},${pull1.y} ${pull2.x},${pull2.y} ${pullEnd.x},${pullEnd.y} ` +
+      `L${pEnd.x},${pEnd.y}`);
+
+    setLine(bpEls.guidePush1, pushStart.x, pushStart.y, push1.x, push1.y);
+    setLine(bpEls.guidePush2, pushEnd.x, pushEnd.y, push2.x, push2.y);
+    setLine(bpEls.guidePull1, pullStart.x, pullStart.y, pull1.x, pull1.y);
+    setLine(bpEls.guidePull2, pullEnd.x, pullEnd.y, pull2.x, pull2.y);
+
+    placeCircle(bpEls.hCpPush1, push1.x, push1.y); placeCircle(bpEls.hitCpPush1, push1.x, push1.y);
+    placeCircle(bpEls.hCpPush2, push2.x, push2.y); placeCircle(bpEls.hitCpPush2, push2.x, push2.y);
+    placeCircle(bpEls.hCpPull1, pull1.x, pull1.y); placeCircle(bpEls.hitCpPull1, pull1.x, pull1.y);
+    placeCircle(bpEls.hCpPull2, pull2.x, pull2.y); placeCircle(bpEls.hitCpPull2, pull2.x, pull2.y);
+
+    syncParamInputs();
+    updateLiveDot();
+  }
+
+  function svgPoint(clientX, clientY) {
+    const pt = bellowSvg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    return pt.matrixTransform(bellowSvg.getScreenCTM().inverse());
+  }
+
+  /* Draggable vertical line (center / full push / full pull): horizontal
+   * drag only, mapped through the SVG's own CTM so it stays correct at any
+   * display size, not just the viewBox's own units. Shift reduces the
+   * effective gain for fine adjustment. */
+  function makeDraggableVLine(hitEl, getValue, setValue, minVal, maxVal, step) {
+    let dragging = false, lastClientX = 0, value = 0;
+    hitEl.setAttribute("tabindex", "0");
+    hitEl.setAttribute("role", "slider");
+    hitEl.addEventListener("pointerdown", (e) => {
+      dragging = true; hitEl.setPointerCapture(e.pointerId);
+      lastClientX = e.clientX; value = getValue();
+    });
+    hitEl.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const gain = e.shiftKey ? 0.12 : 1;
+      const dxSvg = (svgPoint(e.clientX, 0).x - svgPoint(lastClientX, 0).x) * gain;
+      lastClientX = e.clientX;
+      const { xMin, xMax } = axisRange();
+      const adcPerSvgPx = (xMax - xMin) / (PLOT_RIGHT - PLOT_LEFT);
+      value = clamp(value + dxSvg * adcPerSvgPx, minVal, maxVal);
+      setValue(Math.round(value));
+      redrawGraph();
+    });
+    hitEl.addEventListener("pointerup", () => { dragging = false; });
+    hitEl.addEventListener("pointercancel", () => { dragging = false; });
+    hitEl.addEventListener("keydown", (e) => {
+      let d = 0;
+      if (e.key === "ArrowRight") d = step; else if (e.key === "ArrowLeft") d = -step;
+      else return;
+      if (e.shiftKey) d *= 0.2;
+      e.preventDefault();
+      setValue(clamp(Math.round(getValue() + d), minVal, maxVal));
+      redrawGraph();
+    });
+  }
+  makeDraggableVLine(bpEls.hitCenter, () => bg.center, (v) => {
+    bg.center = v;
+    if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, v);
+  }, 0, 30000, 20);
+  makeDraggableVLine(bpEls.hitFullPush, () => bg.fullPush, (v) => {
+    bg.fullPush = v;
+    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPush, v);
+  }, 0, 30000, 20);
+  makeDraggableVLine(bpEls.hitFullPull, () => bg.fullPull, (v) => {
+    bg.fullPull = v;
+    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPull, v);
+  }, 0, 30000, 20);
+
+  /* Draggable Bezier control point: full 2D, within its own ramp's box.
+   * Pixel deltas are converted to xfrac/yfrac deltas using that ramp's own
+   * pixel span, so dragging tracks the cursor exactly regardless of display
+   * size; Shift reduces gain for fine adjustment, same as the vlines. */
+  function makeDraggableCP(hitEl, handleEl, side, cpNum) {
+    let dragging = false, lastClientX = 0, lastClientY = 0, xfrac = 0, yfrac = 0;
+    const rampFn = side === "push" ? pushRampPoint : pullRampPoint;
+    hitEl.addEventListener("pointerdown", (e) => {
+      dragging = true; hitEl.setPointerCapture(e.pointerId);
+      lastClientX = e.clientX; lastClientY = e.clientY;
+      xfrac = bg[side]["x" + cpNum] / 256;
+      yfrac = bg[side]["y" + cpNum] / 256;
+    });
+    hitEl.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const gain = e.shiftKey ? 0.12 : 1;
+      const p0 = svgPoint(lastClientX, lastClientY), p1 = svgPoint(e.clientX, e.clientY);
+      lastClientX = e.clientX; lastClientY = e.clientY;
+      const dxPx = (p1.x - p0.x) * gain, dyPx = (p1.y - p0.y) * gain;
+      const xSpan = adcToPx(rampFn(1, 0).adc) - adcToPx(rampFn(0, 0).adc);
+      const ySpan = ccToPx(127) - ccToPx(0);
+      xfrac = clamp(xfrac + dxPx / xSpan, 0, 1);
+      yfrac = clamp(yfrac + dyPx / ySpan, 0, 1);
+      applyCpFrac(side, cpNum, xfrac, yfrac);
+    });
+    hitEl.addEventListener("pointerup", () => { dragging = false; });
+    hitEl.addEventListener("pointercancel", () => { dragging = false; });
+    hitEl.addEventListener("keydown", (e) => {
+      let dx = 0, dy = 0;
+      const step = e.shiftKey ? 1 : 4;
+      if (e.key === "ArrowRight") dx = step; else if (e.key === "ArrowLeft") dx = -step;
+      else if (e.key === "ArrowUp") dy = step; else if (e.key === "ArrowDown") dy = -step;
+      else return;
+      e.preventDefault();
+      bg[side]["x" + cpNum] = clamp(bg[side]["x" + cpNum] + dx, 0, 256);
+      bg[side]["y" + cpNum] = clamp(bg[side]["y" + cpNum] + dy, 0, 256);
+      if (bellowGraphLive) {
+        queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
+        queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
+      }
+      redrawGraph();
+    });
+  }
+  function applyCpFrac(side, cpNum, xfrac, yfrac) {
+    bg[side]["x" + cpNum] = clamp(Math.round(xfrac * 256), 0, 256);
+    bg[side]["y" + cpNum] = clamp(Math.round(yfrac * 256), 0, 256);
+    if (bellowGraphLive) {
+      queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
+      queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
+    }
+    redrawGraph();
+  }
+  makeDraggableCP(bpEls.hitCpPush1, bpEls.hCpPush1, "push", 1);
+  makeDraggableCP(bpEls.hitCpPush2, bpEls.hCpPush2, "push", 2);
+  makeDraggableCP(bpEls.hitCpPull1, bpEls.hCpPull1, "pull", 1);
+  makeDraggableCP(bpEls.hitCpPull2, bpEls.hCpPull2, "pull", 2);
+
+  function bindCurveNum(side, axis, id) {
+    const input = bp(id);
+    input.addEventListener("input", () => {
+      if (input.value === "") return;
+      const v = clamp(Math.round(+input.value), 0, 256);
+      bg[side][axis] = v;
+      if (bellowGraphLive) queueSetProperty(PROP_INDEX[side + axis[0].toUpperCase() + axis.slice(1)], v);
+      redrawGraph();
+    });
+  }
+  ["push", "pull"].forEach((side) => {
+    ["x1", "y1", "x2", "y2"].forEach((axis) => {
+      bindCurveNum(side, axis, `num-${side}-${axis}`);
+    });
+  });
+
+  bpEls.sliderDead.addEventListener("input", () => {
+    bg.dead = clamp(Math.round(+bpEls.sliderDead.value), 0, 64);
+    bpEls.sliderDeadValue.textContent = bg.dead;
+    if (bellowGraphLive) queueSetProperty(PROP_INDEX.dead, bg.dead);
+    redrawGraph();
+  });
+
+  document.querySelectorAll("#bpPresets button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = bgPresets[btn.dataset.preset];
+      bg.push = { ...p }; bg.pull = { ...p };
+      if (bellowGraphLive) {
+        queueSetProperty(PROP_INDEX.pushX1, p.x1); queueSetProperty(PROP_INDEX.pushY1, p.y1);
+        queueSetProperty(PROP_INDEX.pushX2, p.x2); queueSetProperty(PROP_INDEX.pushY2, p.y2);
+        queueSetProperty(PROP_INDEX.pullX1, p.x1); queueSetProperty(PROP_INDEX.pullY1, p.y1);
+        queueSetProperty(PROP_INDEX.pullX2, p.x2); queueSetProperty(PROP_INDEX.pullY2, p.y2);
+      }
+      redrawGraph();
+    });
+  });
+
+  function applyBellowGraphFromFetched(fetched) {
+    let ok = true;
+    for (const [indexStr, expectedPrefix] of Object.entries(PROP_EXPECT)) {
+      const index = Number(indexStr);
+      const entry = fetched.get(index);
+      if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
+        ok = false;
+        log("bellows graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
+            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.");
+        break;
+      }
+    }
+    bellowGraphLive = ok;
+    if (ok) {
+      bg.center = fetched.get(PROP_INDEX.center).value;
+      bg.dead = fetched.get(PROP_INDEX.dead).value;
+      bg.fullPush = fetched.get(PROP_INDEX.fullPush).value;
+      bg.fullPull = fetched.get(PROP_INDEX.fullPull).value;
+      bg.push = {
+        x1: fetched.get(PROP_INDEX.pushX1).value, y1: fetched.get(PROP_INDEX.pushY1).value,
+        x2: fetched.get(PROP_INDEX.pushX2).value, y2: fetched.get(PROP_INDEX.pushY2).value,
+      };
+      bg.pull = {
+        x1: fetched.get(PROP_INDEX.pullX1).value, y1: fetched.get(PROP_INDEX.pullY1).value,
+        x2: fetched.get(PROP_INDEX.pullX2).value, y2: fetched.get(PROP_INDEX.pullY2).value,
+      };
+      bpEls.status.textContent = "Connected — live, dragging writes to the device.";
+      bpEls.status.classList.add("live");
+    } else {
+      bpEls.status.textContent = "Connected, but this firmware's property layout doesn't match this page's build — showing defaults, editing is local-only.";
+      bpEls.status.classList.remove("live");
+    }
+    redrawGraph();
+  }
+
+  let peripheralsTimer = null;
+  async function pollPeripheralsOnce() {
+    if (!activeOutput) return;
+    try {
+      const p = await requestPeripherals();
+      liveAdcTotal = p.hall0 + p.hall1;
+      updateLiveDot();
+    } catch (err) {
+      // Transient: another request may have been in flight. Retried next tick.
+    }
+  }
+  function startPeripheralPolling() {
+    stopPeripheralPolling();
+    peripheralsTimer = setInterval(pollPeripheralsOnce, 100);
+  }
+  function stopPeripheralPolling() {
+    if (peripheralsTimer) { clearInterval(peripheralsTimer); peripheralsTimer = null; }
+    liveAdcTotal = null;
+    updateLiveDot();
+  }
+
+  redrawGraph();
+
+  let midiAccess = null;
+  let activeKey = null;
+  let activeName = null;
+  let activeInput = null;
+  let activeOutput = null;
+
+  function isBandolibre(name) {
+    return !!name && BANDOLIBRE_RE.test(name);
+  }
+
+  function log(message) {
+    const line = document.createElement("div");
+    const time = new Date().toLocaleTimeString();
+    line.textContent = "[" + time + "] " + message;
+    logEl.prepend(line);
+    while (logEl.childNodes.length > MAX_LOG_LINES) {
+      logEl.removeChild(logEl.lastChild);
+    }
+  }
+
+  function setStatus(kind, text) {
+    statusDot.className = "dot" + (kind ? " " + kind : "");
+    statusText.textContent = text;
+  }
+
+  /* Groups the MIDIAccess's live input/output ports into "devices": each
+   * physical unit shows up as one MIDIInput and one MIDIOutput with the same
+   * name, but Web MIDI never says which input pairs with which output, so
+   * same-named ports are paired positionally (Nth input with Nth output).
+   * This also disambiguates two simultaneously-connected boards that share
+   * the same product name ("Bandolibre"), each keyed by its own port id. */
+  function collectDevices() {
+    const inputsByName = new Map();
+    const outputsByName = new Map();
+
+    for (const input of midiAccess.inputs.values()) {
+      if (input.state !== "connected") continue;
+      const name = input.name || "(unnamed)";
+      if (!inputsByName.has(name)) inputsByName.set(name, []);
+      inputsByName.get(name).push(input);
+    }
+    for (const output of midiAccess.outputs.values()) {
+      if (output.state !== "connected") continue;
+      const name = output.name || "(unnamed)";
+      if (!outputsByName.has(name)) outputsByName.set(name, []);
+      outputsByName.get(name).push(output);
+    }
+
+    const names = new Set([...inputsByName.keys(), ...outputsByName.keys()]);
+    const devices = [];
+    for (const name of names) {
+      const ins = inputsByName.get(name) || [];
+      const outs = outputsByName.get(name) || [];
+      const count = Math.max(ins.length, outs.length);
+      for (let i = 0; i < count; i++) {
+        const input = ins[i] || null;
+        const output = outs[i] || null;
+        const key = (input && input.id) || (output && output.id);
+        devices.push({ key, name, input, output, index: i, total: count });
+      }
+    }
+    return devices;
+  }
+
+  function deviceLabel(device) {
+    return device.total > 1 ? device.name + " (" + (device.index + 1) + ")" : device.name;
+  }
+
+  function renderSelector() {
+    const devices = collectDevices();
+    const previousValue = activeKey || "";
+
+    select.innerHTML = "";
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = devices.length ? "— select a device —" : "(no MIDI devices found)";
+    select.appendChild(emptyOpt);
+
+    for (const device of devices) {
+      const opt = document.createElement("option");
+      opt.value = device.key;
+      opt.textContent = deviceLabel(device) + (isBandolibre(device.name) ? " — Bandolibre" : "");
+      select.appendChild(opt);
+    }
+    select.value = previousValue;
+    if (select.value !== previousValue) select.value = ""; // stale key, fall back to placeholder
+  }
+
+  function updateStatus() {
+    if (!midiAccess) return;
+    if (activeName) {
+      setStatus("ok", "Connected: " + activeName);
+    } else {
+      const hasAnyDevice = collectDevices().length > 0;
+      setStatus(hasAnyDevice ? "warn" : "", hasAnyDevice ? "Waiting for Bandolibre…" : "No MIDI devices found");
+    }
+  }
+
+  // Accumulates 0xF0...0xF7 across possibly multiple onmidimessage events,
+  // mirroring midi_input_process's byte-scanning in usb_app.cc.
+  let sysexBuf = [];
+  let inSysex = false;
+  let sysexStartTime = 0;
+
+  function handleMidiMessage(event) {
+    const bytes = Array.from(event.data);
+    const isActiveSensing = bytes.length === 1 && bytes[0] === 0xfe;
+    if (isActiveSensing) return; // skip keepalive messages
+    const hex = bytes.map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+    const description = (bytes[0] === 0xf0 || inSysex) ? null : describeShortMessage(bytes);
+    log("« " + hex + (description ? "  (" + description + ")" : ""));
+    console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
+
+    for (const b of bytes) {
+      if (b === 0xf0) {
+        if (inSysex) console.log("[sysex warning] 0xF0 while already in sysex, resetting");
+        inSysex = true;
+        sysexBuf = [b];
+        sysexStartTime = Date.now();
+      } else if (inSysex) {
+        sysexBuf.push(b);
+        if (b === 0xf7) {
+          const frameTime = Date.now() - sysexStartTime;
+          inSysex = false;
+          const payload = unpackSysexFrame(Uint8Array.from(sysexBuf));
+          if (payload) {
+            log("  → " + describeSysexPayload(payload));
+            console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
+            resolvePendingRequest(payload);
+          } else {
+            log("sysex: malformed frame or checksum mismatch");
+            console.log("[sysex error]", { frameLen: sysexBuf.length, error: "parse failed" });
+          }
+          sysexBuf = [];
+        }
+      }
+    }
+    if (inSysex && sysexBuf.length > 0 && Date.now() - sysexStartTime > 100) {
+      console.log("[sysex partial]", { bufLen: sysexBuf.length, elapsed: Date.now() - sysexStartTime, pending: !!pending });
+    }
+  }
+
+  function disconnect() {
+    if (activeInput) activeInput.onmidimessage = null;
+    activeKey = null;
+    activeName = null;
+    activeInput = null;
+    activeOutput = null;
+    clearProperties();
+    stopPeripheralPolling();
+    bellowGraphLive = false;
+    bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
+    bpEls.status.classList.remove("live");
+    redrawGraph();
+  }
+
+  function connectTo(key) {
+    const device = collectDevices().find((d) => d.key === key);
+    if (!device) return;
+
+    disconnect();
+    activeKey = device.key;
+    activeName = device.name;
+    activeInput = device.input;
+    activeOutput = device.output;
+    if (activeInput) activeInput.onmidimessage = handleMidiMessage;
+
+    log("connected to \"" + device.name + "\"" +
+        (device.input ? "" : " (no input)") +
+        (device.output ? "" : " (no output)"));
+    renderSelector();
+    updateStatus();
+    enumerateProperties();
+  }
+
+  /* The one auto-connect rule: only act when nothing is currently connected.
+   * That alone covers both "connect when a Bandolibre shows up" and "fall
+   * back to another Bandolibre once the active one disconnects" - and it
+   * never steals a manually-picked device out from under the user while that
+   * device is still present. */
+  function maybeAutoConnect() {
+    if (activeKey) return;
+    const device = collectDevices().find((d) => isBandolibre(d.name));
+    if (device) connectTo(device.key);
+  }
+
+  function onStateChange(event) {
+    const port = event.port;
+    log((port.name || "(unnamed)") + " [" + port.type + "] " + port.state);
+
+    if (port.id === activeKey || (activeInput && port.id === activeInput.id) || (activeOutput && port.id === activeOutput.id)) {
+      if (port.state === "disconnected") {
+        log("\"" + activeName + "\" disconnected");
+        disconnect();
+      }
+    }
+
+    renderSelector();
+    maybeAutoConnect();
+    updateStatus();
+  }
+
+  select.addEventListener("change", () => {
+    if (select.value) connectTo(select.value);
+    else disconnect();
+    updateStatus();
+  });
+
+  async function init() {
+    if (!navigator.requestMIDIAccess) {
+      setStatus("bad", "Web MIDI is not supported in this browser (try Chrome or Edge).");
+      return;
+    }
+    try {
+      midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+    } catch (err) {
+      setStatus("bad", "MIDI access denied: " + err.message);
+      return;
+    }
+
+    midiAccess.onstatechange = onStateChange;
+    renderSelector();
+    maybeAutoConnect();
+    updateStatus();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

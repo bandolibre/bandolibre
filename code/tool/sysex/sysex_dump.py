@@ -74,14 +74,16 @@ CIN_VALID_BYTES = {0x4: 3, 0x5: 1, 0x6: 2, 0x7: 3}
 SYSEX_START = 0xF0
 SYSEX_END = 0xF7
 
-# Byte-stuffing escape for the checksum+payload region between SYSEX_START
-# and SYSEX_END. Mirrors MIDI_SYSEX_ESCAPE/MIDI_SYSEX_ESCAPE_XOR in
-# usb_app.cc - see the comment there for why escaping (only these 3 byte
-# values collide with our own framing) was chosen over real MIDI's 7-bit
-# sysex encoding (which reshapes every byte, unconditionally, to satisfy
-# generic MIDI gear this closed protocol doesn't need to interoperate with).
-SYSEX_ESCAPE = 0xF6
-SYSEX_ESCAPE_XOR = 0x20
+# 7-bit-safe encoding for the checksum+payload region between SYSEX_START
+# and SYSEX_END. Mirrors sysex_encode7()/sysex_decode7() in usb_app.cc - see
+# the comment there: an earlier version escaped only the 3 literal byte
+# values that collide with our own framing, which broke the moment a
+# checksum/value byte with bit 7 set passed through any transport that
+# reconstructs a standard MIDI byte stream (confirmed: the Linux kernel's
+# USB-MIDI driver feeding ALSA/Web MIDI does this and misreads such a byte
+# as a new status byte, even though this raw-USB path - which decodes
+# USB-MIDI CIN-tagged packets directly and never reinterprets them as
+# generic MIDI - was never affected).
 
 MSG_HELLO = 0x00
 MSG_GET_PROPERTY = 0x01
@@ -131,38 +133,47 @@ def checksum(data: bytes) -> int:
     return cs & 0xFFFF
 
 
-def stuff(data: bytes) -> bytes:
-    """Byte-stuffs data (the checksum + payload region): any literal
-    SYSEX_START/SYSEX_END/SYSEX_ESCAPE byte becomes SYSEX_ESCAPE followed by
-    (byte ^ SYSEX_ESCAPE_XOR). Mirrors sysex_stuff_append() in usb_app.cc."""
+def encode7(data: bytes) -> bytes:
+    """Encodes data (the checksum + payload region) into 7-bit-safe groups:
+    each run of up to 7 input bytes becomes 8 output bytes - a leading byte
+    holding the high bit of each input byte (bit j = input byte j's bit 7),
+    followed by those bytes with bit 7 cleared. Mirrors sysex_encode7() in
+    usb_app.cc."""
     out = bytearray()
-    for b in data:
-        if b in (SYSEX_START, SYSEX_END, SYSEX_ESCAPE):
-            out.append(SYSEX_ESCAPE)
-            out.append(b ^ SYSEX_ESCAPE_XOR)
-        else:
-            out.append(b)
+    for i in range(0, len(data), 7):
+        group = data[i:i + 7]
+        msb = 0
+        for j, b in enumerate(group):
+            if b & 0x80:
+                msb |= 1 << j
+        out.append(msb)
+        out.extend(b & 0x7F for b in group)
     return bytes(out)
 
 
-def unstuff(data: bytes) -> bytes:
-    """Reverses stuff(). Mirrors sysex_unstuff() in usb_app.cc. Raises
-    FrameError if data ends on a dangling escape byte."""
+def decode7(data: bytes) -> bytes:
+    """Reverses encode7(). Mirrors sysex_decode7() in usb_app.cc. Raises
+    FrameError if data ends mid-group (truncated frame)."""
     out = bytearray()
-    it = iter(data)
-    for b in it:
-        if b == SYSEX_ESCAPE:
-            try:
-                b = next(it) ^ SYSEX_ESCAPE_XOR
-            except StopIteration:
-                raise FrameError("dangling escape byte")
-        out.append(b)
+    i = 0
+    n = len(data)
+    while i < n:
+        msb = data[i]
+        i += 1
+        group = data[i:i + 7]
+        if not group and i < n:
+            raise FrameError("truncated 7-bit group")
+        for j, b in enumerate(group):
+            if msb & (1 << j):
+                b |= 0x80
+            out.append(b)
+        i += len(group)
     return bytes(out)
 
 
 def build_frame(payload: bytes) -> list:
     cs = checksum(payload)
-    body = stuff(bytes([cs & 0xFF, (cs >> 8) & 0xFF]) + payload)
+    body = encode7(bytes([cs & 0xFF, (cs >> 8) & 0xFF]) + payload)
     return [SYSEX_START, *body, SYSEX_END]
 
 
@@ -182,7 +193,7 @@ def unpack_frame(frame: bytes) -> bytes:
         raise FrameError("frame too short")
     if frame[0] != SYSEX_START or frame[-1] != SYSEX_END:
         raise FrameError("missing 0xF0/0xF7 markers")
-    body = unstuff(frame[1:-1])
+    body = decode7(frame[1:-1])
     if len(body) < 3:
         raise FrameError("frame too short")
     received_checksum = body[0] | (body[1] << 8)
