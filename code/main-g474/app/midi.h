@@ -40,4 +40,17 @@ size_t midi_console_complete(const char *prefix, const char **out, size_t cap);
  * (0xF0...0xF7) has been received and its checksum verified. */
 void midi_sysex_received(gsl::span<const uint8_t> data);
 
+/* Sends a Bellows Direction sysex push notification (SYSEX_MSG_BELLOWS_DIRECTION
+ * in midi.cc): direction is bellows_t's raw encoding (0=BELLOWS_PULL,
+ * 1=BELLOWS_PUSH, 2=BELLOWS_NEUTRAL). Called by keyboard.cpp exactly when the
+ * effective bellows direction changes, before the resulting NOTE ON/OFF
+ * events it explains - so a client can always resolve which push/pull note a
+ * key is currently sounding without guessing from the note number alone.
+ *
+ * extern "C": keyboard.cpp calls this from inside its own file-wide
+ * extern "C" block (its own functions need C linkage to be callable from
+ * main.c), so this declaration and midi.cc's definition of it must agree on
+ * C linkage too, unlike the rest of this gsl::span-based, C++-only header. */
+extern "C" void midi_send_bellows_direction(uint8_t direction);
+
 #endif /* MIDI_H_ */

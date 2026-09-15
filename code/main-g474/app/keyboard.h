@@ -52,6 +52,12 @@ unsigned keyboard_keys_pressed(void);
  * good frame yet (e.g. not connected). */
 uint8_t keyboard_wing_id(side_t side);
 
+/* The effective bellows direction used to map and gate notes right now: the
+ * real bellows direction, or BELLOWS_PULL while table mode pins it there.
+ * Exported for the sysex HELLO response's initial-state field; change
+ * notifications go out separately via midi_send_bellows_direction(). */
+bellows_t keyboard_bellows_direction(void);
+
 #ifdef __cplusplus
 }
 #endif

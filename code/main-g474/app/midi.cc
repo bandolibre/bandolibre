@@ -27,6 +27,10 @@ enum sysex_message_id : uint8_t {
   SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02,
   SYSEX_MSG_SET_PROPERTY             = 0x03,
   SYSEX_MSG_GET_PERIPHERALS          = 0x04,
+  /* Device -> host push notification, not a request/response: sent whenever
+   * the effective bellows direction changes (see midi_send_bellows_direction
+   * below and its call site in keyboard.cpp). */
+  SYSEX_MSG_BELLOWS_DIRECTION        = 0x05,
 };
 
 /* Reads sysex message fields off the front of a span, advancing an internal
@@ -119,6 +123,10 @@ void send_hello_response()
    * e.g. not connected), left then right. */
   writer.write((uint8_t)keyboard_wing_id(SIDE_LEFT));
   writer.write((uint8_t)keyboard_wing_id(SIDE_RIGHT));
+  /* Effective bellows direction at connect time (bellows_t's raw encoding),
+   * so a client that just connected knows the initial state without waiting
+   * for the next midi_send_bellows_direction() change notification. */
+  writer.write((uint8_t)keyboard_bellows_direction());
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -290,6 +298,12 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
       printf("sysex: unknown message id %u\r\n", message_id);
       break;
   }
+}
+
+void midi_send_bellows_direction(uint8_t direction)
+{
+  uint8_t payload[2] = { (uint8_t)SYSEX_MSG_BELLOWS_DIRECTION, direction };
+  usb_app_midi_send_sysex(payload, sizeof(payload));
 }
 
 namespace {

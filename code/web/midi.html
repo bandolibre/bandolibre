@@ -289,6 +289,46 @@
   .ped-range { fill: var(--muted); opacity: 0.15; }
   .bp-vline.ped-min { stroke: var(--push); }
   .bp-vline.ped-max { stroke: var(--pull); }
+
+  /* ---- Keyboard layout diagrams ---- */
+  .kbd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+  @media (max-width: 520px) { .kbd-grid { grid-template-columns: 1fr; } }
+  .kbd-panel {
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  svg.kbd-plot { width: 100%; height: auto; display: block; }
+  .kbd-key-circle { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+  .kbd-key-label { font-family: var(--mono); font-size: 9.9px; fill: var(--fg); text-anchor: middle; pointer-events: none; }
+  .kbd-key-label.push { fill: var(--push); }
+  .kbd-key-label.pull { fill: var(--pull); }
+  .kbd-key.lit .kbd-key-circle { fill: var(--ok); stroke: var(--ok); }
+  .kbd-key.lit-push .kbd-key-circle { fill: var(--push); stroke: var(--push); }
+  .kbd-key.lit-pull .kbd-key-circle { fill: var(--pull); stroke: var(--pull); }
+  .kbd-key.lit .kbd-key-label,
+  .kbd-key.lit-push .kbd-key-label,
+  .kbd-key.lit-pull .kbd-key-label { fill: var(--card); }
+
+  .kbd-toggle {
+    display: flex; align-items: center; gap: 8px; margin-left: auto;
+    font-size: 0.8rem; color: var(--fg); cursor: pointer;
+  }
+  .kbd-toggle-switch { position: relative; display: inline-block; width: 36px; height: 21px; flex: none; }
+  .kbd-toggle-switch input {
+    position: absolute; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer;
+  }
+  .kbd-toggle-track {
+    position: absolute; inset: 0; background: var(--border); border-radius: 999px;
+    transition: background 0.15s ease; pointer-events: none;
+  }
+  .kbd-toggle-track::before {
+    content: ""; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px;
+    background: var(--card); border-radius: 50%; transition: transform 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+  .kbd-toggle-switch input:checked + .kbd-toggle-track { background: var(--ok); }
+  .kbd-toggle-switch input:checked + .kbd-toggle-track::before { transform: translateX(15px); }
+  .kbd-toggle-switch input:focus-visible + .kbd-toggle-track { outline: 2px solid var(--muted); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -507,6 +547,30 @@
   </div>
 
   <div class="card">
+    <div class="status-row">
+      <label>Keyboards</label>
+      <label class="kbd-toggle">
+        <span>Solfège</span>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="kbdNoteModeToggle">
+          <span class="kbd-toggle-track"></span>
+        </span>
+      </label>
+    </div>
+    <p class="bp-caption">Key positions from the wing BOM's pick-and-place data; key ids matched against real firmware console logs (see the code comment above KEY_POS_RIGHT and code/web/keyboard_mapping.csv) and light up while their note sounds.</p>
+    <div class="kbd-grid">
+      <div class="kbd-panel">
+        <div class="pedal-title">Left wing</div>
+        <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left wing keyboard, key positions and notes"></svg>
+      </div>
+      <div class="kbd-panel">
+        <div class="pedal-title">Right wing</div>
+        <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <label>Properties</label>
     <div class="status-row">
       <p class="hint" id="propertiesStatus">Not connected.</p>
@@ -534,6 +598,7 @@
         <label><input type="checkbox" data-kind="sysexGetPropertyDescription" data-group="sysex" checked> Get Property Description</label>
         <label><input type="checkbox" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
         <label><input type="checkbox" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
+        <label><input type="checkbox" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
         <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
       </div>
     </div>
@@ -565,7 +630,14 @@
   const SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02;
   const SYSEX_MSG_SET_PROPERTY = 0x03;
   const SYSEX_MSG_GET_PERIPHERALS = 0x04;
+  // Device -> host push notification, not a request/response: sent whenever
+  // the effective bellows direction changes (see keyboard.cpp/midi.cc).
+  const SYSEX_MSG_BELLOWS_DIRECTION = 0x05;
   const PROPERTY_TYPE_BOOL = 0;
+
+  // bellows_t's raw wire encoding (keyboard_layout.h): matches the byte sent
+  // in HELLO's trailing field and every BELLOWS_DIRECTION message.
+  const BELLOWS_PULL = 0, BELLOWS_PUSH = 1, BELLOWS_NEUTRAL = 2;
 
   // 7-bit-safe encoding for the checksum+payload region between 0xF0 and
   // 0xF7. Mirrors sysex_encode7()/sysex_decode7() in usb_app.cc - see the
@@ -758,6 +830,7 @@
       case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "GET_PROPERTY_DESCRIPTION";
       case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
       case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
+      case SYSEX_MSG_BELLOWS_DIRECTION: return "BELLOWS_DIRECTION";
       default: return "0x" + id.toString(16).padStart(2, "0");
     }
   }
@@ -773,7 +846,17 @@
       case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "sysexGetPropertyDescription";
       case SYSEX_MSG_SET_PROPERTY: return "sysexSetProperty";
       case SYSEX_MSG_GET_PERIPHERALS: return "sysexGetPeripherals";
+      case SYSEX_MSG_BELLOWS_DIRECTION: return "sysexBellowsDirection";
       default: return "sysexOther";
+    }
+  }
+
+  function bellowsDirectionName(dir) {
+    switch (dir) {
+      case BELLOWS_PULL: return "PULL";
+      case BELLOWS_PUSH: return "PUSH";
+      case BELLOWS_NEUTRAL: return "NEUTRAL";
+      default: return "0x" + dir.toString(16).padStart(2, "0");
     }
   }
 
@@ -792,7 +875,11 @@
         const version = reader.readString();
         if (version === null) return name;
         const count = reader.readUInt16();
-        return name + " version=\"" + version + "\" properties=" + count;
+        reader.readUint8(); // wing id left
+        reader.readUint8(); // wing id right
+        const bellows = reader.readUint8();
+        return name + " version=\"" + version + "\" properties=" + count +
+               (bellows !== null ? " bellows=" + bellowsDirectionName(bellows) : "");
       }
       case SYSEX_MSG_GET_PROPERTY:
       case SYSEX_MSG_SET_PROPERTY: {
@@ -822,6 +909,10 @@
         return name + " hall0=" + hall0 + " hall1=" + hall1 +
                " pedal1=" + (pedal1Connected ? "connected" : "disconnected") + ":" + pedal1Sample +
                " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample;
+      }
+      case SYSEX_MSG_BELLOWS_DIRECTION: {
+        const dir = reader.readUint8();
+        return dir === null ? name : name + " " + bellowsDirectionName(dir);
       }
       default:
         return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
@@ -899,7 +990,10 @@
     reader.readUint8(); // message id
     const version = reader.readString();
     const count = reader.readUInt16();
-    return { version, count };
+    reader.readUint8(); // wing id left
+    reader.readUint8(); // wing id right
+    const bellows = reader.readUint8(); // initial bellows direction, null on an older firmware
+    return { version, count, bellows };
   }
 
   async function requestPropertyDescription(index) {
@@ -1066,6 +1160,11 @@
       const helloTime = Date.now() - helloStart;
       log("hello: " + hello.version + ", " + hello.count + " properties", "sysexHello");
       console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
+      if (hello.bellows !== null) {
+        currentBellowsDirection = hello.bellows;
+        updateKeyboardLighting("left");
+        updateKeyboardLighting("right");
+      }
       propertiesTable.hidden = false;
       const fetched = new Map(); // index -> { value, description }
       for (let i = 0; i < hello.count; i++) {
@@ -1087,6 +1186,7 @@
 
       applyBellowGraphFromFetched(fetched);
       applyPedalGraphFromFetched(fetched);
+      applyKeyboardTuningFromFetched(fetched);
 
       try {
         const p = await requestPeripherals();
@@ -1094,6 +1194,7 @@
         updateLiveDot();
         updatePedalLiveState(p);
         startPeripheralPolling();
+        startTuningPolling();
       } catch (err) {
         log("peripherals request failed: " + err.message, "sysexGetPeripherals");
         console.log("[peripherals error]", { error: err.message });
@@ -1839,11 +1940,317 @@
     pg.p2.sample = null; pg.p2.connected = null;
     redrawPedalGraph("p1");
     redrawPedalGraph("p2");
+    stopTuningPolling();
   }
+
+  // ==== Keyboard layout diagrams ====
+  //
+  // Key positions are pick-and-place centers for the HAL403SO Hall switches
+  // (SOT-23-Switch footprint) from a wing board's BOM export. The `id` per
+  // position is the wing's scan position ("key id", per keyboard_layout.c's
+  // note_table) - derived from console-left.log/console-right.log, real
+  // firmware output recorded pressing every key in physical reading order
+  // (rows top to bottom, right to left within a row), each line giving that
+  // physical key's exact `key=<id>`. Matching that log order against a
+  // geometric row-clustering of this BOM's (x,y) positions (see
+  // code/web/keyboard_mapping.csv and the derivation script referenced
+  // there) assigns each id to its physical position. Cross-checked: every
+  // logged note matches either the pull or push note the firmware's
+  // Rheinische table gives for that id (0 mismatches, both wings) - so the
+  // id<->note pairing is exact; the remaining uncertainty is only in the
+  // row-clustering's placement of a few borderline positions (weakest for
+  // the left wing, whose rows separate less cleanly by gap size).
+  const KEY_POS_RIGHT = [
+    {id:0,x:71.554,y:-43.759},{id:6,x:85.12,y:-49.522},{id:4,x:66.352,y:-63.7},{id:1,x:53.296,y:-56.254},
+    {id:2,x:80.632,y:-70.483},{id:3,x:49.369,y:-76.399},{id:14,x:40.087,y:-64.618},{id:13,x:28.458,y:-73.696},
+    {id:7,x:63.292,y:-83.335},{id:5,x:77.521,y:-89.404},{id:8,x:76.093,y:-109.498},{id:10,x:61.558,y:-102.766},
+    {id:12,x:47.89,y:-95.728},{id:9,x:37.434,y:-85.477},{id:20,x:17.238,y:-83.182},{id:18,x:26.163,y:-94.963},
+    {id:16,x:36.159,y:-105.724},{id:22,x:47.631,y:-115.418},{id:11,x:62.43,y:-121.798},{id:15,x:75.543,y:-128.436},
+    {id:17,x:78.09,y:-147.851},{id:21,x:63.955,y:-141.229},{id:23,x:49.522,y:-134.897},{id:19,x:37.171,y:-126.541},
+    {id:30,x:26.357,y:-116.649},{id:24,x:16.32,y:-105.979},{id:27,x:17.636,y:-128.787},{id:31,x:28.501,y:-138.577},
+    {id:29,x:40.49,y:-147.244},{id:25,x:53.959,y:-154.43},{id:28,x:68.086,y:-161.06},{id:26,x:82.315,y:-168.251},
+    {id:32,x:87.976,y:-188.192},{id:34,x:74.155,y:-180.95},{id:36,x:59.569,y:-174.83},{id:33,x:45.693,y:-167.999},
+    {id:37,x:32.789,y:-160.198},{id:35,x:20.8,y:-151.531},
+  ];
+  const KEY_POS_LEFT = [
+    {id:38,x:-32.156,y:-52.019},{id:33,x:-45.52,y:-45.009},{id:39,x:-64.905,y:-51.278},{id:35,x:-79.121,y:-43.815},
+    {id:37,x:-72.876,y:-66.777},{id:36,x:-51.439,y:-59.69},{id:27,x:-37.824,y:-66.472},{id:28,x:-26.064,y:-75.336},
+    {id:34,x:-59.008,y:-73.228},{id:31,x:-44.962,y:-79.731},{id:32,x:-69.828,y:-88.24},{id:26,x:-32.433,y:-89.338},
+    {id:29,x:-55.731,y:-95.834},{id:25,x:-67.72,y:-109.779},{id:24,x:-41.736,y:-102.972},{id:19,x:-22.325,y:-100.134},
+    {id:23,x:-30.308,y:-112.601},{id:30,x:-54.69,y:-116.433},{id:17,x:-68.584,y:-132.283},{id:21,x:-40.618,y:-124.852},
+    {id:20,x:-21.082,y:-124.358},{id:18,x:-30.505,y:-135.515},{id:16,x:-55.757,y:-139.446},{id:11,x:-71.607,y:-153.722},
+    {id:22,x:-41.736,y:-147.168},{id:13,x:-23.238,y:-149.586},{id:9,x:-33.655,y:-160.35},{id:12,x:-46.152,y:-168.935},
+    {id:15,x:-59.106,y:-161.642},{id:10,x:-78.032,y:-175.997},{id:14,x:-64.951,y:-183.769},{id:8,x:-38.485,y:-182.575},
+    {id:0,x:-81.602,y:-192.436},
+  ];
+
+  // Note tables ported from code/main-g474/app/keyboard_layout.c, the single
+  // source of truth. NT(name, octave) mirrors that file's NOTE() macro: C4 = 60.
+  const KBD_NOTE_OFFSET = { C: 0, Cs: 1, D: 2, Ds: 3, E: 4, F: 5, Fs: 6, G: 7, Gs: 8, A: 9, As: 10, B: 11 };
+  const NT = (name, octave) => (octave + 1) * 12 + KBD_NOTE_OFFSET[name];
+  const NN = 0; // NOTE_NONE
+
+  const RHEINISCHE_RIGHT_PULL = [
+    NT("A",3),NT("B",3),NT("Ds",4),NT("E",4),NT("F",4),
+    NT("F",5),NT("As",3),NT("As",4),NT("Ds",5),NT("D",4),
+    NT("Gs",4),NT("B",4),NT("Cs",5),NT("Cs",4),NT("C",4),
+    NT("Fs",5),NT("G",4),NT("A",5),NT("A",6),NT("As",5),
+    NT("B",6),NT("D",5),NT("Fs",4),NT("A",4),NT("Gs",6),
+    NT("C",5),NT("Cs",6),NT("G",6),NT("Gs",5),NT("C",6),
+    NT("Fs",6),NT("E",6),NT("G",5),NT("D",6),NT("B",5),
+    NT("F",6),NT("E",5),NT("Ds",6),NN,NN,
+  ];
+  const RHEINISCHE_RIGHT_PUSH = [
+    NT("A",3),NT("B",3),NT("Ds",4),NT("Fs",4),NT("F",4),
+    NT("F",5),NT("As",3),NT("E",4),NT("E",5),NT("Cs",4),
+    NT("A",4),NT("Cs",5),NT("Fs",5),NT("C",4),NT("D",4),
+    NT("Gs",5),NT("Gs",4),NT("B",5),NT("G",6),NT("As",4),
+    NT("A",6),NT("E",5),NT("G",4),NT("B",4),NT("Gs",6),
+    NT("D",5),NT("E",6),NT("Fs",6),NT("A",5),NT("C",5),
+    NT("As",5),NT("C",6),NT("Ds",5),NT("D",6),NT("Cs",6),
+    NT("F",6),NT("G",5),NT("Ds",6),NN,NN,
+  ];
+  const RHEINISCHE_LEFT_PULL = [
+    NT("D",2),NN,NN,NN,NN,
+    NN,NN,NN,NT("E",2),NT("A",2),
+    NT("B",2),NT("G",4),NT("D",3),NT("Gs",2),NT("E",3),
+    NT("Gs",3),NT("B",3),NT("A",4),NT("G",3),NT("Cs",3),
+    NT("As",2),NT("C",4),NT("A",3),NT("Ds",3),NT("E",4),
+    NT("Ds",4),NT("F",4),NT("As",3),NT("F",3),NT("Fs",4),
+    NT("D",4),NT("C",3),NT("Fs",3),NT("F",2),NT("Cs",4),
+    NT("C",2),NT("G",2),NT("Ds",2),NT("Gs",4),NT("Fs",2),
+  ];
+  const RHEINISCHE_LEFT_PUSH = [
+    NT("E",2),NN,NN,NN,NN,
+    NN,NN,NN,NT("D",2),NT("D",3),
+    NT("B",4),NT("Fs",4),NT("G",2),NT("Gs",2),NT("A",2),
+    NT("E",3),NT("A",3),NT("Cs",2),NT("As",3),NT("Ds",3),
+    NT("As",2),NT("B",3),NT("G",3),NT("C",4),NT("D",4),
+    NT("F",2),NT("Cs",3),NT("C",3),NT("Ds",4),NT("E",4),
+    NT("Cs",4),NT("F",4),NT("F",3),NT("Fs",2),NT("Gs",3),
+    NT("F",2),NT("Fs",3),NT("Cs",2),NT("G",4),NT("B",2),
+  ];
+  const UNISONORIC_RIGHT = [
+    NT("E",4),NT("F",4),NT("A",4),NT("Gs",4),NT("G",4),
+    NT("C",5),NT("Fs",4),NT("As",4),NT("Ds",5),NT("C",4),
+    NT("Cs",5),NT("E",5),NT("B",4),NT("A",3),NT("B",3),
+    NT("Fs",5),NT("Cs",4),NT("A",5),NT("As",3),NT("D",6),
+    NT("Gs",6),NT("G",5),NT("D",5),NT("F",5),NT("A",6),
+    NT("Gs",5),NT("C",6),NT("As",6),NT("As",5),NT("Ds",6),
+    NT("F",6),NT("Fs",6),NT("Ds",6),NT("E",6),NT("Cs",6),
+    NT("B",6),NT("B",5),NT("G",6),NN,NN,
+  ];
+  const PEGURI_LEFT = [
+    NT("A",4),NN,NN,NN,NN,
+    NN,NN,NN,NT("Gs",4),NT("B",4),
+    NT("Fs",4),NT("Ds",4),NT("F",4),NT("Cs",2),NT("G",4),
+    NT("E",4),NT("Cs",4),NT("C",4),NT("As",4),NT("Gs",2),
+    NT("C",2),NT("B",3),NT("D",4),NT("A",4),NT("Gs",3),
+    NT("A",3),NT("B",2),NT("As",2),NT("G",2),NT("G",3),
+    NT("As",3),NT("F",3),NT("Fs",3),NT("A",2),NT("E",3),
+    NT("C",3),NT("D",3),NT("Ds",3),NT("Fs",2),NT("Cs",3),
+  ];
+  const MANOURY_LEFT = [
+    NT("A",4),NN,NN,NN,NN,
+    NN,NN,NN,NT("Gs",4),NT("F",2),
+    NT("Fs",4),NT("Ds",4),NT("F",4),NT("D",2),NT("G",4),
+    NT("E",4),NT("Cs",4),NT("C",4),NT("E",2),NT("C",2),
+    NT("Cs",2),NT("B",3),NT("D",4),NT("Ds",2),NT("Gs",3),
+    NT("A",3),NT("B",2),NT("As",2),NT("Gs",2),NT("G",3),
+    NT("As",3),NT("F",3),NT("Fs",3),NT("A",2),NT("E",3),
+    NT("C",3),NT("D",3),NT("Ds",3),NT("Fs",2),NT("Cs",3),
+  ];
+
+  // [tuning][side] -> { pull, push, bisonoric }. Mirrors note_table in
+  // keyboard_layout.c (unisonoric tunings point push and pull at the same
+  // array; Peguri and Manoury share the right-hand array).
+  const KBD_NOTE_TABLE = [
+    { // TUNING_RHEINISCHE
+      right: { pull: RHEINISCHE_RIGHT_PULL, push: RHEINISCHE_RIGHT_PUSH, bisonoric: true },
+      left:  { pull: RHEINISCHE_LEFT_PULL,  push: RHEINISCHE_LEFT_PUSH,  bisonoric: true },
+    },
+    { // TUNING_PEGURI
+      right: { pull: UNISONORIC_RIGHT, push: UNISONORIC_RIGHT, bisonoric: false },
+      left:  { pull: PEGURI_LEFT, push: PEGURI_LEFT, bisonoric: false },
+    },
+    { // TUNING_MANOURY
+      right: { pull: UNISONORIC_RIGHT, push: UNISONORIC_RIGHT, bisonoric: false },
+      left:  { pull: MANOURY_LEFT, push: MANOURY_LEFT, bisonoric: false },
+    },
+  ];
+
+  const KEYBOARD_TUNING_PROP_INDEX = 37; // keyboard_tuning, per property_table.def
+  let currentTuning = 0; // matches keyboard_tuning's default_value
+
+  // MIDI channel (1-based) each wing's notes arrive on - L_MIDI_CH=0,
+  // R_MIDI_CH=1 (both 0-based) in code/main-g474/app/keyboard.h.
+  const KBD_CHANNEL = { left: 1, right: 2 };
+  const soundingNotes = { 1: new Set(), 2: new Set() };
+
+  // The single physical bellows drives both wings, so this is one global
+  // value (not per-side) - kept current via HELLO's initial-state field and
+  // SYSEX_MSG_BELLOWS_DIRECTION's change notifications (see midi.cc). Used to
+  // resolve which of a bisonoric key's two notes a sounding note number
+  // means, rather than checking both independently: two different keys can
+  // share a note value between their push and pull slices, so without the
+  // real direction a note match alone can't always tell them apart.
+  let currentBellowsDirection = BELLOWS_NEUTRAL;
+
+  const kbdEls = { left: document.getElementById("kbd-left"), right: document.getElementById("kbd-right") };
+  const keyElsBySide = { left: {}, right: {} };
+  const KBD_KEY_R = 18.2;
+  const KBD_PAD = KBD_KEY_R + 8;
+  const KBD_PLOT_W = 300;
+
+  // One shared mm->viewBox-unit scale for both panels (rather than each
+  // independently stretched to fill its own 300-wide canvas), so relative
+  // key spacing between the two wings stays physically accurate instead of
+  // the smaller wing appearing artificially blown up to match the larger
+  // one's canvas. The narrower wing is then centered within the shared width.
+  function kbdXRange(positions) {
+    const xs = positions.map((p) => p.x);
+    return Math.max(...xs) - Math.min(...xs);
+  }
+  const KBD_SCALE = (KBD_PLOT_W - 2 * KBD_PAD) / Math.max(kbdXRange(KEY_POS_LEFT), kbdXRange(KEY_POS_RIGHT));
+
+  // Note display on the keyboard diagrams only - the activity log always
+  // uses noteName() (English letters), regardless of this toggle.
+  const SOLFEGE_NAMES = ["Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"];
+  let kbdSolfege = false;
+  function kbdNoteName(note) {
+    if (!kbdSolfege) return noteName(note);
+    return SOLFEGE_NAMES[note % 12] + (Math.floor(note / 12) - 1);
+  }
+
+  function kbdLabel(x, y, extraClass, text) {
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("class", "kbd-key-label" + (extraClass ? " " + extraClass : ""));
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.textContent = text;
+    return t;
+  }
+
+  function renderKeyboard(side) {
+    const positions = side === "right" ? KEY_POS_RIGHT : KEY_POS_LEFT;
+    const svg = kbdEls[side];
+    const xs = positions.map((p) => p.x), ys = positions.map((p) => -p.y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const scale = KBD_SCALE;
+    const plotH = (yMax - yMin) * scale + 2 * KBD_PAD;
+    // Center this wing's (possibly narrower) span within the shared width,
+    // and mirror X within that span (outward edge stays on the panel's
+    // outer side, closest to the screen edge on its own side).
+    const xOffset = KBD_PAD + ((KBD_PLOT_W - 2 * KBD_PAD) - (xMax - xMin) * scale) / 2;
+    svg.setAttribute("viewBox", "0 0 " + KBD_PLOT_W + " " + plotH);
+    svg.innerHTML = "";
+
+    const tuning = KBD_NOTE_TABLE[currentTuning][side];
+    keyElsBySide[side] = {};
+    for (const pos of positions) {
+      const px = xOffset + (xMax - pos.x) * scale;
+      const py = KBD_PAD + ((-pos.y) - yMin) * scale;
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("class", "kbd-key");
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("class", "kbd-key-circle");
+      circle.setAttribute("cx", px); circle.setAttribute("cy", py); circle.setAttribute("r", KBD_KEY_R);
+      g.appendChild(circle);
+
+      const pullNote = tuning.pull[pos.id] || null, pushNote = tuning.push[pos.id] || null;
+      if (tuning.bisonoric) {
+        if (pullNote) g.appendChild(kbdLabel(px, py - 3, "pull", kbdNoteName(pullNote)));
+        if (pushNote) g.appendChild(kbdLabel(px, py + 9, "push", kbdNoteName(pushNote)));
+      } else if (pullNote) {
+        g.appendChild(kbdLabel(px, py + 4, "", kbdNoteName(pullNote)));
+      }
+      svg.appendChild(g);
+      keyElsBySide[side][pos.id] = { g, pull: pullNote, push: pushNote, bisonoric: tuning.bisonoric };
+    }
+    updateKeyboardLighting(side);
+  }
+
+  function updateKeyboardLighting(side) {
+    const sounding = soundingNotes[KBD_CHANNEL[side]];
+    for (const id in keyElsBySide[side]) {
+      const k = keyElsBySide[side][id];
+      k.g.classList.remove("lit", "lit-push", "lit-pull");
+      if (!k.bisonoric) {
+        if (k.pull !== null && sounding.has(k.pull)) k.g.classList.add("lit");
+        continue;
+      }
+      // Bisonoric: only the note slice matching the actual current bellows
+      // direction can be genuinely sounding, so check just that one - not
+      // both independently. Two different keys can share a note value
+      // between their push and pull slices, so matching both would light a
+      // key that merely happens to share a number with the one really held.
+      if (currentBellowsDirection === BELLOWS_PUSH) {
+        if (k.push !== null && sounding.has(k.push)) k.g.classList.add("lit-push");
+      } else if (currentBellowsDirection === BELLOWS_PULL) {
+        if (k.pull !== null && sounding.has(k.pull)) k.g.classList.add("lit-pull");
+      }
+    }
+  }
+
+  function updateSoundingNote(channel, note, on) {
+    const sounding = soundingNotes[channel];
+    if (!sounding) return;
+    if (on) sounding.add(note); else sounding.delete(note);
+    updateKeyboardLighting(channel === KBD_CHANNEL.left ? "left" : "right");
+  }
+
+  /* Reads keyboard_tuning from the initial property enumeration, cross-
+   * checked against its expected description prefix the same way
+   * applyBellowGraphFromFetched/applyPedalGraphFromFetched guard against a
+   * drifted property index - a firmware whose layout doesn't match just
+   * keeps showing the default tuning instead of mislabeling every key. */
+  function applyKeyboardTuningFromFetched(fetched) {
+    const entry = fetched.get(KEYBOARD_TUNING_PROP_INDEX);
+    if (entry && entry.description && entry.description.startsWith("Note layout")) {
+      currentTuning = entry.value;
+    } else {
+      log("keyboard tuning: property " + KEYBOARD_TUNING_PROP_INDEX + " description (\"" +
+          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Note layout\" - showing default tuning.",
+          "sysexGetPropertyDescription");
+    }
+    renderKeyboard("left");
+    renderKeyboard("right");
+  }
+
+  let tuningTimer = null;
+  async function pollTuningOnce() {
+    if (!activeOutput) return;
+    try {
+      const value = await requestPropertyValue(KEYBOARD_TUNING_PROP_INDEX);
+      if (value !== currentTuning && value >= 0 && value < KBD_NOTE_TABLE.length) {
+        currentTuning = value;
+        renderKeyboard("left");
+        renderKeyboard("right");
+      }
+    } catch (err) {
+      // Transient: retried next tick.
+    }
+  }
+  function startTuningPolling() {
+    stopTuningPolling();
+    tuningTimer = setInterval(pollTuningOnce, 1000);
+  }
+  function stopTuningPolling() {
+    if (tuningTimer) { clearInterval(tuningTimer); tuningTimer = null; }
+  }
+
+  const kbdNoteModeToggle = document.getElementById("kbdNoteModeToggle");
+  kbdNoteModeToggle.addEventListener("change", () => {
+    kbdSolfege = kbdNoteModeToggle.checked;
+    renderKeyboard("left");
+    renderKeyboard("right");
+  });
 
   redrawGraph();
   redrawPedalGraph("p1");
   redrawPedalGraph("p2");
+  renderKeyboard("left");
+  renderKeyboard("right");
 
   let midiAccess = null;
   let activeKey = null;
@@ -2007,6 +2414,12 @@
     const silentSysex = startingSysex && !!pending && pending.silent;
     const hex = bytes.map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
     const description = startingSysex ? null : describeShortMessage(bytes);
+    if (!startingSysex) {
+      const status = bytes[0] & 0xf0;
+      const channel = (bytes[0] & 0x0f) + 1;
+      if (status === 0x90 && bytes[2] > 0) updateSoundingNote(channel, bytes[1], true);
+      else if (status === 0x80 || (status === 0x90 && bytes[2] === 0)) updateSoundingNote(channel, bytes[1], false);
+    }
     if (!silentSysex) {
       log("« " + hex + (description ? "  (" + description + ")" : ""), messageKind(bytes, startingSysex));
       console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
@@ -2028,6 +2441,14 @@
             if (!silentSysex) {
               log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
               console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
+            }
+            // Device-initiated push, not a request/response - never has a
+            // pending request to resolve (resolvePendingRequest below is a
+            // no-op for it regardless, since nothing was ever sent).
+            if (payload[0] === SYSEX_MSG_BELLOWS_DIRECTION && payload.length >= 2) {
+              currentBellowsDirection = payload[1];
+              updateKeyboardLighting("left");
+              updateKeyboardLighting("right");
             }
             resolvePendingRequest(payload);
           } else {
@@ -2055,6 +2476,9 @@
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");
     redrawGraph();
+    soundingNotes[1].clear(); soundingNotes[2].clear();
+    currentBellowsDirection = BELLOWS_NEUTRAL;
+    updateKeyboardLighting("left"); updateKeyboardLighting("right");
   }
 
   function connectTo(key) {

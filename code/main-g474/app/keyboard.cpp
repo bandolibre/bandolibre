@@ -4,6 +4,7 @@
 extern "C" {
 void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity);
 void usb_app_midi_note_off(uint8_t channel, uint8_t note);
+void midi_send_bellows_direction(uint8_t direction);
 
 #include "main.h"
 #include "spi_link.h"
@@ -154,6 +155,11 @@ uint8_t keyboard_wing_id(side_t side)
 static bellows_t kbd_bellows(void)
 {
   return buttons_table_mode() ? BELLOWS_PULL : bellow_direction();
+}
+
+bellows_t keyboard_bellows_direction(void)
+{
+  return kbd_bellows();
 }
 
 static SPIBus *bus_from_hspi(SPI_HandleTypeDef *hspi)
@@ -541,6 +547,12 @@ void keyboard_poll(void)
   if (bellows != last_bellows)
   {
     last_bellows = bellows;
+    /* Announce the new direction before the NOTE ON/OFF events it causes
+     * (see bus_bellows_changed): a full push<->pull sweep passes through
+     * NEUTRAL, so across the two transitions this reads on the wire as
+     * [direction=NEUTRAL] [NOTE OFF...] [direction=PULL] [NOTE ON...] -
+     * the direction message always precedes the notes it explains. */
+    midi_send_bellows_direction((uint8_t)bellows);
     keyboard_bellows_changed();
   }
 
