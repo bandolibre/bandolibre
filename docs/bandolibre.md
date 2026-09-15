@@ -78,6 +78,14 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
   C'est l'occasion de partager les coûts, de s'entraider pendant l'assemblage
   et de rejoindre une communauté de constructeurs.
 
+## Configurer votre Bandolibre
+
+Un outil web permet de connecter le Bandolibre en USB-MIDI depuis votre
+navigateur, de visualiser le clavier en direct et de régler les propriétés du
+firmware, sans rien installer.
+
+<a href="{{ '/tools/midi.html' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-sliders-h"></i> Ouvrir l'outil de configuration</a>
+
 ## Characteristiques Techniques
 
 - **Clavier :** Rheinische Lage 142 voies
