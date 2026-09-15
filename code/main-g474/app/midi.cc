@@ -231,12 +231,13 @@ void handle_get_property_description(gsl::span<const uint8_t> body)
     return;
   }
 
-  std::array<uint8_t, 160> payload;
+  std::array<uint8_t, 200> payload;
   DataWriter writer(payload);
 
   writer.write((uint8_t)SYSEX_MSG_GET_PROPERTY_DESCRIPTION);
   writer.write(index);
   writer.write((uint8_t)d->type);
+  writer.write(gsl::span<const char>(d->name, strlen(d->name)));
   writer.write(gsl::span<const char>(d->description, strlen(d->description)));
 
   gsl::span<const uint8_t> response_body = writer.getSpan();

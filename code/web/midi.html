@@ -50,11 +50,6 @@
     font-size: 1.5rem;
     margin: 0 0 4px;
   }
-  p.lead {
-    margin: 0;
-    color: var(--muted);
-    font-size: 1rem;
-  }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -231,14 +226,14 @@
   .bp-live-dot { fill: var(--fg); stroke: var(--card); stroke-width: 2; }
   .bp-readout {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; align-items: baseline;
-    font-family: var(--mono); font-size: 1.15rem; margin: 10px auto 0; width: fit-content;
+    font-family: var(--mono); font-size: 1.15rem; margin: 4px auto 0; width: fit-content;
     background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 20px;
   }
   .bp-readout b { font-weight: 700; font-variant-numeric: tabular-nums; }
   .bp-readout .sep { color: var(--muted); }
   .bp-caption { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
 
-  .bp-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .bp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
   .bp-presets button {
     font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
     padding: 5px 11px; border-radius: 999px; cursor: pointer;
@@ -262,20 +257,23 @@
   .bp-swatch.push { background: var(--push); }
   .bp-swatch.pull { background: var(--pull); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
+  .bp-center-row { display: flex; align-items: center; gap: 8px; }
+  .bp-center-row .bp-x { flex: 1; max-width: 12em; }
   .bp-cp-row-label { font-size: 0.72rem; color: var(--muted); }
-  .bp-xy, .bp-xyz { display: grid; gap: 6px; }
+  .bp-x, .bp-xy, .bp-xyz { display: grid; gap: 6px; }
+  .bp-x { grid-template-columns: 1fr; }
   .bp-xy { grid-template-columns: 1fr 1fr; }
   .bp-xyz { grid-template-columns: 1fr 1fr 1fr; }
-  .bp-xy label, .bp-xyz label {
+  .bp-x label, .bp-xy label, .bp-xyz label {
     display: flex; align-items: center; gap: 5px; margin: 0;
     border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px;
   }
-  .bp-xy label span, .bp-xyz label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
-  .bp-xy input[type="number"], .bp-xyz input[type="number"] {
+  .bp-x label span, .bp-xy label span, .bp-xyz label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
+  .bp-x input[type="number"], .bp-xy input[type="number"], .bp-xyz input[type="number"] {
     width: 100%; border: none; background: transparent; color: var(--fg);
     font-family: var(--mono); font-size: 0.82rem; padding: 2px 0; font-variant-numeric: tabular-nums;
   }
-  .bp-xy input[type="number"]:focus, .bp-xyz input[type="number"]:focus { outline: none; }
+  .bp-x input[type="number"]:focus, .bp-xy input[type="number"]:focus, .bp-xyz input[type="number"]:focus { outline: none; }
 
   /* ---- Pedal calibration graphs ---- */
   .pedal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
@@ -319,6 +317,13 @@
   .kbd-key.lit .kbd-key-label,
   .kbd-key.lit-push .kbd-key-label,
   .kbd-key.lit-pull .kbd-key-label { fill: var(--card); }
+  .kbd-key-hit { fill: transparent; cursor: pointer; touch-action: none; }
+  .kbd-key.playing .kbd-key-circle { fill: var(--ok); stroke: var(--ok); }
+  .kbd-key.playing-push .kbd-key-circle { fill: var(--push); stroke: var(--push); }
+  .kbd-key.playing-pull .kbd-key-circle { fill: var(--pull); stroke: var(--pull); }
+  .kbd-key.playing .kbd-key-label,
+  .kbd-key.playing-push .kbd-key-label,
+  .kbd-key.playing-pull .kbd-key-label { fill: var(--card); }
 
   .kbd-toggle {
     display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto;
@@ -387,7 +392,6 @@
 <main>
   <div>
     <h1>Bandolibre MIDI Connect</h1>
-    <p class="lead">Auto-connects to a Bandolibre over Web MIDI; falls back to another one if the active board disconnects.</p>
   </div>
 
   <div class="card">
@@ -404,10 +408,10 @@
   </div>
 
   <div class="card">
-    <label>Bellows curve</label>
+    <label>Bellow</label>
     <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
 
-    <svg class="bellow-plot" viewBox="0 0 900 420" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
+    <svg class="bellow-plot" viewBox="0 0 900 396" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
       <line class="bp-grid" x1="70" y1="340" x2="860" y2="340"></line>
       <line class="bp-grid" x1="70" y1="30" x2="860" y2="30"></line>
       <text class="bp-axis-label bp-axis-label-y" x="60" y="344" text-anchor="end">0</text>
@@ -463,29 +467,46 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Drag the center / full push / full pull lines and the curve's control points; use the slider below for the deadzone. Hold Shift while dragging for fine adjustment. Shown at unity sensitivity; hysteresis not shown (deadzone lines use <code>bellow_dead</code> only).</p>
+    <p class="bp-caption">Hold Shift while dragging for fine adjustment. Shown at unity sensitivity; hysteresis not shown (deadzone lines use <code>bellow_dead</code> only).</p>
 
-    <div class="bp-presets" id="bpPresets">
-      <button type="button" data-preset="linear">Linear</button>
-      <button type="button" data-preset="feather">Feather touch</button>
-      <button type="button" data-preset="firm">Firm press</button>
-      <button type="button" data-preset="cliff">Hard landing</button>
+    <div class="bp-group">
+      <div class="bp-group-title">Presets</div>
+      <div class="bp-presets" id="bpPresets">
+        <button type="button" data-preset="linear">Linear</button>
+        <button type="button" data-preset="feather">Feather touch</button>
+        <button type="button" data-preset="firm">Firm press</button>
+        <button type="button" data-preset="cliff">Hard landing</button>
+      </div>
     </div>
 
     <div class="bp-params">
       <div class="bp-group bp-group-full">
-        <div class="bp-group-title">bellow_full_push / bellow_center / bellow_full_pull</div>
+        <div class="bp-group-title">Bellow center</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Combined hall sensor reading</span>
-          <div class="bp-xyz">
-            <label><span>min</span><input type="number" id="num-full-push" min="0" max="30000" value="9500"></label>
-            <label><span>center</span><input type="number" id="num-center" min="0" max="30000" value="11280"></label>
-            <label><span>max</span><input type="number" id="num-full-pull" min="0" max="30000" value="13000"></label>
+          <span class="bp-cp-row-label">Sensor value at rest</span>
+          <div class="bp-center-row">
+            <div class="bp-x">
+              <label><span>center</span><input type="number" id="num-center" min="0" max="30000" value="11280"></label>
+            </div>
+            <button type="button" class="retry-btn" id="btnSampleCenter">Set from current (1s average)</button>
+          </div>
+        </div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">Deadzone: travel each way before registering direction</span>
+          <div class="bp-slider-row">
+            <input type="range" id="slider-dead" min="0" max="64" value="64">
+            <span class="bp-slider-value" id="slider-dead-value">64</span>
           </div>
         </div>
       </div>
       <div class="bp-group">
-        <div class="bp-group-title"><span class="bp-swatch push"></span>bellow_push_curve</div>
+        <div class="bp-group-title"><span class="bp-swatch push"></span>Push curve</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">Bellow sensor reading at full push</span>
+          <div class="bp-x">
+            <label><span>full push</span><input type="number" id="num-full-push" min="0" max="30000" value="9500"></label>
+          </div>
+        </div>
         <div class="bp-cp-row">
           <span class="bp-cp-row-label">P1 — near center</span>
           <div class="bp-xy">
@@ -502,7 +523,13 @@
         </div>
       </div>
       <div class="bp-group">
-        <div class="bp-group-title"><span class="bp-swatch pull"></span>bellow_pull_curve</div>
+        <div class="bp-group-title"><span class="bp-swatch pull"></span>Pull curve</div>
+        <div class="bp-cp-row">
+          <span class="bp-cp-row-label">Bellow sensor reading at full pull</span>
+          <div class="bp-x">
+            <label><span>full pull</span><input type="number" id="num-full-pull" min="0" max="30000" value="13000"></label>
+          </div>
+        </div>
         <div class="bp-cp-row">
           <span class="bp-cp-row-label">P1 — near center</span>
           <div class="bp-xy">
@@ -515,16 +542,6 @@
           <div class="bp-xy">
             <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
             <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
-          </div>
-        </div>
-      </div>
-      <div class="bp-group bp-group-full">
-        <div class="bp-group-title">bellow_dead</div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Travel each way before registering direction</span>
-          <div class="bp-slider-row">
-            <input type="range" id="slider-dead" min="0" max="64" value="64">
-            <span class="bp-slider-value" id="slider-dead-value">64</span>
           </div>
         </div>
       </div>
@@ -1045,8 +1062,10 @@
         if (index === null) return name;
         const type = reader.readUint8();
         if (type === null) return name + " index=" + index;
+        const propName = reader.readString();
         const description = reader.readString();
         return name + " index=" + index + " type=" + type +
+               (propName !== null ? " name=\"" + propName + "\"" : "") +
                (description !== null ? " desc=\"" + description + "\"" : "");
       }
       case SYSEX_MSG_GET_PERIPHERALS: {
@@ -1154,8 +1173,9 @@
     reader.readUint8(); // message id
     reader.readUInt16(); // echoed index
     const type = reader.readUint8();
+    const name = reader.readString();
     const description = reader.readString();
-    return { type, description };
+    return { type, name, description };
   }
 
   async function requestPropertyValue(index) {
@@ -1225,38 +1245,14 @@
     setPropertiesStatus("Not connected.");
   }
 
-  // The sysex wire protocol deliberately never sends a property's symbolic
-  // name (see midi.cc's GET_PROPERTY_DESCRIPTION handler, which returns only
-  // type and human description) - so this list mirrors property_table.def's
-  // declaration order by hand. It's cosmetic only (unlike PROP_INDEX below,
-  // nothing is written using it), so a drifted firmware just mislabels a
-  // display column rather than risking a wrong write.
-  const PROPERTY_NAMES = [
-    "key_press", "key_release", "bellow_center", "bellow_dead", "bellow_hyst",
-    "bellow_full_push", "bellow_full_pull", "bellow_cchyst", "bellow_cc_period_ms",
-    "bellow_settle_us", "midi_active_sensing_period", "midi_active_sensing_enable",
-    "pedal1_min", "pedal1_max", "pedal2_min", "pedal2_max",
-    "pedal1_hyst_fwd", "pedal1_hyst_rev", "pedal1_ema_alpha", "pedal1_cc_period_ms",
-    "pedal2_hyst_fwd", "pedal2_hyst_rev", "pedal2_ema_alpha", "pedal2_cc_period_ms",
-    "tablemode_velocity", "bellow_scale_low", "bellow_scale_mid", "bellow_scale_high",
-    "bellow_inertia_track_ms", "bellow_inertia_damping", "bellow_inertia_leak_quiet",
-    "bellow_inertia_leak_per_key", "bellow_inertia_impulse_gain", "bellow_inertia_dir_dead",
-    "bellow_inertia_dir_hyst", "bellow_inertia_impulse_directional", "bellow_inertia_enable",
-    "keyboard_tuning", "bellow_push_curve_x1", "bellow_push_curve_y1", "bellow_push_curve_x2",
-    "bellow_push_curve_y2", "bellow_pull_curve_x1", "bellow_pull_curve_y1", "bellow_pull_curve_x2",
-    "bellow_pull_curve_y2", "log_bellow", "log_spi_stat", "log_pedals", "report_hz",
-    "show_bellow", "show_spi", "show_keyboard", "show_keyboard_stats", "table_mode",
-    "bellow_sens_level",
-  ];
-
-  /* Editable value cell: the sysex protocol never sends a property's
-   * min/max (GET_PROPERTY_DESCRIPTION only returns type + description - see
-   * the PROPERTY_NAMES comment above), so these inputs can't be bounded
-   * client-side. That's fine: set_property_raw() on the device clamps to its
-   * own [min,max] and echoes back the value actually in effect, the same way
-   * every other live-editing control on this page already relies on
-   * (bellows curve, pedal calibration). Writes are queued through the same
-   * queueSetProperty used there, so a table edit and a graph drag never race. */
+  /* Editable value cell: GET_PROPERTY_DESCRIPTION returns a property's type
+   * and name/description, but not its min/max, so these inputs can't be
+   * bounded client-side. That's fine: set_property_raw() on the device
+   * clamps to its own [min,max] and echoes back the value actually in
+   * effect, the same way every other live-editing control on this page
+   * already relies on (bellows curve, pedal calibration). Writes are queued
+   * through the same queueSetProperty used there, so a table edit and a
+   * graph drag never race. */
   function addPropertyValueInput(cell, index, type, value) {
     if (type === PROPERTY_TYPE_BOOL) {
       const input = document.createElement("input");
@@ -1285,7 +1281,7 @@
     indexCell.textContent = index;
     const nameCell = document.createElement("td");
     nameCell.className = "name";
-    nameCell.textContent = PROPERTY_NAMES[index] || "?";
+    nameCell.textContent = desc.name || "?";
     const valueCell = document.createElement("td");
     valueCell.className = "value";
     addPropertyValueInput(valueCell, index, desc.type, value);
@@ -1318,7 +1314,8 @@
         updateKeyboardLighting("right");
       }
       propertiesTable.hidden = false;
-      const fetched = new Map(); // index -> { value, description }
+      const fetched = new Map(); // index -> { value, name, description }
+      const byName = new Map(); // name -> index, for the live-editing controls below
       for (let i = 0; i < hello.count; i++) {
         setPropertiesStatus("Loading property " + (i + 1) + " / " + hello.count + "…");
         const propStart = Date.now();
@@ -1326,9 +1323,10 @@
           const desc = await requestPropertyDescription(i);
           const value = await requestPropertyValue(i);
           const propTime = Date.now() - propStart;
-          console.log("[property fetched]", { index: i, desc: desc.description.substring(0, 50), value, elapsed: propTime });
-          if (!PROPS_EDITED_ELSEWHERE.has(i)) addPropertyRow(i, value, desc);
-          fetched.set(i, { value, description: desc.description });
+          console.log("[property fetched]", { index: i, name: desc.name, desc: desc.description.substring(0, 50), value, elapsed: propTime });
+          if (!PROPS_EDITED_ELSEWHERE.has(desc.name)) addPropertyRow(i, value, desc);
+          fetched.set(i, { value, name: desc.name, description: desc.description });
+          if (desc.name) byName.set(desc.name, i);
         } catch (err) {
           console.log("[property fetch error]", { index: i, error: err.message });
           throw err;
@@ -1336,11 +1334,12 @@
       }
       setPropertiesStatus(hello.count + " propert" + (hello.count === 1 ? "y" : "ies"));
 
-      applyBellowGraphFromFetched(fetched);
-      applyPedalGraphFromFetched(fetched);
-      applyKeyboardTuningFromFetched(fetched);
-      applyTableModeFromFetched(fetched);
-      applyBellowSensFromFetched(fetched);
+      applyBellowGraphFromFetched(fetched, byName);
+      applyPedalGraphFromFetched(fetched, byName);
+      applyKeyboardTuningFromFetched(fetched, byName);
+      applyTableModeFromFetched(fetched, byName);
+      applyBellowSensFromFetched(fetched, byName);
+      applyTablemodeVelocityFromFetched(fetched, byName);
 
       try {
         const p = await requestPeripherals();
@@ -1366,57 +1365,42 @@
 
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
-  // The sysex wire protocol deliberately never sends a property's symbolic
-  // name (see midi.cc) - GET_PROPERTY_DESCRIPTION only returns its type and
-  // human description. So which numeric index is "bellow_center" etc. is an
-  // assumption about property_table.def's declaration order matching this
-  // page's build. PROP_INDEX below encodes that assumption; PROP_EXPECT
-  // cross-checks each assumed index's fetched description against a known
-  // prefix before any live editing is enabled, so a firmware whose property
-  // layout has drifted degrades to a local-only (read-only-to-the-device)
-  // graph instead of silently writing to the wrong property.
-  const PROP_INDEX = {
-    center: 2, dead: 3, fullPush: 5, fullPull: 6,
-    pushX1: 38, pushY1: 39, pushX2: 40, pushY2: 41,
-    pullX1: 42, pullY1: 43, pullX2: 44, pullY2: 45,
+  // GET_PROPERTY_DESCRIPTION now returns a property's symbolic name (see
+  // midi.cc), so which index is "bellow_center" etc. is resolved by looking
+  // it up by name among the just-fetched properties (byName, built in
+  // enumerateProperties) rather than assumed from property_table.def's
+  // declaration order. PROP_INDEX starts empty and is filled in by
+  // applyBellowGraphFromFetched() below; a name missing from that lookup
+  // (an older firmware, say) leaves it unresolved, and bellowGraphLive stays
+  // false - a local-only (read-only-to-the-device) graph instead of risking
+  // a write to the wrong property.
+  const PROP_NAMES = {
+    center: "bellow_center", dead: "bellow_dead", fullPush: "bellow_full_push", fullPull: "bellow_full_pull",
+    pushX1: "bellow_push_curve_x1", pushY1: "bellow_push_curve_y1", pushX2: "bellow_push_curve_x2", pushY2: "bellow_push_curve_y2",
+    pullX1: "bellow_pull_curve_x1", pullY1: "bellow_pull_curve_y1", pullX2: "bellow_pull_curve_x2", pullY2: "bellow_pull_curve_y2",
   };
-  const PROP_EXPECT = {
-    [PROP_INDEX.center]: "Combined hall reading at rest",
-    [PROP_INDEX.dead]: "Travel each way before registering direction",
-    [PROP_INDEX.fullPush]: "Combined hall reading at full push",
-    [PROP_INDEX.fullPull]: "Combined hall reading at full pull",
-    [PROP_INDEX.pushX1]: "Push response curve, control point 1 X",
-    [PROP_INDEX.pushY1]: "Push response curve, control point 1 Y",
-    [PROP_INDEX.pushX2]: "Push response curve, control point 2 X",
-    [PROP_INDEX.pushY2]: "Push response curve, control point 2 Y",
-    [PROP_INDEX.pullX1]: "Pull response curve, control point 1 X",
-    [PROP_INDEX.pullY1]: "Pull response curve, control point 1 Y",
-    [PROP_INDEX.pullX2]: "Pull response curve, control point 2 X",
-    [PROP_INDEX.pullY2]: "Pull response curve, control point 2 Y",
-  };
+  const PROP_INDEX = {};
   let bellowGraphLive = false;
   let liveAdcTotal = null;
 
-  // Same drift-risk assumption as PROP_INDEX/PROP_EXPECT above, for the two
+  // Same name-lookup approach as PROP_NAMES/PROP_INDEX above, for the two
   // pedal calibration ranges.
-  const PEDAL_PROP_INDEX = { p1Min: 12, p1Max: 13, p2Min: 14, p2Max: 15 };
-  const PEDAL_PROP_EXPECT = {
-    [PEDAL_PROP_INDEX.p1Min]: "Pedal 1 (expression) ADC at minimum",
-    [PEDAL_PROP_INDEX.p1Max]: "Pedal 1 (expression) ADC at maximum",
-    [PEDAL_PROP_INDEX.p2Min]: "Pedal 2 (sustain) ADC at minimum",
-    [PEDAL_PROP_INDEX.p2Max]: "Pedal 2 (sustain) ADC at maximum",
-  };
+  const PEDAL_PROP_NAMES = { p1Min: "pedal1_min", p1Max: "pedal1_max", p2Min: "pedal2_min", p2Max: "pedal2_max" };
+  const PEDAL_PROP_INDEX = {};
   let pedalGraphLive = false;
   const pg = {
     p1: { min: 920, max: 3100, sample: null, connected: null },
     p2: { min: 920, max: 3100, sample: null, connected: null },
   };
 
-  // Properties already editable next to the bellows/pedal graphs are left
-  // out of the generic Properties table below, so there's one place to edit
-  // each of them rather than two that could drift out of sync.
+  // Properties already editable next to the bellows/pedal graphs (plus the
+  // Function buttons card further down) are left out of the generic
+  // Properties table below, so there's one place to edit each of them rather
+  // than two that could drift out of sync. Named rather than indexed, same
+  // reasoning as PROP_NAMES above.
   const PROPS_EDITED_ELSEWHERE = new Set([
-    ...Object.values(PROP_INDEX), ...Object.values(PEDAL_PROP_INDEX),
+    ...Object.values(PROP_NAMES), ...Object.values(PEDAL_PROP_NAMES),
+    "keyboard_tuning", "table_mode", "bellow_sens_level",
   ]);
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
@@ -1821,19 +1805,52 @@
     });
   });
 
-  function bindRangeNum(id, bgKey, propIndex) {
+  // key doubles as both the bg[] field name and the PROP_INDEX lookup key
+  // (they're spelled the same for all three) - PROP_INDEX[key] is read
+  // lazily inside the listener, not captured here, since it's still empty
+  // at bind time and only resolved once a device connects (see
+  // applyBellowGraphFromFetched).
+  function bindRangeNum(id, key) {
     const input = bp(id);
     input.addEventListener("input", () => {
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), 0, 30000);
-      bg[bgKey] = v;
-      if (bellowGraphLive) queueSetProperty(propIndex, v);
+      bg[key] = v;
+      if (bellowGraphLive) queueSetProperty(PROP_INDEX[key], v);
       redrawGraph();
     });
   }
-  bindRangeNum("num-full-push", "fullPush", PROP_INDEX.fullPush);
-  bindRangeNum("num-center", "center", PROP_INDEX.center);
-  bindRangeNum("num-full-pull", "fullPull", PROP_INDEX.fullPull);
+  bindRangeNum("num-full-push", "fullPush");
+  bindRangeNum("num-center", "center");
+  bindRangeNum("num-full-pull", "fullPull");
+
+  /* Samples the live combined hall reading (liveAdcTotal, already kept
+   * current by startPeripheralPolling() at 10 Hz) for one second and sets
+   * bellow_center to the average - an easy way to (re-)zero the rest
+   * position without reading the raw ADC value off the graph by eye. */
+  const btnSampleCenter = document.getElementById("btnSampleCenter");
+  btnSampleCenter.addEventListener("click", () => {
+    btnSampleCenter.disabled = true;
+    const originalText = btnSampleCenter.textContent;
+    btnSampleCenter.textContent = "Sampling…";
+    let sum = 0, count = 0;
+    const sampleInterval = setInterval(() => {
+      if (liveAdcTotal !== null) { sum += liveAdcTotal; count++; }
+    }, 100);
+    setTimeout(() => {
+      clearInterval(sampleInterval);
+      btnSampleCenter.disabled = false;
+      btnSampleCenter.textContent = originalText;
+      if (count === 0) {
+        log("bellow center sample failed: no live sensor reading (connect to the device first)", "other");
+        return;
+      }
+      bg.center = clamp(Math.round(sum / count), 0, 30000);
+      syncParamInputs();
+      redrawGraph();
+      if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, bg.center);
+    }, 1000);
+  });
 
   bpEls.sliderDead.addEventListener("input", () => {
     bg.dead = clamp(Math.round(+bpEls.sliderDead.value), 0, 64);
@@ -1856,17 +1873,16 @@
     });
   });
 
-  function applyBellowGraphFromFetched(fetched) {
+  function applyBellowGraphFromFetched(fetched, byName) {
     let ok = true;
-    for (const [indexStr, expectedPrefix] of Object.entries(PROP_EXPECT)) {
-      const index = Number(indexStr);
-      const entry = fetched.get(index);
-      if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
+    for (const [key, propName] of Object.entries(PROP_NAMES)) {
+      const index = byName.get(propName);
+      if (index === undefined) {
         ok = false;
-        log("bellows graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
-            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
+        log("bellows graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
         break;
       }
+      PROP_INDEX[key] = index;
     }
     bellowGraphLive = ok;
     if (ok) {
@@ -1891,17 +1907,16 @@
     redrawGraph();
   }
 
-  function applyPedalGraphFromFetched(fetched) {
+  function applyPedalGraphFromFetched(fetched, byName) {
     let ok = true;
-    for (const [indexStr, expectedPrefix] of Object.entries(PEDAL_PROP_EXPECT)) {
-      const index = Number(indexStr);
-      const entry = fetched.get(index);
-      if (!entry || !entry.description || !entry.description.startsWith(expectedPrefix)) {
+    for (const [key, propName] of Object.entries(PEDAL_PROP_NAMES)) {
+      const index = byName.get(propName);
+      if (index === undefined) {
         ok = false;
-        log("pedal graph: property " + index + " description (\"" + (entry ? entry.description : "missing") +
-            "\") doesn't match the expected \"" + expectedPrefix + "\" - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
+        log("pedal graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
         break;
       }
+      PEDAL_PROP_INDEX[key] = index;
     }
     pedalGraphLive = ok;
     if (ok) {
@@ -2048,20 +2063,23 @@
     if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX.p2Max, v);
   }, 0, PEDAL_DOMAIN_MAX, 20, () => redrawPedalGraph("p2"));
 
-  function bindPedalNum(p, field, propIndex) {
+  // Same lazy-lookup reasoning as bindRangeNum above: PEDAL_PROP_INDEX[propKey]
+  // is read inside the listener, not captured at bind time.
+  function bindPedalNum(p, field) {
     const input = pedalEls[p]["num" + field[0].toUpperCase() + field.slice(1)];
+    const propKey = p + field[0].toUpperCase() + field.slice(1);
     input.addEventListener("input", () => {
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), 0, PEDAL_DOMAIN_MAX);
       pg[p][field] = v;
-      if (pedalGraphLive) queueSetProperty(propIndex, v);
+      if (pedalGraphLive) queueSetProperty(PEDAL_PROP_INDEX[propKey], v);
       redrawPedalGraph(p);
     });
   }
-  bindPedalNum("p1", "min", PEDAL_PROP_INDEX.p1Min);
-  bindPedalNum("p1", "max", PEDAL_PROP_INDEX.p1Max);
-  bindPedalNum("p2", "min", PEDAL_PROP_INDEX.p2Min);
-  bindPedalNum("p2", "max", PEDAL_PROP_INDEX.p2Max);
+  bindPedalNum("p1", "min");
+  bindPedalNum("p1", "max");
+  bindPedalNum("p2", "min");
+  bindPedalNum("p2", "max");
 
   function updatePedalLiveState(p) {
     pg.p1.connected = p.pedal1Connected; pg.p1.sample = p.pedal1Sample;
@@ -2233,24 +2251,28 @@
     },
   ];
 
-  const KEYBOARD_TUNING_PROP_INDEX = 37; // keyboard_tuning, per property_table.def
+  // Resolved by name (see applyKeyboardTuningFromFetched) rather than
+  // assumed, same reasoning as PROP_INDEX above; null until a connected
+  // device's property list has been searched for it.
+  let KEYBOARD_TUNING_PROP_INDEX = null;
   let currentTuning = 0; // matches keyboard_tuning's default_value
-  let keyboardTuningLive = false; // true once cross-checked against a connected device
+  let keyboardTuningLive = false; // true once resolved against a connected device
 
-  const TABLE_MODE_PROP_INDEX = 54; // table_mode, per property_table.def
+  let TABLE_MODE_PROP_INDEX = null;
   let currentTableMode = false; // matches table_mode's default_value
-  let tableModeLive = false; // same cross-check as keyboardTuningLive, for table_mode
+  let tableModeLive = false; // same as keyboardTuningLive, for table_mode
 
-  const BELLOW_SENS_PROP_INDEX = 55; // bellow_sens_level, per property_table.def
+  let BELLOW_SENS_PROP_INDEX = null;
   let currentBellowSens = 0; // matches bellow_sens_level's default_value
-  let bellowSensLive = false; // same cross-check as keyboardTuningLive, for bellow_sens_level
+  let bellowSensLive = false; // same as keyboardTuningLive, for bellow_sens_level
 
-  // All three edited on the Function buttons card instead (see the tuning/
-  // bellows-sensitivity selects and table mode toggle below), same reasoning
-  // as the PROPS_EDITED_ELSEWHERE comment above.
-  PROPS_EDITED_ELSEWHERE.add(KEYBOARD_TUNING_PROP_INDEX);
-  PROPS_EDITED_ELSEWHERE.add(TABLE_MODE_PROP_INDEX);
-  PROPS_EDITED_ELSEWHERE.add(BELLOW_SENS_PROP_INDEX);
+  // No dedicated control for this one (it stays editable in the generic
+  // Properties table) - just tracked so clicking a key on the diagram below
+  // can play it at the same velocity the device itself would use in table
+  // mode, per tablemode_velocity's own description.
+  let TABLEMODE_VELOCITY_PROP_INDEX = null;
+  let currentTablemodeVelocity = 80; // matches tablemode_velocity's default_value
+  let tablemodeVelocityLive = false; // same as keyboardTuningLive, for tablemode_velocity
 
   // MIDI channel (1-based) each wing's notes arrive on - L_MIDI_CH=0,
   // R_MIDI_CH=1 (both 0-based) in code/main-g474/app/keyboard.h.
@@ -2331,13 +2353,93 @@
       if (tuning.bisonoric) {
         if (pullNote) g.appendChild(kbdLabel(px, py - 3, "pull", kbdNoteName(pullNote)));
         if (pushNote) g.appendChild(kbdLabel(px, py + 9, "push", kbdNoteName(pushNote)));
-      } else if (pullNote) {
+        // Both slices are always independently clickable - a half-circle hit
+        // target each (top = pull, bottom = push, matching the labels above)
+        // rather than picking one via the bellows' current direction, so
+        // either can be auditioned regardless of what the real bellows are
+        // doing right now.
+        if (pullNote !== null) {
+          const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          hit.setAttribute("d", `M ${px - KBD_KEY_R},${py} A ${KBD_KEY_R},${KBD_KEY_R} 0 0 1 ${px + KBD_KEY_R},${py} Z`);
+          addKeyClickTarget(g, hit, side, pullNote, "playing-pull");
+        }
+        if (pushNote !== null) {
+          const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          hit.setAttribute("d", `M ${px - KBD_KEY_R},${py} A ${KBD_KEY_R},${KBD_KEY_R} 0 0 0 ${px + KBD_KEY_R},${py} Z`);
+          addKeyClickTarget(g, hit, side, pushNote, "playing-push");
+        }
+      } else if (pullNote !== null) {
         g.appendChild(kbdLabel(px, py + 4, "", kbdNoteName(pullNote)));
+        const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        hit.setAttribute("cx", px); hit.setAttribute("cy", py); hit.setAttribute("r", KBD_KEY_R);
+        addKeyClickTarget(g, hit, side, pullNote, "playing");
       }
       svg.appendChild(g);
       keyElsBySide[side][pos.id] = { g, pull: pullNote, push: pushNote, bisonoric: tuning.bisonoric };
     }
     updateKeyboardLighting(side);
+  }
+
+  /* Wires a (normally invisible) hit shape to click-audition one note: press
+   * and hold to sound it, release to stop, lightClass toggled on the key's
+   * <g> meanwhile for visual feedback (playing/playing-push/playing-pull - a
+   * separate class from lit/lit-push/lit-pull so a real note-on/off or
+   * bellows-direction change arriving from the device mid-click can't wipe
+   * it via updateKeyboardLighting's unconditional clear-and-reapply). */
+  function addKeyClickTarget(g, hitEl, side, note, lightClass) {
+    hitEl.setAttribute("class", "kbd-key-hit");
+    hitEl.setAttribute("role", "button");
+    hitEl.setAttribute("aria-label", kbdNoteName(note));
+    g.appendChild(hitEl);
+    hitEl.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      hitEl.setPointerCapture(e.pointerId);
+      g.classList.add(lightClass);
+      playClickedNote(side, note);
+    });
+    const release = () => {
+      if (!g.classList.contains(lightClass)) return;
+      g.classList.remove(lightClass);
+      stopClickedNote(side, note);
+    };
+    hitEl.addEventListener("pointerup", release);
+    hitEl.addEventListener("pointercancel", release);
+    hitEl.addEventListener("pointerleave", release);
+  }
+
+  // Click-to-audition plays on its own MIDI channels, one per wing, rather
+  // than the live device's forwarded channels (KBD_CHANNEL/channel 0 and 1)
+  // - so it can't collide with real note-on/offs in flight, and so its CC#11
+  // expression can be pinned independently of whatever the live device is
+  // currently sending there. That pin is what makes a clicked note always
+  // sound at exactly tablemode_velocity: a GM synth scales loudness by both
+  // note-on velocity and the channel's expression, so leaving expression at
+  // the live channel's current value (however quiet a real bellows-driven
+  // note happens to be at that instant) would make a "constant velocity"
+  // click sound inconsistent from one click to the next.
+  const CLICK_CHANNEL = { left: 2, right: 3 };
+
+  /* Click-to-audition a key: plays it through the local soundfont synth (see
+   * the "Sound" section below) at tablemode_velocity - the same constant
+   * velocity the device itself uses for a key press with the bellows not
+   * moving (table mode) - with the channel's instrument/volume mirrored from
+   * that wing's own selection so it sounds like the same voice. Silent
+   * no-op if sound isn't enabled; the key still highlights either way. */
+  function playClickedNote(side, note) {
+    if (!soundReady) return;
+    const channel = CLICK_CHANNEL[side];
+    const patch = kbdPatch[side];
+    if (patch) {
+      synth.controllerChange(channel, 0, patch.bankMSB);
+      synth.controllerChange(channel, 32, patch.bankLSB);
+      synth.programChange(channel, patch.program);
+    }
+    synth.controllerChange(channel, 7, kbdVolume[side]);
+    synth.controllerChange(channel, 11, 127); // pinned: ignore CC#11, tablemode_velocity alone sets loudness
+    synth.noteOn(channel, note, currentTablemodeVelocity);
+  }
+  function stopClickedNote(side, note) {
+    if (soundReady) synth.noteOff(CLICK_CHANNEL[side], note);
   }
 
   function updateKeyboardLighting(side) {
@@ -2585,57 +2687,66 @@
   function syncTableModeUi() { kbdTableModeToggle.checked = currentTableMode; }
   function syncBellowSensUi() { bellowSensSelect.value = String(currentBellowSens); }
 
-  /* Reads keyboard_tuning/table_mode from the initial property enumeration,
-   * cross-checked against their expected description prefixes the same way
-   * applyBellowGraphFromFetched/applyPedalGraphFromFetched guard against a
-   * drifted property index - a firmware whose layout doesn't match just
-   * keeps showing the default (and disables writing from this page) instead
-   * of mislabeling every key or toggling the wrong property. */
-  function applyKeyboardTuningFromFetched(fetched) {
-    const entry = fetched.get(KEYBOARD_TUNING_PROP_INDEX);
-    if (entry && entry.description && entry.description.startsWith("Note layout")) {
-      currentTuning = entry.value;
+  /* Reads keyboard_tuning/table_mode/bellow_sens_level from the initial
+   * property enumeration, resolving each one's index by name (byName, built
+   * in enumerateProperties) the same way applyBellowGraphFromFetched/
+   * applyPedalGraphFromFetched do - a firmware that doesn't have the
+   * property at all just keeps showing the default (and disables writing
+   * from this page) instead of mislabeling every key or toggling the wrong
+   * property. */
+  function applyKeyboardTuningFromFetched(fetched, byName) {
+    const index = byName.get("keyboard_tuning");
+    if (index !== undefined) {
+      KEYBOARD_TUNING_PROP_INDEX = index;
+      currentTuning = fetched.get(index).value;
       keyboardTuningLive = true;
     } else {
-      log("keyboard tuning: property " + KEYBOARD_TUNING_PROP_INDEX + " description (\"" +
-          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Note layout\" - showing default tuning.",
-          "sysexGetPropertyDescription");
+      log("keyboard tuning: property \"keyboard_tuning\" not found on this device - showing default tuning.", "sysexGetPropertyDescription");
     }
     syncTuningUi();
     renderKeyboard("left");
     renderKeyboard("right");
   }
 
-  function applyTableModeFromFetched(fetched) {
-    const entry = fetched.get(TABLE_MODE_PROP_INDEX);
-    if (entry && entry.description && entry.description.startsWith("Bellows direction pinned")) {
-      currentTableMode = !!entry.value;
+  function applyTableModeFromFetched(fetched, byName) {
+    const index = byName.get("table_mode");
+    if (index !== undefined) {
+      TABLE_MODE_PROP_INDEX = index;
+      currentTableMode = !!fetched.get(index).value;
       tableModeLive = true;
     } else {
-      log("table mode: property " + TABLE_MODE_PROP_INDEX + " description (\"" +
-          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Bellows direction pinned\" - showing default.",
-          "sysexGetPropertyDescription");
+      log("table mode: property \"table_mode\" not found on this device - showing default.", "sysexGetPropertyDescription");
     }
     syncTableModeUi();
   }
 
-  function applyBellowSensFromFetched(fetched) {
-    const entry = fetched.get(BELLOW_SENS_PROP_INDEX);
-    if (entry && entry.description && entry.description.startsWith("Bellows sensitivity level")) {
-      currentBellowSens = entry.value;
+  function applyBellowSensFromFetched(fetched, byName) {
+    const index = byName.get("bellow_sens_level");
+    if (index !== undefined) {
+      BELLOW_SENS_PROP_INDEX = index;
+      currentBellowSens = fetched.get(index).value;
       bellowSensLive = true;
     } else {
-      log("bellows sensitivity: property " + BELLOW_SENS_PROP_INDEX + " description (\"" +
-          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Bellows sensitivity level\" - showing default.",
-          "sysexGetPropertyDescription");
+      log("bellows sensitivity: property \"bellow_sens_level\" not found on this device - showing default.", "sysexGetPropertyDescription");
     }
     syncBellowSensUi();
+  }
+
+  function applyTablemodeVelocityFromFetched(fetched, byName) {
+    const index = byName.get("tablemode_velocity");
+    if (index !== undefined) {
+      TABLEMODE_VELOCITY_PROP_INDEX = index;
+      currentTablemodeVelocity = fetched.get(index).value;
+      tablemodeVelocityLive = true;
+    } else {
+      log("tablemode velocity: property \"tablemode_velocity\" not found on this device - showing default.", "sysexGetPropertyDescription");
+    }
   }
 
   let keyboardPropsTimer = null;
   async function pollKeyboardPropsOnce() {
     if (!activeOutput) return;
-    try {
+    if (keyboardTuningLive) try {
       const value = await requestPropertyValue(KEYBOARD_TUNING_PROP_INDEX);
       if (value !== currentTuning && value >= 0 && value < KBD_NOTE_TABLE.length) {
         currentTuning = value;
@@ -2646,7 +2757,7 @@
     } catch (err) {
       // Transient: retried next tick.
     }
-    try {
+    if (tableModeLive) try {
       const value = await requestPropertyValue(TABLE_MODE_PROP_INDEX);
       const boolValue = !!value;
       if (boolValue !== currentTableMode) {
@@ -2656,12 +2767,20 @@
     } catch (err) {
       // Transient: retried next tick.
     }
-    try {
+    if (bellowSensLive) try {
       const value = await requestPropertyValue(BELLOW_SENS_PROP_INDEX);
       if (value !== currentBellowSens && value >= 0 && value <= 2) {
         currentBellowSens = value;
         syncBellowSensUi();
       }
+    } catch (err) {
+      // Transient: retried next tick.
+    }
+    // No UI to sync here - just keeps the cached value current in case
+    // tablemode_velocity is edited from the generic Properties table.
+    if (tablemodeVelocityLive) try {
+      const value = await requestPropertyValue(TABLEMODE_VELOCITY_PROP_INDEX);
+      if (value >= 1 && value <= 127) currentTablemodeVelocity = value;
     } catch (err) {
       // Transient: retried next tick.
     }
@@ -2949,7 +3068,20 @@
     activeOutput = null;
     clearProperties();
     stopPeripheralPolling();
+    // Resolved indices are cached from this session's enumeration (see
+    // applyBellowGraphFromFetched and friends) - cleared here so a reconnect
+    // to a different device with a different property layout re-resolves
+    // them from scratch instead of writing through a stale index.
     bellowGraphLive = false;
+    pedalGraphLive = false;
+    keyboardTuningLive = false;
+    tableModeLive = false;
+    bellowSensLive = false;
+    tablemodeVelocityLive = false;
+    KEYBOARD_TUNING_PROP_INDEX = null;
+    TABLE_MODE_PROP_INDEX = null;
+    BELLOW_SENS_PROP_INDEX = null;
+    TABLEMODE_VELOCITY_PROP_INDEX = null;
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");
     redrawGraph();
