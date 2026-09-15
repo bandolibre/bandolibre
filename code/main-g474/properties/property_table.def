@@ -182,3 +182,9 @@ PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard,
 PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard_stats,
          .default_value = 0, .min = 0, .max = 3,
          .description = "Add min/max/diff/stddev tables: 0 off, 1 left, 2 right, 3 both")
+PROPERTY(PROPERTY_TAG_NONE, bool, table_mode,
+         .default_value = 0,
+         .description = "Bellows direction pinned to PULL so keys sound at rest on a table; also toggled by the FN0 button")
+PROPERTY(47, uint16_t, bellow_sens_level,
+         .default_value = 0, .min = 0, .max = 2,
+         .description = "Bellows sensitivity level: 0 unity (bellow_scale_low), 1 bellow_scale_mid, 2 bellow_scale_high; also advanced by the FN1 button")

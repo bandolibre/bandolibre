@@ -9,10 +9,13 @@
  * polls all three and logs the combined state when it changes.
  *
  * FN0 (left) is a press-to-toggle for "table mode": with the instrument resting
- * on a table (bellows not held), keys still sound. See buttons_table_mode().
+ * on a table (bellows not held), keys still sound. It writes the table_mode
+ * property rather than latching state of its own, so read it from
+ * g_properties->table_mode (or via buttons_table_mode()).
  *
- * FN1 (middle) cycles bellows sensitivity through three levels. See
- * buttons_bellow_sens_level().
+ * FN1 (middle) cycles bellows sensitivity through three levels. It writes the
+ * bellow_sens_level property rather than latching state of its own, so read
+ * it from g_properties->bellow_sens_level (or via buttons_bellow_sens_level()).
  *
  * FN2 (right) cycles the keyboard tuning (Rheinische -> Peguri -> Manoury and
  * back). It writes the keyboard_tuning property rather than latching state of

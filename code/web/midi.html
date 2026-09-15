@@ -290,6 +290,17 @@
   .bp-vline.ped-min { stroke: var(--push); }
   .bp-vline.ped-max { stroke: var(--pull); }
 
+  /* ---- Function buttons (mirrors the 3 physical FN buttons, left to
+     right: tuning, bellows sensitivity, table mode) ---- */
+  .fnbtn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .fnbtn-box {
+    min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  }
+  .fnbtn-title { font-size: 0.75rem; color: var(--muted); }
+  .fnbtn-box select { font-size: 0.85rem; padding: 4px 6px; }
+  .fnbtn-desc { font-size: 0.7rem; color: var(--muted); margin: 0; line-height: 1.35; }
+
   /* ---- Keyboard layout diagrams ---- */
   .kbd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
   @media (max-width: 520px) { .kbd-grid { grid-template-columns: 1fr; } }
@@ -310,7 +321,7 @@
   .kbd-key.lit-pull .kbd-key-label { fill: var(--card); }
 
   .kbd-toggle {
-    display: flex; align-items: center; gap: 8px; margin-left: auto;
+    display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto;
     font-size: 0.8rem; color: var(--fg); cursor: pointer;
   }
   .kbd-toggle-switch { position: relative; display: inline-block; width: 36px; height: 21px; flex: none; }
@@ -329,6 +340,47 @@
   .kbd-toggle-switch input:checked + .kbd-toggle-track { background: var(--ok); }
   .kbd-toggle-switch input:checked + .kbd-toggle-track::before { transform: translateX(15px); }
   .kbd-toggle-switch input:focus-visible + .kbd-toggle-track { outline: 2px solid var(--muted); outline-offset: 2px; }
+
+  /* ---- Sound (soundfont playback) ---- */
+  .sound-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 21px; height: 21px; padding: 0; margin-left: 10px; flex: none;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--card);
+    color: var(--muted); cursor: pointer;
+  }
+  .sound-toggle:hover { border-color: var(--muted); }
+  .sound-toggle svg { width: 13px; height: 13px; }
+  .sound-toggle .icon-on { display: none; }
+  .sound-toggle[aria-pressed="true"] { color: var(--ok); border-color: var(--ok); }
+  .sound-toggle[aria-pressed="true"] .icon-on { display: block; }
+  .sound-toggle[aria-pressed="true"] .icon-muted { display: none; }
+  .sound-status {
+    font-size: 0.78rem; color: var(--muted); margin-left: 8px; flex-basis: 100%;
+  }
+  /* min-height reserves the space the instrument select/knob need whether
+   * or not sound is currently enabled, so toggling it on/off never reflows
+   * the keyboard diagram below. */
+  .kbd-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+  .kbd-sound-controls { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .kbd-sound-controls[hidden] { display: none; } /* author display:flex above would otherwise beat the UA [hidden] rule */
+  .kbd-instrument-select {
+    max-width: 9em; height: 24px; padding: 0 4px; font-size: 0.72rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .knob {
+    display: flex; align-items: center; flex: none;
+    -webkit-user-select: none; user-select: none;
+  }
+  .knob-svg {
+    width: 24px; height: 24px; cursor: ns-resize; touch-action: none;
+    outline: none; -webkit-tap-highlight-color: transparent;
+  }
+  .knob-track { fill: none; stroke: var(--border); stroke-width: 4; stroke-linecap: round; }
+  .knob-fill { fill: none; stroke: var(--ok); stroke-width: 4; stroke-linecap: round; }
+  .knob-face { fill: var(--card); stroke: var(--border); stroke-width: 1; }
+  .knob-indicator { stroke: var(--fg); stroke-width: 2; stroke-linecap: round; }
+  .knob-hit { fill: transparent; }
+  .knob-svg:focus-visible .knob-face { stroke: var(--muted); stroke-width: 2; }
 </style>
 </head>
 <body>
@@ -547,6 +599,38 @@
   </div>
 
   <div class="card">
+    <label>Function buttons</label>
+    <div class="fnbtn-grid">
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Tuning</div>
+        <select id="kbdTuningSelect">
+          <option value="0">Rheinische Tonlage</option>
+          <option value="1">Peguri</option>
+          <option value="2">Manoury</option>
+        </select>
+        <p class="fnbtn-desc">Selects which mapping from key to notes is used: Rheinische, Peguri, or Manoury.</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Bellows sensitivity</div>
+        <select id="bellowSensSelect">
+          <option value="0">Low (unity)</option>
+          <option value="1">Medium</option>
+          <option value="2">High</option>
+        </select>
+        <p class="fnbtn-desc">How much bellows travel is needed for full expression (CC#11) - higher levels reach full swing with less push/pull. Also cycled by the FN1 button.</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Table mode</div>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="kbdTableModeToggle">
+          <span class="kbd-toggle-track"></span>
+        </span>
+        <p class="fnbtn-desc">Pins the bellows direction to PULL so keys sound with the instrument resting on a table.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="status-row">
       <label>Keyboards</label>
       <label class="kbd-toggle">
@@ -556,15 +640,55 @@
           <span class="kbd-toggle-track"></span>
         </span>
       </label>
+      <button type="button" class="sound-toggle" id="soundToggle" aria-pressed="false" aria-label="Enable sound">
+        <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill="currentColor" stroke="none"></polygon>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+          <path d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+        </svg>
+        <svg class="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill="currentColor" stroke="none"></polygon>
+          <line x1="16" y1="9" x2="22" y2="15"></line>
+          <line x1="22" y1="9" x2="16" y2="15"></line>
+        </svg>
+      </button>
+      <span class="sound-status" id="soundStatus" hidden></span>
     </div>
-    <p class="bp-caption">Key positions from the wing BOM's pick-and-place data; key ids matched against real firmware console logs (see the code comment above KEY_POS_RIGHT and code/web/keyboard_mapping.csv) and light up while their note sounds.</p>
     <div class="kbd-grid">
       <div class="kbd-panel">
-        <div class="pedal-title">Left wing</div>
+        <div class="kbd-panel-header">
+          <div class="pedal-title">Left wing</div>
+          <div class="kbd-sound-controls" id="kbdSoundLeft" hidden>
+            <select class="kbd-instrument-select" id="kbdInstrumentLeft" aria-label="Left wing instrument"></select>
+            <div class="knob" id="kbdKnobLeft" title="Volume">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Left wing volume" aria-valuemin="0" aria-valuemax="127">
+                <path class="knob-track" d=""></path>
+                <path class="knob-fill" d=""></path>
+                <circle class="knob-face" cx="20" cy="20" r="11"></circle>
+                <line class="knob-indicator" x1="20" y1="20" x2="20" y2="20"></line>
+                <circle class="knob-hit" cx="20" cy="20" r="20"></circle>
+              </svg>
+            </div>
+          </div>
+        </div>
         <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left wing keyboard, key positions and notes"></svg>
       </div>
       <div class="kbd-panel">
-        <div class="pedal-title">Right wing</div>
+        <div class="kbd-panel-header">
+          <div class="pedal-title">Right wing</div>
+          <div class="kbd-sound-controls" id="kbdSoundRight" hidden>
+            <select class="kbd-instrument-select" id="kbdInstrumentRight" aria-label="Right wing instrument"></select>
+            <div class="knob" id="kbdKnobRight" title="Volume">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Right wing volume" aria-valuemin="0" aria-valuemax="127">
+                <path class="knob-track" d=""></path>
+                <path class="knob-fill" d=""></path>
+                <circle class="knob-face" cx="20" cy="20" r="11"></circle>
+                <line class="knob-indicator" x1="20" y1="20" x2="20" y2="20"></line>
+                <circle class="knob-hit" cx="20" cy="20" r="20"></circle>
+              </svg>
+            </div>
+          </div>
+        </div>
         <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
       </div>
     </div>
@@ -606,6 +730,18 @@
   </div>
 </main>
 
+<!-- Soundfont playback engine (lazy-loaded only once sound is enabled - see
+     "==== Sound: soundfont synth engine ====" below). Pinned versions so a
+     library update elsewhere can't silently change what's loaded here. -->
+<script type="importmap">
+{
+  "imports": {
+    "spessasynth_lib": "https://cdn.jsdelivr.net/npm/spessasynth_lib@4.3.14/dist/index.js",
+    "spessasynth_core": "https://cdn.jsdelivr.net/npm/spessasynth_core@4.3.22/dist/index.js",
+    "stb-vorbis": "https://cdn.jsdelivr.net/npm/stb-vorbis@0.0.6/dist/index.js"
+  }
+}
+</script>
 <script>
 (function () {
   "use strict";
@@ -621,6 +757,21 @@
 
   const BANDOLIBRE_RE = /bandolibre/i;
   const MAX_LOG_LINES = 200;
+
+  // ---- Persisted UI preferences (solfège, sound on/off, per-keyboard
+  // instrument - see their respective setup code below) - plain
+  // document.cookie, no libraries, a year's expiry. ----
+  function setCookie(name, value) {
+    document.cookie = name + "=" + encodeURIComponent(value) + ";path=/;max-age=" + (60 * 60 * 24 * 365) + ";SameSite=Lax";
+  }
+  function getCookie(name) {
+    const prefix = name + "=";
+    for (const part of document.cookie.split(";")) {
+      const s = part.trim();
+      if (s.startsWith(prefix)) return decodeURIComponent(s.slice(prefix.length));
+    }
+    return null;
+  }
 
   // ---- Bandolibre sysex protocol (mirrors code/main-g474/app/midi.cc and
   // usb_app.cc: 0xF0, a byte-stuffed 16-bit XOR-fold checksum + message id +
@@ -1094,7 +1245,8 @@
     "keyboard_tuning", "bellow_push_curve_x1", "bellow_push_curve_y1", "bellow_push_curve_x2",
     "bellow_push_curve_y2", "bellow_pull_curve_x1", "bellow_pull_curve_y1", "bellow_pull_curve_x2",
     "bellow_pull_curve_y2", "log_bellow", "log_spi_stat", "log_pedals", "report_hz",
-    "show_bellow", "show_spi", "show_keyboard", "show_keyboard_stats",
+    "show_bellow", "show_spi", "show_keyboard", "show_keyboard_stats", "table_mode",
+    "bellow_sens_level",
   ];
 
   /* Editable value cell: the sysex protocol never sends a property's
@@ -1187,6 +1339,8 @@
       applyBellowGraphFromFetched(fetched);
       applyPedalGraphFromFetched(fetched);
       applyKeyboardTuningFromFetched(fetched);
+      applyTableModeFromFetched(fetched);
+      applyBellowSensFromFetched(fetched);
 
       try {
         const p = await requestPeripherals();
@@ -1194,7 +1348,7 @@
         updateLiveDot();
         updatePedalLiveState(p);
         startPeripheralPolling();
-        startTuningPolling();
+        startKeyboardPropsPolling();
       } catch (err) {
         log("peripherals request failed: " + err.message, "sysexGetPeripherals");
         console.log("[peripherals error]", { error: err.message });
@@ -1940,7 +2094,7 @@
     pg.p2.sample = null; pg.p2.connected = null;
     redrawPedalGraph("p1");
     redrawPedalGraph("p2");
-    stopTuningPolling();
+    stopKeyboardPropsPolling();
   }
 
   // ==== Keyboard layout diagrams ====
@@ -2081,6 +2235,22 @@
 
   const KEYBOARD_TUNING_PROP_INDEX = 37; // keyboard_tuning, per property_table.def
   let currentTuning = 0; // matches keyboard_tuning's default_value
+  let keyboardTuningLive = false; // true once cross-checked against a connected device
+
+  const TABLE_MODE_PROP_INDEX = 54; // table_mode, per property_table.def
+  let currentTableMode = false; // matches table_mode's default_value
+  let tableModeLive = false; // same cross-check as keyboardTuningLive, for table_mode
+
+  const BELLOW_SENS_PROP_INDEX = 55; // bellow_sens_level, per property_table.def
+  let currentBellowSens = 0; // matches bellow_sens_level's default_value
+  let bellowSensLive = false; // same cross-check as keyboardTuningLive, for bellow_sens_level
+
+  // All three edited on the Function buttons card instead (see the tuning/
+  // bellows-sensitivity selects and table mode toggle below), same reasoning
+  // as the PROPS_EDITED_ELSEWHERE comment above.
+  PROPS_EDITED_ELSEWHERE.add(KEYBOARD_TUNING_PROP_INDEX);
+  PROPS_EDITED_ELSEWHERE.add(TABLE_MODE_PROP_INDEX);
+  PROPS_EDITED_ELSEWHERE.add(BELLOW_SENS_PROP_INDEX);
 
   // MIDI channel (1-based) each wing's notes arrive on - L_MIDI_CH=0,
   // R_MIDI_CH=1 (both 0-based) in code/main-g474/app/keyboard.h.
@@ -2199,58 +2369,361 @@
     updateKeyboardLighting(channel === KBD_CHANNEL.left ? "left" : "right");
   }
 
-  /* Reads keyboard_tuning from the initial property enumeration, cross-
-   * checked against its expected description prefix the same way
+  // ==== Sound: soundfont synth engine ====
+  //
+  // Off by default, and its ~30 MB GM soundfont is only fetched once the
+  // speaker toggle is turned on - see setSoundEnabled/ensureSoundEngine.
+  // One shared 16-channel synth plays both keyboards: left wing on channel 0
+  // (MIDI channel 1, matching KBD_CHANNEL.left), right wing on channel 1
+  // (MIDI channel 2) - the same split the device itself already sends on, so
+  // raw note/CC bytes from handleMidiMessage are forwarded to it unchanged.
+  // Per-keyboard volume is the standard MIDI Channel Volume (CC#7, driven by
+  // that keyboard's knob); bellows expression (CC#11) arrives live from the
+  // device on both channels as part of that same forwarded byte stream, so
+  // it drives loudness the same way a hardware GM synth would.
+  //
+  // Engine: spessasynth_lib (Apache-2.0, github.com/spessasus/spessasynth_lib),
+  // a pure-JS/AudioWorklet SF2 player - loaded via the <script type=
+  // "importmap"> above (dynamic import() honors it even from this classic
+  // script). Soundfont: GeneralUser GS (free for any use, including
+  // commercial - see its LICENSE.txt), fetched from the "generaluser" npm
+  // package's jsDelivr mirror since jsDelivr serves it with CORS enabled.
+  const SOUNDFONT_URL = "https://cdn.jsdelivr.net/npm/generaluser@1.47.1/GeneralUser.sf2";
+  const WORKLET_URL = "https://cdn.jsdelivr.net/npm/spessasynth_lib@4.3.14/dist/spessasynth_processor.min.js";
+  const DEFAULT_INSTRUMENT_NAME = /tango accordion/i; // closest GM patch to a bandoneon
+
+  let audioCtx = null;
+  let synth = null;
+  let soundReady = false;
+  let soundEnabled = false;
+  const kbdPatch = { left: null, right: null }; // currently selected MIDIPatchFull per side
+  const kbdPatchesByKey = { left: new Map(), right: new Map() }; // "bankMSB:bankLSB:program" -> patch
+  const kbdVolume = { left: 100, right: 100 };
+
+  const soundToggle = document.getElementById("soundToggle");
+  const soundStatus = document.getElementById("soundStatus");
+  const kbdSoundEls = {
+    left: {
+      panel: document.getElementById("kbdSoundLeft"),
+      select: document.getElementById("kbdInstrumentLeft"),
+      knobSvg: document.querySelector("#kbdKnobLeft .knob-svg"),
+    },
+    right: {
+      panel: document.getElementById("kbdSoundRight"),
+      select: document.getElementById("kbdInstrumentRight"),
+      knobSvg: document.querySelector("#kbdKnobRight .knob-svg"),
+    },
+  };
+
+  function setSoundStatus(text) {
+    soundStatus.textContent = text;
+    soundStatus.hidden = !text;
+  }
+
+  function patchKey(patch) {
+    return patch.bankMSB + ":" + patch.bankLSB + ":" + patch.program;
+  }
+
+  async function ensureSoundEngine() {
+    if (synth) return;
+    setSoundStatus("Loading sound engine…");
+    const { WorkletSynthesizer } = await import("spessasynth_lib");
+    await audioCtx.audioWorklet.addModule(WORKLET_URL);
+    synth = new WorkletSynthesizer(audioCtx);
+    synth.connect(audioCtx.destination);
+    setSoundStatus("Loading instrument sounds (~30 MB, once)…");
+    const soundfont = await (await fetch(SOUNDFONT_URL)).arrayBuffer();
+    await synth.soundBankManager.addSoundBank(soundfont, "main");
+    await synth.isReady;
+    soundReady = true;
+    for (const side of ["left", "right"]) {
+      populateInstrumentSelect(side);
+      applyStoredOrDefaultInstrument(side);
+      setVolume(side, kbdVolume[side]);
+    }
+    setSoundStatus("");
+  }
+
+  /* Drum kits aren't useful on a bandoneon keyboard, so they're left out of
+   * the picker; everything else in the loaded soundfont is fair game - this
+   * is what makes the list "the instruments this soundfont actually has"
+   * rather than a hand-picked subset that could drift from what's loaded. */
+  function populateInstrumentSelect(side) {
+    const select = kbdSoundEls[side].select;
+    select.innerHTML = "";
+    kbdPatchesByKey[side].clear();
+    const patches = synth.presetList
+      .filter((p) => !p.isDrum)
+      .sort((a, b) => (a.bankMSB - b.bankMSB) || (a.bankLSB - b.bankLSB) || (a.program - b.program));
+    for (const patch of patches) {
+      const key = patchKey(patch);
+      kbdPatchesByKey[side].set(key, patch);
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = patch.name;
+      select.appendChild(opt);
+    }
+  }
+
+  function applyStoredOrDefaultInstrument(side) {
+    const stored = getCookie("bandolibre_instrument_" + side);
+    const patches = [...kbdPatchesByKey[side].values()];
+    const patch = (stored && kbdPatchesByKey[side].get(stored))
+      || patches.find((p) => DEFAULT_INSTRUMENT_NAME.test(p.name))
+      || patches[0];
+    if (patch) selectInstrument(side, patch);
+  }
+
+  function selectInstrument(side, patch) {
+    kbdPatch[side] = patch;
+    const channel = KBD_CHANNEL[side] - 1; // spessasynth channels are 0-based
+    synth.controllerChange(channel, 0, patch.bankMSB);
+    synth.controllerChange(channel, 32, patch.bankLSB);
+    synth.programChange(channel, patch.program);
+    synth.controllerChange(channel, 7, kbdVolume[side]); // some presets reset channel volume on program change
+    kbdSoundEls[side].select.value = patchKey(patch);
+    setCookie("bandolibre_instrument_" + side, patchKey(patch));
+  }
+
+  function setVolume(side, value) {
+    kbdVolume[side] = value;
+    if (soundReady) synth.controllerChange(KBD_CHANNEL[side] - 1, 7, value);
+    redrawKnob(side);
+  }
+
+  /* A small rotary knob, drawn as an SVG arc (270°, standard audio-knob
+   * sweep) - the same "hit-target element + pointermove delta + keyboard
+   * arrows, Shift for fine adjustment" idiom as makeDraggableVLine/
+   * makeDraggableCP above, just mapping vertical drag distance to a value
+   * instead of moving a point to match the cursor. */
+  const KNOB_CENTER = 20, KNOB_RADIUS = 15, KNOB_MIN_ANGLE = -135, KNOB_MAX_ANGLE = 135;
+  function knobPoint(angleDeg, r) {
+    const rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: KNOB_CENTER + r * Math.cos(rad), y: KNOB_CENTER + r * Math.sin(rad) };
+  }
+  function describeKnobArc(startAngle, endAngle) {
+    if (endAngle <= startAngle) return "";
+    const start = knobPoint(startAngle, KNOB_RADIUS);
+    const end = knobPoint(endAngle, KNOB_RADIUS);
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    return `M${start.x},${start.y} A${KNOB_RADIUS},${KNOB_RADIUS} 0 ${largeArc} 1 ${end.x},${end.y}`;
+  }
+  function redrawKnob(side) {
+    const svg = kbdSoundEls[side].knobSvg;
+    const value = kbdVolume[side];
+    const angle = KNOB_MIN_ANGLE + (value / 127) * (KNOB_MAX_ANGLE - KNOB_MIN_ANGLE);
+    svg.querySelector(".knob-track").setAttribute("d", describeKnobArc(KNOB_MIN_ANGLE, KNOB_MAX_ANGLE));
+    svg.querySelector(".knob-fill").setAttribute("d", describeKnobArc(KNOB_MIN_ANGLE, angle));
+    const tailPt = knobPoint(angle, 4), tipPt = knobPoint(angle, 10);
+    const indicator = svg.querySelector(".knob-indicator");
+    indicator.setAttribute("x1", tailPt.x); indicator.setAttribute("y1", tailPt.y);
+    indicator.setAttribute("x2", tipPt.x); indicator.setAttribute("y2", tipPt.y);
+    svg.setAttribute("aria-valuenow", value);
+  }
+  function makeVolumeKnob(side) {
+    const svg = kbdSoundEls[side].knobSvg;
+    const hit = svg.querySelector(".knob-hit");
+    let dragging = false, lastY = 0, value = 0;
+    hit.addEventListener("pointerdown", (e) => {
+      dragging = true; hit.setPointerCapture(e.pointerId);
+      lastY = e.clientY; value = kbdVolume[side];
+    });
+    hit.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const gain = e.shiftKey ? 0.25 : 1;
+      const dy = (lastY - e.clientY) * gain;
+      lastY = e.clientY;
+      value = clamp(value + dy, 0, 127);
+      setVolume(side, Math.round(value));
+    });
+    hit.addEventListener("pointerup", () => { dragging = false; });
+    hit.addEventListener("pointercancel", () => { dragging = false; });
+    svg.addEventListener("keydown", (e) => {
+      let d = 0;
+      if (e.key === "ArrowUp" || e.key === "ArrowRight") d = 1;
+      else if (e.key === "ArrowDown" || e.key === "ArrowLeft") d = -1;
+      else return;
+      if (e.shiftKey) d *= 10;
+      e.preventDefault();
+      setVolume(side, clamp(kbdVolume[side] + d, 0, 127));
+    });
+  }
+
+  async function setSoundEnabled(on) {
+    soundEnabled = on;
+    soundToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    soundToggle.setAttribute("aria-label", on ? "Disable sound" : "Enable sound");
+    setCookie("bandolibre_sound_enabled", on ? "1" : "0");
+    kbdSoundEls.left.panel.hidden = !on;
+    kbdSoundEls.right.panel.hidden = !on;
+    if (!on) {
+      if (synth) synth.stopAll(true);
+      if (audioCtx) audioCtx.suspend().catch(() => {});
+      setSoundStatus("");
+      return;
+    }
+    // Created synchronously here (before any await) so it's a direct result
+    // of the click's user gesture - required for AudioContext to actually
+    // start running rather than staying suspended by autoplay policy.
+    if (!audioCtx) audioCtx = new AudioContext();
+    audioCtx.resume().catch(() => {});
+    try {
+      await ensureSoundEngine();
+    } catch (err) {
+      setSoundStatus("Sound failed to load: " + err.message);
+      log("sound engine failed to load: " + err.message, "other");
+      soundEnabled = false;
+      soundToggle.setAttribute("aria-pressed", "false");
+    }
+  }
+
+  const kbdTuningSelect = document.getElementById("kbdTuningSelect");
+  const kbdTableModeToggle = document.getElementById("kbdTableModeToggle");
+  const bellowSensSelect = document.getElementById("bellowSensSelect");
+
+  function syncTuningUi() { kbdTuningSelect.value = String(currentTuning); }
+  function syncTableModeUi() { kbdTableModeToggle.checked = currentTableMode; }
+  function syncBellowSensUi() { bellowSensSelect.value = String(currentBellowSens); }
+
+  /* Reads keyboard_tuning/table_mode from the initial property enumeration,
+   * cross-checked against their expected description prefixes the same way
    * applyBellowGraphFromFetched/applyPedalGraphFromFetched guard against a
    * drifted property index - a firmware whose layout doesn't match just
-   * keeps showing the default tuning instead of mislabeling every key. */
+   * keeps showing the default (and disables writing from this page) instead
+   * of mislabeling every key or toggling the wrong property. */
   function applyKeyboardTuningFromFetched(fetched) {
     const entry = fetched.get(KEYBOARD_TUNING_PROP_INDEX);
     if (entry && entry.description && entry.description.startsWith("Note layout")) {
       currentTuning = entry.value;
+      keyboardTuningLive = true;
     } else {
       log("keyboard tuning: property " + KEYBOARD_TUNING_PROP_INDEX + " description (\"" +
           (entry ? entry.description : "missing") + "\") doesn't match the expected \"Note layout\" - showing default tuning.",
           "sysexGetPropertyDescription");
     }
+    syncTuningUi();
     renderKeyboard("left");
     renderKeyboard("right");
   }
 
-  let tuningTimer = null;
-  async function pollTuningOnce() {
+  function applyTableModeFromFetched(fetched) {
+    const entry = fetched.get(TABLE_MODE_PROP_INDEX);
+    if (entry && entry.description && entry.description.startsWith("Bellows direction pinned")) {
+      currentTableMode = !!entry.value;
+      tableModeLive = true;
+    } else {
+      log("table mode: property " + TABLE_MODE_PROP_INDEX + " description (\"" +
+          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Bellows direction pinned\" - showing default.",
+          "sysexGetPropertyDescription");
+    }
+    syncTableModeUi();
+  }
+
+  function applyBellowSensFromFetched(fetched) {
+    const entry = fetched.get(BELLOW_SENS_PROP_INDEX);
+    if (entry && entry.description && entry.description.startsWith("Bellows sensitivity level")) {
+      currentBellowSens = entry.value;
+      bellowSensLive = true;
+    } else {
+      log("bellows sensitivity: property " + BELLOW_SENS_PROP_INDEX + " description (\"" +
+          (entry ? entry.description : "missing") + "\") doesn't match the expected \"Bellows sensitivity level\" - showing default.",
+          "sysexGetPropertyDescription");
+    }
+    syncBellowSensUi();
+  }
+
+  let keyboardPropsTimer = null;
+  async function pollKeyboardPropsOnce() {
     if (!activeOutput) return;
     try {
       const value = await requestPropertyValue(KEYBOARD_TUNING_PROP_INDEX);
       if (value !== currentTuning && value >= 0 && value < KBD_NOTE_TABLE.length) {
         currentTuning = value;
+        syncTuningUi();
         renderKeyboard("left");
         renderKeyboard("right");
       }
     } catch (err) {
       // Transient: retried next tick.
     }
+    try {
+      const value = await requestPropertyValue(TABLE_MODE_PROP_INDEX);
+      const boolValue = !!value;
+      if (boolValue !== currentTableMode) {
+        currentTableMode = boolValue;
+        syncTableModeUi();
+      }
+    } catch (err) {
+      // Transient: retried next tick.
+    }
+    try {
+      const value = await requestPropertyValue(BELLOW_SENS_PROP_INDEX);
+      if (value !== currentBellowSens && value >= 0 && value <= 2) {
+        currentBellowSens = value;
+        syncBellowSensUi();
+      }
+    } catch (err) {
+      // Transient: retried next tick.
+    }
   }
-  function startTuningPolling() {
-    stopTuningPolling();
-    tuningTimer = setInterval(pollTuningOnce, 1000);
+  function startKeyboardPropsPolling() {
+    stopKeyboardPropsPolling();
+    keyboardPropsTimer = setInterval(pollKeyboardPropsOnce, 1000);
   }
-  function stopTuningPolling() {
-    if (tuningTimer) { clearInterval(tuningTimer); tuningTimer = null; }
+  function stopKeyboardPropsPolling() {
+    if (keyboardPropsTimer) { clearInterval(keyboardPropsTimer); keyboardPropsTimer = null; }
   }
+
+  kbdTuningSelect.addEventListener("change", () => {
+    const value = +kbdTuningSelect.value;
+    currentTuning = value;
+    renderKeyboard("left");
+    renderKeyboard("right");
+    if (keyboardTuningLive) queueSetProperty(KEYBOARD_TUNING_PROP_INDEX, value);
+  });
+  kbdTableModeToggle.addEventListener("change", () => {
+    currentTableMode = kbdTableModeToggle.checked;
+    if (tableModeLive) queueSetProperty(TABLE_MODE_PROP_INDEX, currentTableMode ? 1 : 0);
+  });
+  bellowSensSelect.addEventListener("change", () => {
+    currentBellowSens = +bellowSensSelect.value;
+    if (bellowSensLive) queueSetProperty(BELLOW_SENS_PROP_INDEX, currentBellowSens);
+  });
 
   const kbdNoteModeToggle = document.getElementById("kbdNoteModeToggle");
   kbdNoteModeToggle.addEventListener("change", () => {
     kbdSolfege = kbdNoteModeToggle.checked;
+    setCookie("bandolibre_solfege", kbdSolfege ? "1" : "0");
     renderKeyboard("left");
     renderKeyboard("right");
   });
+  if (getCookie("bandolibre_solfege") === "1") {
+    kbdSolfege = true;
+    kbdNoteModeToggle.checked = true;
+  }
 
   redrawGraph();
   redrawPedalGraph("p1");
   redrawPedalGraph("p2");
   renderKeyboard("left");
   renderKeyboard("right");
+
+  redrawKnob("left"); redrawKnob("right");
+  makeVolumeKnob("left"); makeVolumeKnob("right");
+  for (const side of ["left", "right"]) {
+    kbdSoundEls[side].select.addEventListener("change", () => {
+      const patch = kbdPatchesByKey[side].get(kbdSoundEls[side].select.value);
+      if (patch) selectInstrument(side, patch);
+    });
+  }
+  soundToggle.addEventListener("click", () => setSoundEnabled(!soundEnabled));
+  // Autoplay policy leaves a page-load-restored AudioContext suspended until
+  // a real user gesture happens anywhere on the page, not just on the
+  // speaker toggle itself - so any click/tap resumes it if needed.
+  document.addEventListener("pointerdown", () => {
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  });
+  if (getCookie("bandolibre_sound_enabled") === "1") setSoundEnabled(true);
 
   let midiAccess = null;
   let activeKey = null;
@@ -2419,6 +2892,10 @@
       const channel = (bytes[0] & 0x0f) + 1;
       if (status === 0x90 && bytes[2] > 0) updateSoundingNote(channel, bytes[1], true);
       else if (status === 0x80 || (status === 0x90 && bytes[2] === 0)) updateSoundingNote(channel, bytes[1], false);
+      // Forwarded as-is: this is the same note-on/off/CC byte stream, so the
+      // device's own CC#11 (bellows expression) reaches the synth exactly
+      // like it would a hardware GM module - see the "Sound" section above.
+      if (soundReady) synth.sendMessage(bytes);
     }
     if (!silentSysex) {
       log("« " + hex + (description ? "  (" + description + ")" : ""), messageKind(bytes, startingSysex));
@@ -2479,6 +2956,7 @@
     soundingNotes[1].clear(); soundingNotes[2].clear();
     currentBellowsDirection = BELLOWS_NEUTRAL;
     updateKeyboardLighting("left"); updateKeyboardLighting("right");
+    if (soundReady) synth.stopAll(true);
   }
 
   function connectTo(key) {

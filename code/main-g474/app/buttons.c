@@ -6,24 +6,17 @@
 #include "main.h"
 #include "properties.h"
 
-/* Latched by buttons_poll() on each FN0 press; read via buttons_table_mode(). */
-static bool table_mode = false;
-
 /* Number of bellows sensitivity levels FN1 cycles through. */
 #define BELLOW_SENS_LEVELS 3
 
-/* Current bellows sensitivity level (0..BELLOW_SENS_LEVELS-1), advanced by each
- * FN1 press; read via buttons_bellow_sens_level(). */
-static uint8_t bellow_sens_level = 0;
-
 bool buttons_table_mode(void)
 {
-  return table_mode;
+  return g_properties->table_mode;
 }
 
 uint8_t buttons_bellow_sens_level(void)
 {
-  return bellow_sens_level;
+  return (uint8_t)g_properties->bellow_sens_level;
 }
 
 /* Advances keyboard_tuning to the next tuning, wrapping after the last. The
@@ -37,6 +30,31 @@ static void cycle_keyboard_tuning(void)
   if (!property_by_name("keyboard_tuning", &idx)) return;
   if (!property_get_u16(idx, &tuning)) return;
   property_set_u16(idx, (uint16_t)((tuning + 1) % NUM_TUNINGS));
+}
+
+/* Flips table_mode. Same reasoning as cycle_keyboard_tuning() above: the
+ * property is the single source of truth, so the button and `set table_mode`
+ * over the console/sysex agree and neither can go stale behind the other. */
+static void toggle_table_mode(void)
+{
+  size_t idx;
+  bool value;
+  if (!property_by_name("table_mode", &idx)) return;
+  if (!property_get_bool(idx, &value)) return;
+  property_set_bool(idx, !value);
+}
+
+/* Advances bellow_sens_level to the next level, wrapping after the last. Same
+ * reasoning as cycle_keyboard_tuning() above: the property is the single
+ * source of truth, so the button and `set bellow_sens_level` over the
+ * console/sysex agree and neither can go stale behind the other. */
+static void cycle_bellow_sens_level(void)
+{
+  size_t idx;
+  uint16_t level;
+  if (!property_by_name("bellow_sens_level", &idx)) return;
+  if (!property_get_u16(idx, &level)) return;
+  property_set_u16(idx, (uint16_t)((level + 1) % BELLOW_SENS_LEVELS));
 }
 
 void buttons_poll(void)
@@ -56,8 +74,8 @@ void buttons_poll(void)
   /* Act on rising edges (press, not release). FN0 toggles table mode; FN1
    * advances the bellows sensitivity level, wrapping after the last; FN2
    * advances the keyboard tuning, wrapping after the last. */
-  if ((fn & 1) && !(fn_prev & 1)) table_mode = !table_mode;
-  if ((fn & 2) && !(fn_prev & 2)) bellow_sens_level = (bellow_sens_level + 1) % BELLOW_SENS_LEVELS;
+  if ((fn & 1) && !(fn_prev & 1)) toggle_table_mode();
+  if ((fn & 2) && !(fn_prev & 2)) cycle_bellow_sens_level();
   if ((fn & 4) && !(fn_prev & 4)) cycle_keyboard_tuning();
 
   if (fn != fn_prev)
@@ -68,6 +86,6 @@ void buttons_poll(void)
            (fn & 1) ? '1' : '0',
            (fn & 2) ? '1' : '0',
            (fn & 4) ? '1' : '0',
-           table_mode, bellow_sens_level, tname ? tname : "?");
+           g_properties->table_mode, g_properties->bellow_sens_level, tname ? tname : "?");
   }
 }
