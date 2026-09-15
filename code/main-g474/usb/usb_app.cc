@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <gsl/span>
 #include "midi.h"
+#include "properties.h"
 
 constexpr uint8_t MIDI_SYSEX_START = 0xF0;
 constexpr uint8_t MIDI_SYSEX_END = 0xF7;
@@ -182,10 +183,12 @@ static void midi_input_process(gsl::span<const uint8_t, 4> packet)
       if (sysex_len < MAX_SYSEX) {
         sysex_buf[sysex_len++] = byte;
         gsl::span<const uint8_t> frame(sysex_buf.data(), sysex_len);
-        print_timestamp();
-        printf("<- ");
-        for (size_t j = 0; j < frame.size(); j++) printf("%02X ", frame[j]);
-        printf("\r\n");
+        if (g_properties->log_midi_sysex) {
+          print_timestamp();
+          printf("<- ");
+          for (size_t j = 0; j < frame.size(); j++) printf("%02X ", frame[j]);
+          printf("\r\n");
+        }
 
         gsl::span<const uint8_t> payload;
         const char *discard_reason = unpack_sysex(frame, &payload);
@@ -271,10 +274,12 @@ void usb_app_midi_send_sysex(const uint8_t *data, size_t len)
     return;
   }
 
-  print_timestamp();
-  printf("-> %02X ", MIDI_SYSEX_START);
-  for (size_t i = 0; i < n; i++) printf("%02X ", encoded[i]);
-  printf("%02X \r\n", MIDI_SYSEX_END);
+  if (g_properties->log_midi_sysex) {
+    print_timestamp();
+    printf("-> %02X ", MIDI_SYSEX_START);
+    for (size_t i = 0; i < n; i++) printf("%02X ", encoded[i]);
+    printf("%02X \r\n", MIDI_SYSEX_END);
+  }
 
   uint8_t const header = MIDI_SYSEX_START;
   tud_midi_stream_write(cable, &header, 1);

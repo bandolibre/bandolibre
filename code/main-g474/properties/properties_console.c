@@ -150,22 +150,29 @@ bool properties_execute(int argc, const char *const *argv)
   return false;
 }
 
-void properties_help(void)
+void properties_help(const char *pattern)
 {
-  printf("Property commands:\r\n");
-  printf("  show                 list all properties with current value\r\n");
-  printf("  get <name>           show value, min, max and default (name may glob, e.g. log_*)\r\n");
-  printf("  set <name> <value>   set a property, clamped to [min,max] (name may glob, e.g. log_*)\r\n");
-  printf("  reset <name>         restore default(s) (name may glob, e.g. reset *)\r\n");
-  printf("  help                 this help\r\n");
-  printf("\r\nProperties:\r\n");
+  if (!pattern)
+  {
+    printf("Property commands:\r\n");
+    printf("  show                 list all properties with current value\r\n");
+    printf("  get <name>           show value, min, max and default (name may glob, e.g. log_*)\r\n");
+    printf("  set <name> <value>   set a property, clamped to [min,max] (name may glob, e.g. log_*)\r\n");
+    printf("  reset <name>         restore default(s) (name may glob, e.g. reset *)\r\n");
+    printf("  help [name]          this help, or details of matching properties (name may glob)\r\n");
+    return;
+  }
+  printf("Properties:\r\n");
   printf("%-28s %5s %6s %6s  %s\r\n", "name", "type", "min", "max", "description");
+  size_t matched = 0;
   for (size_t i = 0; i < property_count(); i++)
   {
     const property_desc_t *d = property_at(i);
-    const char *bg = (i & 1) ? ANSI_BG_GREY236 : "";
+    if (!name_match(pattern, d->name)) continue;
+    const char *bg = (matched++ & 1) ? ANSI_BG_GREY236 : "";
     printf("%s%-28s %5s %6u %6u  %s" ANSI_RESET "\r\n", bg, d->name, type_name(d->type), d->min, d->max, d->description);
   }
+  if (!matched) printf("no property matches: %s\r\n", pattern);
 }
 
 size_t properties_complete(const char *prefix, const char **out, size_t cap)

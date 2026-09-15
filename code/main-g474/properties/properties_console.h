@@ -25,9 +25,11 @@ extern "C" {
  */
 bool   properties_execute(int argc, const char *const *argv);
 
-/* Lists the property command usage plus a table of every property's
- * type/min/max and description. */
-void   properties_help(void);
+/* With pattern NULL, lists the property command usage only (the full property
+ * table is not printed here; use 'show' or 'help <pattern>' for that). With a
+ * pattern, lists the properties whose name matches it instead (pattern may
+ * glob, '*'/'?'). */
+void   properties_help(const char *pattern);
 
 /* Fill out[] with up to cap property names starting with prefix (prefix may be
  * NULL/"" to match all); returns the count. Backs a completion callback. */

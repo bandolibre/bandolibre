@@ -167,6 +167,9 @@ PROPERTY(PROPERTY_TAG_NONE, bool, log_spi_stat,
 PROPERTY(PROPERTY_TAG_NONE, bool, log_pedals,
          .default_value = 0,
          .description = "Log pedal presence changes and wiper movement each poll")
+PROPERTY(PROPERTY_TAG_NONE, bool, log_midi_sysex,
+         .default_value = 0,
+         .description = "Log incoming/outgoing MIDI sysex frames on the console")
 PROPERTY(PROPERTY_TAG_NONE, uint16_t, report_hz,
          .default_value = 4, .min = 1, .max = 30,
          .description = "Live-report dashboard refresh rate in Hz")

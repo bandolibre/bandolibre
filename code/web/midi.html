@@ -3162,6 +3162,22 @@
     activeName = null;
     activeInput = null;
     activeOutput = null;
+    // A sysex round-trip (eg. a GET_PERIPHERALS poll) can still be in flight
+    // when the device drops off the bus - a fast device reset re-enumerates
+    // well within the 1500ms sysex timeout. Left alone, `pending` would stay
+    // set until that stale timeout fires, and every request the reconnected
+    // device's enumerateProperties() makes in the meantime (including the
+    // very first HELLO) would immediately fail with "another request is
+    // already in flight" - a message that doesn't contain "timed out", so
+    // the retry button never shows either. Failing it here instead means
+    // the next connection always starts the sysex link clean.
+    if (pending) {
+      clearTimeout(pending.timeoutId);
+      pending.reject(new Error("device disconnected"));
+      pending = null;
+    }
+    writeQueue.clear();
+    writeInFlight = false;
     clearProperties();
     stopPeripheralPolling();
     // Resolved indices are cached from this session's enumeration (see
@@ -3213,24 +3229,41 @@
    * device is still present. */
   function maybeAutoConnect() {
     if (activeKey) return;
-    const device = collectDevices().find((d) => isBandolibre(d.name));
+    // A composite USB device's input and output ports enumerate as two
+    // separate, asynchronous statechange events - one can fire well before
+    // the other. Requiring both here (rather than connecting on whichever
+    // port shows up first) avoids latching onto a half-ready device: once
+    // connected, this function is a no-op (activeKey is set), so the other
+    // port's later "connected" event would otherwise be silently ignored
+    // and enumerateProperties() would never see an output to talk to.
+    const device = collectDevices().find((d) => isBandolibre(d.name) && d.input && d.output);
     if (device) connectTo(device.key);
+  }
+
+  /* The single source of truth for "is what we think is connected actually
+   * still there". Driven both by onstatechange (fast path, when the browser
+   * bothers to fire it) and by the setInterval poll in init() below (slow
+   * but certain path - Chrome/Edge are known to miss or delay 'disconnected'
+   * statechange events for some USB MIDI devices, so relying on the event
+   * alone silently gets stuck showing a device as connected after it's
+   * unplugged). Re-deriving
+   * presence from a fresh collectDevices() scan, rather than trusting the
+   * one port named in the event, also sidesteps any id-matching edge case
+   * for composite input/output devices. */
+  function reconcileDevices() {
+    if (activeKey && !collectDevices().some((d) => d.key === activeKey)) {
+      log("\"" + activeName + "\" disconnected", "other");
+      disconnect();
+    }
+    renderSelector();
+    maybeAutoConnect();
+    updateStatus();
   }
 
   function onStateChange(event) {
     const port = event.port;
     log((port.name || "(unnamed)") + " [" + port.type + "] " + port.state, "other");
-
-    if (port.id === activeKey || (activeInput && port.id === activeInput.id) || (activeOutput && port.id === activeOutput.id)) {
-      if (port.state === "disconnected") {
-        log("\"" + activeName + "\" disconnected", "other");
-        disconnect();
-      }
-    }
-
-    renderSelector();
-    maybeAutoConnect();
-    updateStatus();
+    reconcileDevices();
   }
 
   select.addEventListener("change", () => {
@@ -3255,6 +3288,10 @@
     renderSelector();
     maybeAutoConnect();
     updateStatus();
+    // Fallback poll: catches disconnect/reconnect on browsers that miss the
+    // statechange event (see reconcileDevices above). 750ms is fast enough
+    // to feel responsive without busy-polling the device list.
+    setInterval(reconcileDevices, 750);
   }
 
   init();

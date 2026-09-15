@@ -65,7 +65,12 @@ int console_execute(int argc, const char *const *argv)
 #endif
   }
   else if (strcmp(argv[0], "bellow_tune") == 0) bellow_tune();
-  else if (strcmp(argv[0], "help") == 0)   { properties_help(); midi_help_wrapper(); }
+  else if (strcmp(argv[0], "help") == 0)
+  {
+    const char *pattern = (argc > 1) ? argv[1] : NULL;
+    properties_help(pattern);
+    if (!pattern) midi_help_wrapper();
+  }
   else if (properties_execute(argc, argv)) { }
   else if (midi_exec_wrapper(argc, argv)) { }
   else
@@ -93,7 +98,8 @@ char **console_complete(int argc, const char *const *argv)
   }
   else if (argc == 2 && (strcmp(argv[0], "get") == 0 ||
                          strcmp(argv[0], "set") == 0 ||
-                         strcmp(argv[0], "reset") == 0))
+                         strcmp(argv[0], "reset") == 0 ||
+                         strcmp(argv[0], "help") == 0))
   {
     const char *names[CONSOLE_COMPL_MAX];
     size_t m = properties_complete(partial, names, CONSOLE_COMPL_MAX);
