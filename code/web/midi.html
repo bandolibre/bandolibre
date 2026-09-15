@@ -386,12 +386,96 @@
   .knob-indicator { stroke: var(--fg); stroke-width: 2; stroke-linecap: round; }
   .knob-hit { fill: transparent; }
   .knob-svg:focus-visible .knob-face { stroke: var(--muted); stroke-width: 2; }
+
+  /* ---- Info popup ---- */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .info-btn {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .info-btn:hover { border-color: var(--muted); color: var(--fg); }
+  .info-btn svg { width: 18px; height: 18px; }
+  .info-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .info-overlay[hidden] { display: none; }
+  .info-modal {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .info-modal h2 { margin: 0 0 12px; font-size: 1.15rem; }
+  .info-modal p { margin: 0 0 12px; font-size: 0.9rem; line-height: 1.5; }
+  .info-modal p:last-child { margin-bottom: 0; }
+  .info-modal a { color: var(--push); }
+  .info-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .info-modal-close:hover { border-color: var(--muted); color: var(--fg); }
 </style>
 </head>
 <body>
+<div class="info-overlay" id="infoOverlay" hidden>
+  <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <button type="button" class="info-modal-close" id="infoModalClose" aria-label="Close">✕</button>
+    <h2 id="infoModalTitle">About Bandolibre</h2>
+    <p><strong>Bandolibre</strong> is an open-source digital Argentine bandoneon, built by <a href="https://bandolibre.github.io" target="_blank" rel="noopener">L'Atelier du bandonéon libre</a>. It uses Hall-effect sensors and MIDI to bring the bandoneon's playing feel to a fully open, buildable instrument.</p>
+    <p>This page is the <strong>configuration tool</strong>: connect your Bandolibre over USB-MIDI to view the keyboard live, tune the bellows and pedal response, and adjust firmware properties, no install needed.</p>
+    <p><a href="https://github.com/bandolibre/bandolibre-main" target="_blank" rel="noopener">Project on GitHub</a> · <a href="https://bandolibre.github.io" target="_blank" rel="noopener">L'Atelier du bandonéon libre</a></p>
+  </div>
+</div>
+
 <main>
-  <div>
+  <div class="page-header">
     <h1>Bandolibre MIDI Connect</h1>
+    <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="About Bandolibre">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="11" x2="12" y2="16"></line>
+        <line x1="12" y1="8" x2="12" y2="8"></line>
+      </svg>
+    </button>
   </div>
 
   <div class="card">
@@ -3162,6 +3246,33 @@
   }
 
   init();
+})();
+</script>
+<script>
+(() => {
+  const btn = document.getElementById("infoBtn");
+  const overlay = document.getElementById("infoOverlay");
+  const closeBtn = document.getElementById("infoModalClose");
+
+  function open() {
+    overlay.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    closeBtn.focus();
+  }
+  function close() {
+    overlay.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    btn.focus();
+  }
+
+  btn.addEventListener("click", open);
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) close();
+  });
 })();
 </script>
 </body>
