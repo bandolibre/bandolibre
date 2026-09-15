@@ -111,6 +111,7 @@ Pour un détail du comportement du firmware et des commandes, voir [`documentati
 
 - **Matériel et assemblage :** voir [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
 - **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
+- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
 
 ---
 

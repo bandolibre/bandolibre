@@ -111,6 +111,7 @@ For a detailed breakdown of the firmware behavior and controls, see [`documentat
 
 - **Hardware & assembly:** see [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
 - **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
+- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) to view the keyboard live and tune firmware properties, no install needed
 
 ---
 

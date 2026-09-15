@@ -111,6 +111,7 @@ Para un desglose detallado del comportamiento del firmware y los controles, ver 
 
 - **Hardware y ensamblado:** ver [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
 - **Firmware:** ver [`code/`](code/) — compilar con `just build` y `just flash` para flashear via ST-LINK
+- **Herramienta de configuración:** [conéctate por USB-MIDI desde tu navegador](https://bandolibre.github.io/tools/midi.html) para visualizar el teclado en vivo y ajustar las propiedades del firmware, sin instalar nada
 
 ---
 
