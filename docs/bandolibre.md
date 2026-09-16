@@ -49,7 +49,7 @@ par le port USB — aucune batterie, aucun adaptateur, aucun câble supplémenta
    Tous les fichiers sources — schémas, PCB, firmware, mécanique — sont
    disponibles sur GitHub :
 
-   <a href="https://github.com/bandolibre/bandolibre.github.io" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
+   <a href="https://github.com/bandolibre/bandolibre" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
 
 2. **Une Plateforme Modulaire**
 
