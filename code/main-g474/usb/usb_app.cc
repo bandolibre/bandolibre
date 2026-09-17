@@ -243,6 +243,13 @@ void usb_app_midi_control_change(uint8_t channel, uint8_t controller, uint8_t va
   tud_midi_stream_write(cable, msg, 3);
 }
 
+void usb_app_midi_control_change_14bit(uint8_t channel, uint8_t cc_msb, uint16_t value14)
+{
+  value14 &= 0x3FFF;
+  usb_app_midi_control_change(channel, cc_msb, (uint8_t)(value14 >> 7));
+  usb_app_midi_control_change(channel, (uint8_t)(cc_msb + 32), (uint8_t)(value14 & 0x7F));
+}
+
 void usb_app_midi_active_sensing(void)
 {
   uint8_t const cable = 0;

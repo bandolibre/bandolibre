@@ -57,9 +57,10 @@ With the bellows at rest it can shape neither loudness nor expression, so table
 mode holds both constant and stops the bellows driving them:
 
 - every note plays at the same velocity;
-- the expression CC (**CC#11**) is no longer sent from the bellows. It is pinned
-  once, on entering table mode, to that same value. Without this the bellows
-  would sit at rest, hold CC#11 at 0, and silence every note.
+- the expression CC (**CC#11**, sent at 14-bit precision paired with CC#43 as
+  the LSB) is no longer sent from the bellows. It is pinned once, on entering
+  table mode, to that same value. Without this the bellows would sit at rest,
+  hold CC#11 at 0, and silence every note.
 
 Both take their value from `tablemode_velocity` (default 80).
 
@@ -70,7 +71,7 @@ follow the real bellows again, and hands CC#11 back to it.
 
 The **middle function button (FN1)** cycles bellows sensitivity through three
 levels, wrapping back to the first; the current level is reported on the
-console. Each level scales the bellows signal (the 0..1024 intensity that drives
+console. Each level scales the bellows signal (the 0..16384 intensity that drives
 both note velocity and the expression CC), so a higher level reaches full
 velocity and full expression with less bellows travel — useful for quiet playing
 or a stiff bellows.

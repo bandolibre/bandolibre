@@ -32,8 +32,8 @@ void bellow_phys_step(bellow_phys_state_t *state, float F, float dt_s,
   if (decay < 0.0f) decay = 0.0f;
   state->p *= decay;
 
-  if (state->p >  1024.0f) state->p =  1024.0f;
-  if (state->p < -1024.0f) state->p = -1024.0f;
+  if (state->p >  (float)BELLOW_INTENSITY_MAX) state->p =  (float)BELLOW_INTENSITY_MAX;
+  if (state->p < -(float)BELLOW_INTENSITY_MAX) state->p = -(float)BELLOW_INTENSITY_MAX;
 
   /* Commit intensity (magnitude, always responsive) and direction (gated
    * through deadzone + hysteresis so push<->pull can't chatter). */

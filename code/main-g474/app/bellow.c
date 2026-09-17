@@ -45,6 +45,18 @@ static bellow_output_t g_bellow_out = {.direction = BELLOWS_NEUTRAL, .intensity 
 static uint16_t g_bellow_last_hall0;
 static uint16_t g_bellow_last_hall1;
 
+/* Latest values from the bellow_poll() pipeline, captured there for
+ * bellow_report() to display; not otherwise consumed. */
+static float    g_bellow_1e_out;   /* bellow_filter_total() output, raw hall-total units */
+static uint16_t g_bellow_cc_out;   /* CC value after backlash+scale, 0..16383 */
+
+/* Passthrough 1-euro config: filtering happens upstream of classification, in
+ * bellow_filter_total() below, so bellow_send_cc()'s own hyst_update() must not
+ * filter a second time. A very large mincutoff with beta=0 is the same
+ * filter-neutral idiom hysteresis_test.c uses to isolate backlash/scale/
+ * rate-limit behavior from the 1-euro stage. */
+static const one_euro_config_t k_oe_passthrough = { .mincutoff = 1e8f, .beta = 0.0f, .dcutoff = 1.0f };
+
 /* Combined-hall calibration: center is the at-rest reading, hard push/pull
  * the readings at full travel. The deadzone sets how far from center the
  * bellows must move to leave BELLOWS_NEUTRAL (no air moves there, so
@@ -84,7 +96,10 @@ uint16_t bellow_sens_scale_q8(void)
   }
 }
 
-/* Naive bellows model: classifies hall reading into direction and intensity. */
+/* Naive bellows model: classifies hall reading into direction and intensity.
+ * hall_total is the filtered combined reading from bellow_filter_total(), not
+ * the raw sample -- classification runs on a smoothed signal so sensor jitter
+ * near the deadzone boundary doesn't flicker the direction. */
 static void bellow_naive(uint32_t hall_total, bellow_naive_state_t *state)
 {
   uint32_t center = g_properties->bellow_center;
@@ -115,24 +130,24 @@ static void bellow_physical_simulation(uint32_t hall_total, uint16_t pressed_key
   /* Derive a continuous signed force from the raw sensor offset.
    * Inside the deadzone (±bellow_dead from center), F = 0.
    * Outside the deadzone, F increases linearly from 0 at the boundary
-   * to ±1024 at the full travel limits (full_push/full_pull). */
+   * to ±BELLOW_INTENSITY_MAX at the full travel limits (full_push/full_pull). */
   int32_t d = (int32_t)hall_total - (int32_t)center;
   int32_t dead = (int32_t)g_properties->bellow_dead /2;
   float F;
 
   if (d < -dead)
   {
-    /* Push: interpolate from -dead to full_push, with F ranging from 0 to -1024 */
+    /* Push: interpolate from -dead to full_push, with F ranging from 0 to -BELLOW_INTENSITY_MAX */
     int32_t span = center - g_properties->bellow_full_push - dead;
     int32_t effective_d = d + dead;  /* offset from deadzone boundary */
-    F = (float)effective_d * 1024.0f / (float)span;
+    F = (float)effective_d * (float)BELLOW_INTENSITY_MAX / (float)span;
   }
   else if(d > dead)
   {
-    /* Pull: interpolate from +dead to full_pull, with F ranging from 0 to +1024 */
+    /* Pull: interpolate from +dead to full_pull, with F ranging from 0 to +BELLOW_INTENSITY_MAX */
     int32_t span = g_properties->bellow_full_pull - center - dead;
     int32_t effective_d = d - dead;  /* offset from deadzone boundary */
-    F = (float)effective_d * 1024.0f / (float)span;
+    F = (float)effective_d * (float)BELLOW_INTENSITY_MAX / (float)span;
   }
   else
   {
@@ -185,17 +200,20 @@ static void bellow_swo_trace(const bellow_naive_state_t *naive, const bellow_phy
              (long)hall_total_centred, (unsigned)keys);
 }
 
-/* Emits CC#11 (Expression) from the effective intensity through the shared
- * directional-hysteresis + rate-limit pipeline (hysteresis.h, as the pedals use).
- * bellow_cchyst sets the play required before the CC moves (suppresses sensor
- * jitter) and bellow_cc_period_ms caps the send rate; the rate limit coalesces
- * rather than drops, so the latest value is always eventually sent. Fed by
- * bellow_intensity(), so the naive and inertia modes share one CC pipeline.
+/* Emits CC#11 (Expression, paired with CC#43 as the 14-bit LSB) from the
+ * effective intensity through the shared directional-hysteresis + rate-limit
+ * pipeline (hysteresis.h, as the pedals use) -- noise suppression itself
+ * already happened upstream, in bellow_filter_total() filtering the raw hall
+ * reading before classification, so this stage's own 1-euro sub-stage is
+ * neutralized (k_oe_passthrough) to avoid filtering the same signal twice.
+ * bellow_cchyst is a small residual backlash on top (0 disables it) and
+ * bellow_cc_period_ms caps the send rate. The rate limit coalesces rather than
+ * drops, so the latest value is always eventually sent. Fed by
+ * bellow_intensity(), so the naive and inertia models share one CC pipeline.
  *
- * When intensity drops to 0 (bellow at rest), CC=0 is forced and the
- * hysteresis anchor is reset. Without this, the anchor stays at bellow_cchyst
- * and the fwd_thresh condition (x + fwd_thresh < anchor -> 0+16 < 16 -> false)
- * never advances it down, leaving CC=1 stuck indefinitely.
+ * When intensity drops to 0 (bellow at rest), CC=0 is forced and the hysteresis
+ * state is reset so backlash restarts cleanly on the next gesture rather than
+ * smoothing across the rest gap.
  *
  * Table mode is the exception: the bellows rests there, so it must not drive
  * expression at all (see the branch below). */
@@ -213,10 +231,11 @@ static void bellow_send_cc(void)
     if (!table_prev)
     {
       table_prev = true;
-      uint8_t cc = (uint8_t)g_properties->tablemode_velocity;
-      usb_app_midi_control_change(L_MIDI_CH, 11, cc);
-      usb_app_midi_control_change(R_MIDI_CH, 11, cc);
+      uint16_t cc14 = (uint16_t)g_properties->tablemode_velocity << 7;
+      usb_app_midi_control_change_14bit(L_MIDI_CH, 11, cc14);
+      usb_app_midi_control_change_14bit(R_MIDI_CH, 11, cc14);
     }
+    g_bellow_cc_out = (uint16_t)g_properties->tablemode_velocity << 7;
     return;
   }
   table_prev = false;
@@ -226,26 +245,33 @@ static void bellow_send_cc(void)
   {
     if (st.have_out && st.last_out != 0)
     {
-      usb_app_midi_control_change(L_MIDI_CH, 11, 0);
-      usb_app_midi_control_change(R_MIDI_CH, 11, 0);
+      usb_app_midi_control_change_14bit(L_MIDI_CH, 11, 0);
+      usb_app_midi_control_change_14bit(R_MIDI_CH, 11, 0);
     }
     st = (hyst_state_t){0};
+    g_bellow_cc_out = 0;
     return;
   }
 
   hyst_config_t cfg = {
-    .in_min = 0, .in_max = 1024, .out_max = 127,
+    .in_min = 0, .in_max = BELLOW_INTENSITY_MAX, .out_max = 16383,
     .fwd_thresh = g_properties->bellow_cchyst, .rev_thresh = g_properties->bellow_cchyst,
-    .ema_alpha = HYST_EMA_UNITY, .min_period_ms = g_properties->bellow_cc_period_ms,
+    .oe = k_oe_passthrough,
+    .min_period_ms = g_properties->bellow_cc_period_ms,
   };
 
-  uint8_t value;
-  if (!hyst_update(&st, &cfg, intensity, HAL_GetTick(), &value)) return;
+  uint16_t value;
+  bool emit = hyst_update(&st, &cfg, intensity, HAL_GetTick(), &value);
+  /* hyst_update writes *out on every call regardless of whether it also says
+   * to emit -- so the report always has the latest scaled value even on a
+   * rate-limited or unchanged tick. */
+  g_bellow_cc_out = value;
+  if (!emit) return;
 
   /* The single bellows drives both keyboards, which play on separate MIDI
    * channels (L_MIDI_CH / R_MIDI_CH), so send the expression CC on both. */
-  usb_app_midi_control_change(L_MIDI_CH, 11, value);
-  usb_app_midi_control_change(R_MIDI_CH, 11, value);
+  usb_app_midi_control_change_14bit(L_MIDI_CH, 11, value);
+  usb_app_midi_control_change_14bit(R_MIDI_CH, 11, value);
 }
 
 static void delay_us(uint32_t us)
@@ -253,6 +279,46 @@ static void delay_us(uint32_t us)
   uint32_t cycles = us * (SystemCoreClock / 1000000U);
   uint32_t start = DWT->CYCCNT;
   while ((DWT->CYCCNT - start) < cycles);
+}
+
+/* Caps the hall-sensor sampling rate at bellow_sample_period_us (default 4kHz):
+ * true once that many microseconds have elapsed since the last due sample, so
+ * bellow_poll() can skip the ADC work (and everything downstream of it) the
+ * rest of the time. HAL_GetTick() is only millisecond-resolution, too coarse
+ * for a sub-millisecond gate, so this uses the same DWT cycle counter
+ * delay_us() above already relies on. */
+static bool bellow_sample_due(void)
+{
+  static uint32_t last_cycles;
+  static bool have_last;
+
+  uint32_t now = DWT->CYCCNT;
+  uint32_t period_cycles = g_properties->bellow_sample_period_us * (SystemCoreClock / 1000000U);
+  if (have_last && (now - last_cycles) < period_cycles) return false;
+
+  last_cycles = now;
+  have_last = true;
+  return true;
+}
+
+/* Filters the raw combined hall reading before it reaches classification, so
+ * direction/intensity -- and everything downstream of them, including CC#11 --
+ * are derived from a smoothed signal instead of raw sensor jitter (previously
+ * the filter sat after classification, in bellow_send_cc(), which smoothed the
+ * already-processed intensity instead of the noise at its source). Reuses the
+ * bellow_cc_1e_mincutoff/beta tuning knobs from that earlier stage. Also
+ * records the filtered value in g_bellow_1e_out for bellow_report(). */
+static uint32_t bellow_filter_total(uint32_t hall_total)
+{
+  static one_euro_state_t st;
+  one_euro_config_t cfg = {
+    .mincutoff = g_properties->bellow_cc_1e_mincutoff / 256.0f,
+    .beta = g_properties->bellow_cc_1e_beta / 65536.0f,
+    .dcutoff = 1.0f,
+  };
+  float xf = one_euro_update(&st, &cfg, (float)hall_total, HAL_GetTick());
+  g_bellow_1e_out = xf;
+  return (uint32_t)(xf < 0.0f ? 0.0f : xf + 0.5f);
 }
 
 /* One acquisition of both hall sensors and their combined reading. */
@@ -304,40 +370,78 @@ static const char *bellows_dir_str(bellows_t dir)
   }
 }
 
-/* Emits the optional console log and live-report dashboard for one sample. */
-static void bellow_report(const bellow_sample_t *s, const bellow_naive_state_t *naive_state,
+/* Emits the optional console log and live-report dashboard. Called every
+ * bellow_poll() tick regardless of whether this tick actually sampled the hall
+ * sensors, so the report dashboard's own frame (report_begin()/report_end(),
+ * driven by its independent report_hz timer) always gets its rows even on a
+ * tick where the two rates don't line up; a skipped sampling tick just adds
+ * nothing new to accumulate. */
+static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_naive_state_t *naive_state,
                           const bellow_physical_simulation_state_t *phys)
 {
 
-  /* Per-frame stats, accumulated every poll and reset after each emitted report
+  /* Per-frame stats, accumulated every sample and reset after each emitted report
    * frame (and on (re-)enable so the first frame never shows stale data), so each
    * line reflects only the samples since the previous one. Extremes are of the
    * combined reading; the std (E[x^2]-E[x]^2) is per sensor, accumulated in
    * integers to keep the sums exact, with the count shown alongside. */
   static uint16_t hall_min, hall_max;
-  static uint32_t n, sum0, sum1;
-  static uint64_t sq0, sq1;
+  static uint32_t n, sum0, sum1, sumT;
+  static uint64_t sq0, sq1, sqT;
+  static double sum1e, sq1e;   /* g_bellow_1e_out is a float, so accumulated in double */
+  static uint32_t push_entries, pull_entries;
   static bool show_was_on;
   if (g_properties->show_bellow && !show_was_on)
   {
     hall_min = 0xFFFF; hall_max = 0;
-    n = 0; sum0 = sum1 = 0; sq0 = sq1 = 0;
+    n = 0; sum0 = sum1 = sumT = 0; sq0 = sq1 = sqT = 0;
+    sum1e = sq1e = 0.0;
+    push_entries = pull_entries = 0;
   }
   show_was_on = g_properties->show_bellow;
-  uint16_t total = s->hall0 + s->hall1;
-  if (total < hall_min) hall_min = total;
-  if (total > hall_max) hall_max = total;
-  n++;
-  sum0 += s->hall0; sq0 += (uint32_t)s->hall0 * s->hall0;
-  sum1 += s->hall1; sq1 += (uint32_t)s->hall1 * s->hall1;
-
-
-  if (g_report_due && g_properties->show_bellow)
+  if (sampled)
   {
-    float mean0 = (float)sum0 / n;
-    float mean1 = (float)sum1 / n;
-    float std0 = sqrtf((float)sq0 / n - mean0 * mean0);
-    float std1 = sqrtf((float)sq1 / n - mean1 * mean1);
+    uint16_t total = s->hall0 + s->hall1;
+    if (total < hall_min) hall_min = total;
+    if (total > hall_max) hall_max = total;
+    n++;
+    sum0 += s->hall0; sq0 += (uint32_t)s->hall0 * s->hall0;
+    sum1 += s->hall1; sq1 += (uint32_t)s->hall1 * s->hall1;
+    sumT += total;     sqT += (uint32_t)total * total;
+    sum1e += (double)g_bellow_1e_out; sq1e += (double)g_bellow_1e_out * g_bellow_1e_out;
+
+    /* Zone-entry counters: how many times the naive direction transitioned
+     * into PUSH/PULL since the last report frame (tracked independently of
+     * show_bellow so a mid-window enable doesn't miscount the first sample
+     * as an entry). */
+    static bellows_t last_dir = BELLOWS_NEUTRAL;
+    if (naive_state->direction != last_dir)
+    {
+      if (naive_state->direction == BELLOWS_PUSH) push_entries++;
+      else if (naive_state->direction == BELLOWS_PULL) pull_entries++;
+      last_dir = naive_state->direction;
+    }
+  }
+
+  if (g_report_due && g_properties->show_bellow && n > 0)
+  {
+    /* Double precision for the E[x^2]-E[x]^2 subtraction: hall readings run in
+     * the thousands, so their squares are large relative to a small variance,
+     * and float32's ~7 significant digits aren't enough to keep the difference
+     * from occasionally going slightly negative (sqrtf of that is NaN). The
+     * result is clamped to 0 as a floor against any residual rounding. */
+    double mean0 = (double)sum0 / n;
+    double mean1 = (double)sum1 / n;
+    double meanT = (double)sumT / n;
+    double var0 = (double)sq0 / n - mean0 * mean0;
+    double var1 = (double)sq1 / n - mean1 * mean1;
+    double varT = (double)sqT / n - meanT * meanT;
+    double mean1e = sum1e / n;
+    double var1e = sq1e / n - mean1e * mean1e;
+    float std0 = sqrtf((float)(var0 > 0.0 ? var0 : 0.0));
+    float std1 = sqrtf((float)(var1 > 0.0 ? var1 : 0.0));
+    float stdT = sqrtf((float)(varT > 0.0 ? varT : 0.0));
+    float std1e = sqrtf((float)(var1e > 0.0 ? var1e : 0.0));
     float conv_us = (float)s->conv_cycles / (SystemCoreClock / 1000000.0f);
     float force = (naive_state->direction == BELLOWS_PUSH) ? -(float)naive_state->intensity
                 : (naive_state->direction == BELLOWS_PULL) ?  (float)naive_state->intensity : 0.0f;
@@ -346,45 +450,75 @@ static void bellow_report(const bellow_sample_t *s, const bellow_naive_state_t *
                          (int)force, (double)phys->core.v, (double)phys->core.p,
                          phys->core.eff_intensity, (int)phys->core.eff_dir,
                          keyboard_keys_pressed());
-    console_dash_println("        hall0=%4u hall1=%4u total=%5u  (min %u max %u)  sample_count=%lu  conv=%.1fus",
+    /* std0/std1/stdT line's "std0 =" / "std1 =" / "stdT =" labels are each
+     * padded to the same width as "hall0=" / "hall1=" / "total=" above (and
+     * the value fields use matching widths), so the two lines' columns
+     * line up in the monospace console. */
+    console_dash_println("        hall0=%5u hall1=%5u total=%5u  (min %u max %u)  sample_count=%lu  conv=%.1fus",
                          (unsigned)s->hall0, (unsigned)s->hall1, (unsigned)s->hall0 + s->hall1,
                          hall_min, hall_max, (unsigned long)n, (double)conv_us);
-    console_dash_println("        std0=%7.2f std1=%7.2f", (double)std0, (double)std1);
+    console_dash_println("        std0 =%5.1f std1 =%5.1f stdT =%5.1f",
+                         (double)std0, (double)std1, (double)stdT);
+    console_dash_println("        1euro=%8.1f std=%5.1f  (mincutoff=%.2fHz beta=%.4f)",
+                         (double)g_bellow_1e_out, (double)std1e,
+                         (double)g_properties->bellow_cc_1e_mincutoff / 256.0,
+                         (double)g_properties->bellow_cc_1e_beta / 65536.0);
+    /* cc11's second form is the 14-bit value as MSB.LSB (CC#11.CC#43, each
+     * 7-bit) rendered as one decimal -- value/128 puts the MSB in the integer
+     * part and the LSB as a fraction of it, the same conversion midi.html's
+     * live CC#11 readout uses (updateLiveDot() there). */
+    console_dash_println("        zone entries: push=%6lu pull=%6lu   cc11=%5u (%6.2f)",
+                         (unsigned long)push_entries, (unsigned long)pull_entries,
+                         (unsigned)g_bellow_cc_out, (double)g_bellow_cc_out / 128.0);
 
     hall_min = 0xFFFF; hall_max = 0;
-    n = 0; sum0 = sum1 = 0; sq0 = sq1 = 0;
+    n = 0; sum0 = sum1 = sumT = 0; sq0 = sq1 = sqT = 0;
+    sum1e = sq1e = 0.0;
+    push_entries = pull_entries = 0;
   }
 }
 
-/* Samples both hall sensors, updates the bellows direction/intensity, emits the
- * expression CC, and reports. Call once per main loop iteration. Consumers read
- * the result via bellow_direction() and track changes themselves. */
+/* Samples both hall sensors, filters the combined reading (bellow_filter_total),
+ * updates the bellows direction/intensity from the filtered value, emits the
+ * expression CC, and reports. Call once per main loop iteration; sampling is
+ * internally rate-limited to bellow_sample_period_us, so most calls skip the
+ * ADC work and the direction/intensity/CC update (the previous values carry
+ * over). bellow_report() still runs every call regardless: it has its own
+ * report_hz cadence (g_report_due, set by report_begin() in report.c) that
+ * is independent of the sample rate, and it must run on every tick so it
+ * doesn't miss a report_due tick that happens to fall between samples -
+ * which would leave that dashboard frame without its bellow rows. */
 void bellow_poll(void)
 {
   static bellow_naive_state_t naive = {.direction = BELLOWS_NEUTRAL, .intensity = 0};
   static bellow_physical_simulation_state_t phys = {0};
+  static bellow_sample_t s;
 
-  bellow_sample_t s = bellow_sample();
-  g_bellow_last_hall0 = s.hall0;
-  g_bellow_last_hall1 = s.hall1;
-  uint32_t hall_total = s.hall0 + s.hall1;
-  bellow_naive(hall_total, &naive);
-  bellow_physical_simulation(hall_total, keyboard_keys_pressed(), naive.direction, &phys);
+  bool sampled = bellow_sample_due();
+  if (sampled)
+  {
+    s = bellow_sample();
+    g_bellow_last_hall0 = s.hall0;
+    g_bellow_last_hall1 = s.hall1;
+    uint32_t hall_total = bellow_filter_total(s.hall0 + s.hall1);
+    bellow_naive(hall_total, &naive);
+    bellow_physical_simulation(hall_total, keyboard_keys_pressed(), naive.direction, &phys);
 
-  if (g_properties->bellow_inertia_enable) {
-    g_bellow_out.direction = phys.core.eff_dir;
-    g_bellow_out.intensity = phys.core.eff_intensity;
-  } else {
-    g_bellow_out.direction = naive.direction;
-    g_bellow_out.intensity = naive.intensity;
+    if (g_properties->bellow_inertia_enable) {
+      g_bellow_out.direction = phys.core.eff_dir;
+      g_bellow_out.intensity = phys.core.eff_intensity;
+    } else {
+      g_bellow_out.direction = naive.direction;
+      g_bellow_out.intensity = naive.intensity;
+    }
+    uint32_t scaled = ((uint32_t)g_bellow_out.intensity * bellow_sens_scale_q8()) >> 8;
+    g_bellow_out.intensity = (uint16_t)(scaled > BELLOW_INTENSITY_MAX ? BELLOW_INTENSITY_MAX : scaled);
+
+    int32_t hall_total_centred = (int32_t)hall_total - (int32_t)g_properties->bellow_center;
+    bellow_swo_trace(&naive, &phys, hall_total_centred, keyboard_keys_pressed());
+    bellow_send_cc();
   }
-  uint32_t scaled = ((uint32_t)g_bellow_out.intensity * bellow_sens_scale_q8()) >> 8;
-  g_bellow_out.intensity = (uint16_t)(scaled > 1024 ? 1024 : scaled);
-
-  int32_t hall_total_centred = (int32_t)hall_total - (int32_t)g_properties->bellow_center;
-  bellow_swo_trace(&naive, &phys, hall_total_centred, keyboard_keys_pressed());
-  bellow_send_cc();
-  bellow_report(&s, &naive, &phys);
+  bellow_report(sampled, &s, &naive, &phys);
 }
 
 /* Diagnostic sweep: for each bellow_settle_us value in a fixed range, take

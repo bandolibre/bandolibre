@@ -237,6 +237,7 @@ void handle_get_property_description(gsl::span<const uint8_t> body)
   writer.write((uint8_t)SYSEX_MSG_GET_PROPERTY_DESCRIPTION);
   writer.write(index);
   writer.write((uint8_t)d->type);
+  writer.write(d->default_value);
   writer.write(gsl::span<const char>(d->name, strlen(d->name)));
   writer.write(gsl::span<const char>(d->description, strlen(d->description)));
 

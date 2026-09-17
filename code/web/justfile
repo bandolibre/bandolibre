@@ -1,0 +1,6 @@
+# Build and run checks for the web MIDI/config app (single-file, no build
+# step of its own - this just catches JS syntax errors in midi.html's inline
+# <script> blocks before they'd otherwise only surface in a browser console).
+test:
+    mkdir -p build
+    bun build midi.html --outdir build

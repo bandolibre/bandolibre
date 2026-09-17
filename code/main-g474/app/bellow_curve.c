@@ -52,7 +52,7 @@ uint16_t bellow_curve_apply(uint16_t intensity,
                              uint16_t cx1, uint16_t cy1,
                              uint16_t cx2, uint16_t cy2)
 {
-  float x = (float)intensity / 1024.0f;
+  float x = (float)intensity / (float)BELLOW_INTENSITY_MAX;
   float p1x = (float)cx1 / 256.0f, p1y = (float)cy1 / 256.0f;
   float p2x = (float)cx2 / 256.0f, p2y = (float)cy2 / 256.0f;
 
@@ -62,5 +62,5 @@ uint16_t bellow_curve_apply(uint16_t intensity,
   if (y < 0.0f) y = 0.0f;
   else if (y > 1.0f) y = 1.0f;
 
-  return (uint16_t)(y * 1024.0f + 0.5f);
+  return (uint16_t)(y * (float)BELLOW_INTENSITY_MAX + 0.5f);
 }

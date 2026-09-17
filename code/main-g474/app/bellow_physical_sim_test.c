@@ -19,7 +19,8 @@ static int g_failures;
     }                                                              \
   } while (0)
 
-/* Default params matching property_table.def defaults (updated dir_dead/hyst). */
+/* Default params matching property_table.def defaults (dir_dead/dir_hyst
+ * rescaled x16 for the BELLOW_INTENSITY_MAX=16384 pressure domain). */
 static bellow_phys_params_t default_params(void)
 {
   bellow_phys_params_t p = {
@@ -28,8 +29,8 @@ static bellow_phys_params_t default_params(void)
     .impulse_gain = 64,
     .leak_quiet   = 64,
     .leak_per_key = 128,
-    .dir_dead     = 64,
-    .dir_hyst     = 32,
+    .dir_dead     = 1024,
+    .dir_hyst     = 512,
   };
   return p;
 }
@@ -85,7 +86,7 @@ static void test_impulse_stores_energy(void)
   bellow_phys_state_t s = {0};
 
   /* 10ms spike at full force */
-  run_steps(&s, 1024.0f, 0.001f, 0, &p, 10);
+  run_steps(&s, (float)BELLOW_INTENSITY_MAX, 0.001f, 0, &p, 10);
   /* Force removed, let the stored momentum pump pressure for 40ms */
   run_steps(&s, 0.0f, 0.001f, 0, &p, 40);
 
@@ -107,24 +108,27 @@ static void test_key_leak_softens_pressure(void)
   CHECK(s_with_keys.p < s_no_keys.p);
 }
 
-/* P is clamped to ±1024 even for extreme F input. */
-static void test_pressure_clamps_at_1024(void)
+/* P is clamped to ±BELLOW_INTENSITY_MAX even for extreme F input. F must be
+ * far beyond the clamp (not just beyond the old 1024 ceiling) to actually
+ * exercise it at the wider 16384 range within the step budget. */
+static void test_pressure_clamps_at_max(void)
 {
   bellow_phys_params_t p = default_params();
   p.leak_quiet = 0;
   bellow_phys_state_t s = {0};
 
-  run_steps(&s, 5000.0f, 0.001f, 0, &p, 200);
-  CHECK(s.p <= 1024.0f);
+  run_steps(&s, 100000.0f, 0.001f, 0, &p, 200);
+  CHECK(s.p <= (float)BELLOW_INTENSITY_MAX);
 
   bellow_phys_state_t s2 = {0};
-  run_steps(&s2, -5000.0f, 0.001f, 0, &p, 200);
-  CHECK(s2.p >= -1024.0f);
+  run_steps(&s2, -100000.0f, 0.001f, 0, &p, 200);
+  CHECK(s2.p >= -(float)BELLOW_INTENSITY_MAX);
 }
 
 /* Direction stays NEUTRAL when |P| is below the deadzone threshold.
- * dir_dead=64, dir_hyst=32 -> push_edge = 0 - 32 - 16 = -48.
- * With F=-10 and no impulse, P should stay above -48 and direction stay NEUTRAL. */
+ * dir_dead=1024, dir_hyst=512 -> push_edge = 0 - 512/2 - 1024/2 = -768.
+ * With F=-10 and no impulse, P should stay well above -768 and direction
+ * stay NEUTRAL. */
 static void test_direction_deadzone_neutral(void)
 {
   bellow_phys_params_t p = default_params();
@@ -132,7 +136,7 @@ static void test_direction_deadzone_neutral(void)
   p.leak_quiet = 0;
   bellow_phys_state_t s = {0};
 
-  /* Apply a gentle force that will settle P well below 48 in magnitude. */
+  /* Apply a gentle force that will settle P well below 768 in magnitude. */
   run_steps(&s, -10.0f, 0.001f, 0, &p, 500);
 
   CHECK(s.eff_dir == BELLOWS_NEUTRAL);
@@ -146,15 +150,15 @@ static void test_direction_commits_to_push(void)
   p.impulse_gain = 0;
   bellow_phys_state_t s = {0};
 
-  /* F=-200 will settle P well past -48 (the push_edge threshold). */
-  run_steps(&s, -200.0f, 0.001f, 0, &p, 500);
+  /* F=-2000 will settle P well past -768 (the push_edge threshold). */
+  run_steps(&s, -2000.0f, 0.001f, 0, &p, 500);
 
   CHECK(s.eff_dir == BELLOWS_PUSH);
 }
 
 /* Direction hysteresis: once in PUSH, P must recover past the return threshold
- * before going NEUTRAL. push_edge = -48, return = push_edge + hyst = -48+32 = -16.
- * So from PUSH, P must go above -16 to return to NEUTRAL. */
+ * before going NEUTRAL. push_edge = -768, return = push_edge + hyst = -768+512
+ * = -256. So from PUSH, P must go above -256 to return to NEUTRAL. */
 static void test_direction_hysteresis(void)
 {
   bellow_phys_params_t p = default_params();
@@ -164,15 +168,15 @@ static void test_direction_hysteresis(void)
   bellow_phys_state_t s = {0};
 
   /* Drive into PUSH */
-  run_steps(&s, -200.0f, 0.001f, 0, &p, 300);
+  run_steps(&s, -2000.0f, 0.001f, 0, &p, 300);
   CHECK(s.eff_dir == BELLOWS_PUSH);
 
-  /* Reduce F to a value that will settle P around -30 (inside deadzone entry
-   * but outside hysteresis return threshold of -16). Should stay PUSH. */
-  run_steps(&s, -30.0f, 0.001f, 0, &p, 500);
+  /* Reduce F to a value that will settle P around -400 (inside deadzone entry
+   * but outside hysteresis return threshold of -256). Should stay PUSH. */
+  run_steps(&s, -400.0f, 0.001f, 0, &p, 500);
   CHECK(s.eff_dir == BELLOWS_PUSH);
 
-  /* Remove force entirely: P decays to 0, crossing -16 -> NEUTRAL. */
+  /* Remove force entirely: P decays to 0, crossing -256 -> NEUTRAL. */
   run_steps(&s, 0.0f, 0.001f, 0, &p, 500);
   CHECK(s.eff_dir == BELLOWS_NEUTRAL);
 }
@@ -198,7 +202,7 @@ int main(void)
   test_steady_state_with_leak();
   test_impulse_stores_energy();
   test_key_leak_softens_pressure();
-  test_pressure_clamps_at_1024();
+  test_pressure_clamps_at_max();
   test_direction_deadzone_neutral();
   test_direction_commits_to_push();
   test_direction_hysteresis();

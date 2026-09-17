@@ -5,12 +5,12 @@
 #include "keyboard_layout.h"
 
 /* Result of classifying a signed reading into a bellows direction and an
- * intensity on 0..1024 (0 always when NEUTRAL). Used by both the naive model
- * (on the raw hall reading) and the inertia model (on the signed pressure P,
- * for the direction gate only). */
+ * intensity on 0..BELLOW_INTENSITY_MAX (0 always when NEUTRAL). Used by both the
+ * naive model (on the raw hall reading) and the inertia model (on the signed
+ * pressure P, for the direction gate only). */
 typedef struct {
   bellows_t direction;
-  uint16_t  intensity;  /* 0..1024, always 0 when NEUTRAL */
+  uint16_t  intensity;  /* 0..BELLOW_INTENSITY_MAX, always 0 when NEUTRAL */
 } bellow_classify_result_t;
 
 /* Classifies a (signed) reading into PUSH/NEUTRAL/PULL around a center, with a
@@ -24,7 +24,8 @@ typedef struct {
  * thresholds, and "hyst" is the extra travel required to leave NEUTRAL in the
  * first place (entry threshold = dead/2 + hyst/2 from center).
  *
- * Intensity is 0 at the entry edge (push_edge) and 1024 at full_push/full_pull.
+ * Intensity is 0 at the entry edge (push_edge) and BELLOW_INTENSITY_MAX at
+ * full_push/full_pull.
  * Pass full_push = full_pull = 0 to skip intensity (direction-only use). */
 bellow_classify_result_t bellow_classify(bellows_t prev, int32_t value,
                                          int32_t center, int32_t dead, int32_t hyst,

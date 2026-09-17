@@ -9,6 +9,8 @@ default: _list
 # Build and run host unit tests for HAL-free modules (e.g. properties)
 test:
     mkdir -p build
+    cc -std=c11 -Wall -Wextra -Iapp -lm app/one_euro_filter_test.c -o build/one_euro_filter_test
+    ./build/one_euro_filter_test
     cc -std=c11 -Wall -Wextra -Iapp app/hysteresis_test.c -o build/hysteresis_test
     ./build/hysteresis_test
     cc -std=c11 -Wall -Wextra -I../common/console properties/properties_test.c properties/properties.c properties/properties_console.c -o build/properties_test

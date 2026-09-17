@@ -90,7 +90,7 @@ static void pedal_poll_one(const char *name, GPIO_TypeDef *det_port, uint16_t de
     return;
   }
 
-  uint8_t value;
+  uint16_t value;
   if (!hyst_update(&st->hyst, cfg, sample, HAL_GetTick(), &value)) return;
   /* Mirror the bellows expression CC: send on both keyboard channels so the
    * mapping works regardless of which channel the DAW listens on. */
@@ -108,12 +108,18 @@ void pedals_poll(void)
   hyst_config_t cfg1 = {
     .in_min = g_properties->pedal1_min, .in_max = g_properties->pedal1_max, .out_max = 127,
     .fwd_thresh = g_properties->pedal1_hyst_fwd, .rev_thresh = g_properties->pedal1_hyst_rev,
-    .ema_alpha = g_properties->pedal1_ema_alpha, .min_period_ms = g_properties->pedal1_cc_period_ms,
+    .oe = { .mincutoff = g_properties->pedal1_1e_mincutoff / 256.0f,
+            .beta = g_properties->pedal1_1e_beta / 65536.0f,
+            .dcutoff = 1.0f },
+    .min_period_ms = g_properties->pedal1_cc_period_ms,
   };
   hyst_config_t cfg2 = {
     .in_min = g_properties->pedal2_min, .in_max = g_properties->pedal2_max, .out_max = 127,
     .fwd_thresh = g_properties->pedal2_hyst_fwd, .rev_thresh = g_properties->pedal2_hyst_rev,
-    .ema_alpha = g_properties->pedal2_ema_alpha, .min_period_ms = g_properties->pedal2_cc_period_ms,
+    .oe = { .mincutoff = g_properties->pedal2_1e_mincutoff / 256.0f,
+            .beta = g_properties->pedal2_1e_beta / 65536.0f,
+            .dcutoff = 1.0f },
+    .min_period_ms = g_properties->pedal2_cc_period_ms,
   };
 
   /* Start both conversions before reading either, so they run concurrently on

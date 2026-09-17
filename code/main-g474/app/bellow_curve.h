@@ -2,9 +2,10 @@
 #define APP_BELLOW_CURVE_H
 
 #include <stdint.h>
+#include "keyboard_layout.h"
 
 /* Cubic-Bezier response shape, reshaping an already-classified
- * bellow_classify() intensity (0..1024) through a curve from (0,0) to
+ * bellow_classify() intensity (0..BELLOW_INTENSITY_MAX) through a curve from (0,0) to
  * (1,1) with two fully free 2D control points P1=(cx1,cy1), P2=(cx2,cy2),
  * each coordinate 0..256 (Q8, i.e. 0..1). This is the same construction
  * as CSS's cubic-bezier() timing function / cubic-bezier.com: dragging a

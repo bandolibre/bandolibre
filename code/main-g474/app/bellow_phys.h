@@ -23,13 +23,13 @@ typedef struct {
   float     v;            /* bellows velocity (carries momentum) */
   float     p;            /* chamber pressure (signed), the model output */
   float     f_prev;       /* F from the previous step, for impulse feed-forward */
-  uint16_t  eff_intensity; /* |P| rounded, 0..1024 */
+  uint16_t  eff_intensity; /* |P| rounded, 0..BELLOW_INTENSITY_MAX */
   bellows_t eff_dir;      /* direction committed through deadzone + hysteresis */
 } bellow_phys_state_t;
 
 /* Integrates one step of the virtual-bellows model.
  *
- *   F      — signed player force, ±1024 = full travel (same scale as intensity)
+ *   F      — signed player force, ±BELLOW_INTENSITY_MAX = full travel (same scale as intensity)
  *   dt_s   — time since last step in seconds (caller clamps; pass ≤ 0.02)
  *   keys   — number of keys currently pressed (open pallets, any direction)
  *   params — tuning parameters (read-only)

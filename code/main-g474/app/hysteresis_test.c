@@ -1,6 +1,12 @@
-/* Host unit tests for the directional-hysteresis helper. Pure C, no HAL —
+/* Host unit tests for the directional-hysteresis helper. Pure C, no HAL --
  * compile and run natively (see `just test`). Framework-free: a tiny assert
- * macro that counts failures and reports a final summary. */
+ * macro that counts failures and reports a final summary.
+ *
+ * Filter-neutral configs use a very large mincutoff with beta=0, which
+ * one_euro_filter_test.c's test_large_mincutoff_is_passthrough() confirms is
+ * numerically indistinguishable from pass-through -- this isolates the
+ * backlash/scale/rate-limit behavior under test here from the 1-euro filter's
+ * own smoothing/lag behavior, which is tested in isolation over there. */
 
 #include "hysteresis.h"
 
@@ -18,14 +24,20 @@ static int g_failures;
     }                                                             \
   } while (0)
 
+/* mincutoff large enough that even a 16384-scale jump at the smallest clamped
+ * dt (0.001s) rounds away to nothing (residual error stays well under 0.5) --
+ * see one_euro_filter_test.c's test_large_mincutoff_is_passthrough() for the
+ * same property demonstrated directly on the filter in isolation. */
+static const one_euro_config_t k_oe_passthrough = { .mincutoff = 1e8f, .beta = 0.0f, .dcutoff = 1.0f };
+
 /* A roomy default config: 0..1000 raw -> 0..100 (10 raw per output step),
- * small forward play, larger reverse play, no filter, no rate limit. */
+ * small forward play, larger reverse play, filter neutralized, no rate limit. */
 static hyst_config_t base_cfg(void)
 {
   hyst_config_t c = {
     .in_min = 0, .in_max = 1000, .out_max = 100,
     .fwd_thresh = 2, .rev_thresh = 30,
-    .ema_alpha = HYST_EMA_UNITY, .min_period_ms = 0,
+    .oe = k_oe_passthrough, .min_period_ms = 0,
   };
   return c;
 }
@@ -35,7 +47,7 @@ static void test_first_sample_emits(void)
 {
   hyst_config_t cfg = base_cfg();
   hyst_state_t st = {0};
-  uint8_t v = 0xFF;
+  uint16_t v = 0xFFFF;
   CHECK(hyst_update(&st, &cfg, 500, 0, &v));   /* 500/1000 * 100 = 50 */
   CHECK(v == 50);
 }
@@ -49,7 +61,7 @@ static void test_forward_advances_immediately(void)
   hyst_config_t cfg = base_cfg();
   cfg.fwd_thresh = 0;
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   hyst_update(&st, &cfg, 500, 0, &v);          /* seed at 50 */
   CHECK(hyst_update(&st, &cfg, 510, 1, &v));   /* exactly one step up -> 51 */
   CHECK(v == 51);
@@ -61,7 +73,7 @@ static void test_forward_play_lags(void)
 {
   hyst_config_t cfg = base_cfg();             /* fwd_thresh = 2 */
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   hyst_update(&st, &cfg, 500, 0, &v);          /* seed at 50 */
   CHECK(!hyst_update(&st, &cfg, 511, 1, &v));  /* anchor 509 -> still 50 */
   CHECK(v == 50);
@@ -74,7 +86,7 @@ static void test_small_reversal_held(void)
 {
   hyst_config_t cfg = base_cfg();
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   hyst_update(&st, &cfg, 500, 0, &v);          /* seed at 50, dir +1 */
   CHECK(!hyst_update(&st, &cfg, 480, 1, &v));  /* -20 raw < rev_thresh 30: held */
   CHECK(v == 50);
@@ -85,7 +97,7 @@ static void test_large_reversal_flips(void)
 {
   hyst_config_t cfg = base_cfg();
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   hyst_update(&st, &cfg, 500, 0, &v);          /* seed at 50, dir +1 */
   CHECK(hyst_update(&st, &cfg, 460, 1, &v));   /* -40 > rev 30: anchor 460+30=490 -> 49 */
   CHECK(v == 49);
@@ -103,7 +115,7 @@ static void test_rate_limit_coalesces(void)
   cfg.min_period_ms = 10;
   cfg.fwd_thresh = 0;                          /* isolate rate-limiting from play lag */
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   CHECK(hyst_update(&st, &cfg, 500, 100, &v)); /* first emit, t=100, v=50 */
   CHECK(!hyst_update(&st, &cfg, 520, 105, &v));/* changed but within period: suppressed */
   CHECK(!hyst_update(&st, &cfg, 600, 108, &v));/* still within period: suppressed */
@@ -112,30 +124,38 @@ static void test_rate_limit_coalesces(void)
   CHECK(v == 60);
 }
 
-/* ema_alpha == UNITY is an exact pass-through (no smoothing lag). */
-static void test_ema_unity_passthrough(void)
+/* fwd_thresh=rev_thresh=0 fully disables the backlash: the anchor tracks the
+ * (filter-neutralized) sample exactly every call, so a clean forward move
+ * always advances immediately, same as test_forward_advances_immediately but
+ * explicitly documenting the "disabled" configuration as a supported case. */
+static void test_zero_thresholds_disables_backlash(void)
 {
   hyst_config_t cfg = base_cfg();
-  cfg.ema_alpha = HYST_EMA_UNITY;
-  cfg.fwd_thresh = 0; cfg.rev_thresh = 0;      /* isolate the filter from backlash */
-  hyst_state_t st = {0};
-  uint8_t v;
-  hyst_update(&st, &cfg, 0, 0, &v);
-  hyst_update(&st, &cfg, 1000, 1, &v);
-  CHECK(v == 100);                             /* reaches the top in one step */
-}
-
-/* A real EMA (alpha < UNITY) lags: one step toward a jump, not all the way. */
-static void test_ema_lags(void)
-{
-  hyst_config_t cfg = base_cfg();
-  cfg.ema_alpha = 128;                         /* half-step per sample */
   cfg.fwd_thresh = 0; cfg.rev_thresh = 0;
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
+  hyst_update(&st, &cfg, 500, 0, &v);
+  /* With backlash active (fwd_thresh=2, test_forward_play_lags), input 511
+   * is held at step 50 until 512. Disabled, it advances at 511 already. */
+  CHECK(hyst_update(&st, &cfg, 511, 1, &v));
+  CHECK(v == 51);
+  CHECK(hyst_update(&st, &cfg, 480, 2, &v));   /* reversal advances just as freely */
+  CHECK(v == 48);
+}
+
+/* Composition: the 1-euro filter actually runs ahead of the backlash stage --
+ * a heavily-smoothing config visibly lags the output versus the filter-neutral
+ * base_cfg() above, confirming the two stages are wired together in order. */
+static void test_filter_feeds_into_backlash(void)
+{
+  hyst_config_t cfg = base_cfg();
+  cfg.fwd_thresh = 0; cfg.rev_thresh = 0;
+  cfg.oe = (one_euro_config_t){ .mincutoff = 0.5f, .beta = 0.0f, .dcutoff = 1.0f };
+  hyst_state_t st = {0};
+  uint16_t v;
   hyst_update(&st, &cfg, 0, 0, &v);            /* seed at 0 */
-  hyst_update(&st, &cfg, 1000, 1, &v);         /* filtered ~= 500 -> 50 */
-  CHECK(v > 40 && v < 60);
+  hyst_update(&st, &cfg, 1000, 10, &v);        /* sharp jump, 10ms later */
+  CHECK(v < 100);                              /* filter lag keeps it off the top step */
 }
 
 /* The output clamps to 0 and out_max at the range ends. */
@@ -143,12 +163,29 @@ static void test_clamps(void)
 {
   hyst_config_t cfg = base_cfg();
   hyst_state_t st = {0};
-  uint8_t v;
+  uint16_t v;
   hyst_update(&st, &cfg, 0, 0, &v);
   CHECK(v == 0);
   /* Big forward jump past in_max clamps to out_max. */
   hyst_update(&st, &cfg, 5000, 1, &v);
   CHECK(v == 100);
+}
+
+/* out_max above the old 7-bit ceiling works -- the 14-bit bellows CC range. */
+static void test_wide_out_max(void)
+{
+  hyst_config_t cfg = base_cfg();
+  cfg.in_max = 16384;
+  cfg.out_max = 16383;
+  cfg.fwd_thresh = 0; cfg.rev_thresh = 0;   /* isolate scaling from backlash */
+  hyst_state_t st = {0};
+  uint16_t v;
+  hyst_update(&st, &cfg, 0, 0, &v);
+  CHECK(v == 0);
+  hyst_update(&st, &cfg, 16384, 1, &v);
+  CHECK(v == 16383);
+  hyst_update(&st, &cfg, 8192, 2, &v);
+  CHECK(v == 8191);   /* 8192/16384 * 16383, truncated */
 }
 
 int main(void)
@@ -159,9 +196,10 @@ int main(void)
   test_small_reversal_held();
   test_large_reversal_flips();
   test_rate_limit_coalesces();
-  test_ema_unity_passthrough();
-  test_ema_lags();
+  test_zero_thresholds_disables_backlash();
+  test_filter_feeds_into_backlash();
   test_clamps();
+  test_wide_out_max();
 
   printf("%d checks, %d failures\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;

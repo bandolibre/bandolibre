@@ -18,7 +18,7 @@
 /* Current bellows direction (BELLOWS_NEUTRAL/PUSH/PULL). */
 bellows_t bellow_direction(void);
 
-/* How hard the bellows is currently being pushed or pulled, 0..1024 (0 in
+/* How hard the bellows is currently being pushed or pulled, 0..BELLOW_INTENSITY_MAX (0 in
  * BELLOWS_NEUTRAL). Same units as the CC#11 expression value; consumers use it
  * to set note-on velocity. In inertia mode this is the simulated chamber
  * pressure of the bellow_inertia_* model (which stores the energy of a fast

@@ -32,13 +32,13 @@ bellow_classify_result_t bellow_classify(bellows_t prev, int32_t value,
   {
     int32_t span = push_edge - full_push;
     int32_t d = value < push_edge ? push_edge - value : 0;
-    result.intensity = (span > 0) ? (uint16_t)((uint32_t)d >= (uint32_t)span ? 1024 : ((uint32_t)d * 1024) / (uint32_t)span) : 0;
+    result.intensity = (span > 0) ? (uint16_t)((uint32_t)d >= (uint32_t)span ? BELLOW_INTENSITY_MAX : ((uint32_t)d * BELLOW_INTENSITY_MAX) / (uint32_t)span) : 0;
   }
   else if (result.direction == BELLOWS_PULL)
   {
     int32_t span = full_pull - pull_edge;
     int32_t d = value > pull_edge ? value - pull_edge : 0;
-    result.intensity = (span > 0) ? (uint16_t)((uint32_t)d >= (uint32_t)span ? 1024 : ((uint32_t)d * 1024) / (uint32_t)span) : 0;
+    result.intensity = (span > 0) ? (uint16_t)((uint32_t)d >= (uint32_t)span ? BELLOW_INTENSITY_MAX : ((uint32_t)d * BELLOW_INTENSITY_MAX) / (uint32_t)span) : 0;
   }
   else
   {

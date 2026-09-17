@@ -35,12 +35,12 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 57);
+  CHECK(property_count() == 62);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);
   CHECK(g_properties->key_release == 2100);
-  CHECK(g_properties->bellow_center == 11280);
+  CHECK(g_properties->bellow_center == 27800);
   CHECK(g_properties->bellow_cc_period_ms == 10);
 
   /* Same value via the index API. */
@@ -57,6 +57,31 @@ static void test_lookup(void)
 
   CHECK(!property_by_name("does_not_exist", &i));
   CHECK(property_at(property_count()) == NULL);
+}
+
+/* Guards against a hand-edited description silently overflowing
+ * handle_get_property_description()'s sysex response buffer (midi.cc:
+ * std::array<uint8_t, 200> payload) -- past that, DataWriter::write() just
+ * stops writing without erroring, truncating the description with no
+ * terminating NUL, which then reads back as null on the client and crashes
+ * (property enumeration failed: Cannot read properties of null). Mirrors the
+ * exact byte layout that handler builds: msg_type(1) + index(2) + type(1) +
+ * default_value(2) + name + NUL + description + NUL. */
+static void test_description_payload_fits(void)
+{
+  enum { SYSEX_PAYLOAD_MAX = 200 };
+  for (size_t i = 0; i < property_count(); i++)
+  {
+    const property_desc_t *d = property_at(i);
+    size_t total = 1 + 2 + 1 + 2 + strlen(d->name) + 1 + strlen(d->description) + 1;
+    if (total > SYSEX_PAYLOAD_MAX)
+    {
+      printf("FAIL %s:%d: property '%s' description response is %zu bytes, over the %d-byte sysex buffer\n",
+             __FILE__, __LINE__, d->name, total, SYSEX_PAYLOAD_MAX);
+      g_failures++;
+    }
+    g_checks++;
+  }
 }
 
 static void test_set_clamp(void)
@@ -97,14 +122,14 @@ static void test_reset(void)
 
   CHECK(property_set_u16(idx("bellow_center"), 100));
   property_reset_all();
-  CHECK(g_properties->bellow_center == 11280);
+  CHECK(g_properties->bellow_center == 27800);
 }
 
 static void test_pack_unpack_roundtrip(void)
 {
   property_reset_all();
   property_set_u16(idx("key_press"), 1500);
-  property_set_u16(idx("bellow_center"), 3800);
+  property_set_u16(idx("bellow_center"), 20000);
   property_set_u16(idx("bellow_cc_period_ms"), 20);
 
   uint8_t buf[256];
@@ -117,7 +142,7 @@ static void test_pack_unpack_roundtrip(void)
 
   CHECK(property_unpack(buf, n));
   CHECK(g_properties->key_press == 1500);
-  CHECK(g_properties->bellow_center == 3800);
+  CHECK(g_properties->bellow_center == 20000);
   CHECK(g_properties->bellow_cc_period_ms == 20);
   CHECK(g_properties->key_release == 2100); /* untouched -> default */
 
@@ -177,14 +202,14 @@ static void test_forward_compat_unknown_tag(void)
   put16(buf, off, 50);     off += 2; /* unknown tag */
   put16(buf, off, 1234);   off += 2;
   put16(buf, off, 3);      off += 2; /* bellow_center */
-  put16(buf, off, 3900);   off += 2;
+  put16(buf, off, 25000);  off += 2;
   uint16_t cs = 0;
   for (size_t o = 0; o < off; o += 2) cs ^= (uint16_t)(buf[o] | (buf[o + 1] << 8));
   put16(buf, off, cs); off += 2;
 
   property_reset_all();
   CHECK(property_unpack(buf, off));
-  CHECK(g_properties->bellow_center == 3900); /* known tag applied */
+  CHECK(g_properties->bellow_center == 25000); /* known tag applied */
   CHECK(g_properties->key_press == 1900);   /* absent -> default */
 }
 
@@ -197,8 +222,9 @@ static void test_flash_stubs(void)
 static void test_complete(void)
 {
   const char *out[64];
-  /* "bellow_" matches the bellow_* properties (calibration, CC, scale, inertia, curve, sens_level) */
-  CHECK(properties_complete("bellow_", out, 64) == 29);
+  /* "bellow_" matches the bellow_* properties (calibration, CC, scale, inertia,
+   * curve, sens_level, sample rate, 1-euro filter) */
+  CHECK(properties_complete("bellow_", out, 64) == 32);
   /* "key_" matches the two key_* properties, not keyboard_tuning */
   CHECK(properties_complete("key_", out, 64) == 2);
   /* empty prefix matches all (buffer is sized above property_count()) */
@@ -213,6 +239,7 @@ int main(void)
 {
   test_defaults();
   test_lookup();
+  test_description_payload_fits();
   test_set_clamp();
   test_type_guards();
   test_reset();

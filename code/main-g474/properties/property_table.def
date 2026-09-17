@@ -17,7 +17,9 @@
  *                   violation. Omit for bool (range is implicitly 0..1).
  *   .description    human-readable text for the editor
  *
- * Reserved (removed) tags: (none yet)
+ * Reserved (removed) tags: 19 (pedal1_ema_alpha), 23 (pedal2_ema_alpha) —
+ *   replaced by pedal{1,2}_1e_mincutoff/beta (the shared hyst_update()
+ *   primitive's flat EMA stage was replaced by a One Euro filter).
  */
 
 PROPERTY(1, uint16_t, key_press,
@@ -27,23 +29,23 @@ PROPERTY(2, uint16_t, key_release,
          .default_value = 2100, .min = 0, .max = 4095,
          .description = "ADC above this -> key released")
 PROPERTY(3, uint16_t, bellow_center,
-         .default_value = 11280, .min = 0, .max = 30000,
-         .description = "Combined hall reading at rest")
+         .default_value = 27800, .min = 17000, .max = 34000,
+         .description = "Combined hall reading at rest (measured on hardware at ADC oversampling RightBitShift_5)")
 PROPERTY(4, uint16_t, bellow_dead,
-         .default_value = 80, .min = 0, .max = 4095,
+         .default_value = 64, .min = 0, .max = 4095,
          .description = "Travel each way before registering direction; entry threshold is dead/2 + hyst/2 from center")
 PROPERTY(5, uint16_t, bellow_hyst,
-         .default_value = 40, .min = 0, .max = 4095,
+         .default_value = 60, .min = 0, .max = 4095,
          .description = "Margin given back before returning to neutral")
 PROPERTY(6, uint16_t, bellow_full_push,
-         .default_value = 9500, .min = 0, .max = 30000,
-         .description = "Combined hall reading at full push")
+         .default_value = 23400, .min = 0, .max = 34000,
+         .description = "Combined hall reading at full push (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
 PROPERTY(7, uint16_t, bellow_full_pull,
-         .default_value = 13000, .min = 0, .max = 30000,
-         .description = "Combined hall reading at full pull")
+         .default_value = 32000, .min = 0, .max = 34000,
+         .description = "Combined hall reading at full pull (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
 PROPERTY(8, uint16_t, bellow_cchyst,
-         .default_value = 16, .min = 0, .max = 1024,
-         .description = "Min expression-CC delta before resending")
+         .default_value = 0, .min = 0, .max = 16384,
+         .description = "Min expression-CC delta before resending; 0 disables this backlash entirely")
 PROPERTY(9, uint16_t, bellow_cc_period_ms,
          .default_value = 10, .min = 1, .max = 1000,
          .description = "Min milliseconds between expression-CC sends")
@@ -70,25 +72,19 @@ PROPERTY(16, uint16_t, pedal2_max,
          .description = "Pedal 2 (sustain) ADC at maximum -> CC 127")
 PROPERTY(17, uint16_t, pedal1_hyst_fwd,
          .default_value = 4, .min = 0, .max = 4095,
-         .description = "Pedal 1 forward play (raw units) before advance")
+         .description = "Pedal 1 forward play (raw units) before advance; 0 with pedal1_hyst_rev=0 disables this backlash entirely")
 PROPERTY(18, uint16_t, pedal1_hyst_rev,
          .default_value = 16, .min = 0, .max = 4095,
          .description = "Pedal 1 reverse play (raw units) before direction flips")
-PROPERTY(19, uint16_t, pedal1_ema_alpha,
-         .default_value = 256, .min = 1, .max = 256,
-         .description = "Pedal 1 Exponential moving average factor /256 (256 = filter off)")
 PROPERTY(20, uint16_t, pedal1_cc_period_ms,
          .default_value = 10, .min = 1, .max = 1000,
          .description = "Pedal 1 min milliseconds between CC sends")
 PROPERTY(21, uint16_t, pedal2_hyst_fwd,
          .default_value = 4, .min = 0, .max = 4095,
-         .description = "Pedal 2 forward play (raw units) before advance")
+         .description = "Pedal 2 forward play (raw units) before advance; 0 with pedal2_hyst_rev=0 disables this backlash entirely")
 PROPERTY(22, uint16_t, pedal2_hyst_rev,
          .default_value = 16, .min = 0, .max = 4095,
          .description = "Pedal 2 reverse play (raw units) before direction flips")
-PROPERTY(23, uint16_t, pedal2_ema_alpha,
-         .default_value = 256, .min = 1, .max = 256,
-         .description = "Pedal 2 Exponential moving average factor /256 (256 = filter off)")
 PROPERTY(24, uint16_t, pedal2_cc_period_ms,
          .default_value = 10, .min = 1, .max = 1000,
          .description = "Pedal 2 min milliseconds between CC sends")
@@ -120,10 +116,10 @@ PROPERTY(33, uint16_t, bellow_inertia_impulse_gain,
          .default_value = 64, .min = 0, .max = 65535,
          .description = "Inertia: flexion-speed impulse feed-forward, /256 (256 = 1.0; 0 = off)")
 PROPERTY(34, uint16_t, bellow_inertia_dir_dead,
-         .default_value = 64, .min = 0, .max = 512,
-         .description = "Inertia: neutral deadzone in pressure units (0-1024); entry threshold is dir_dead/2 + dir_hyst/2")
+         .default_value = 1024, .min = 0, .max = 8192,
+         .description = "Inertia: neutral deadzone in pressure units (0-BELLOW_INTENSITY_MAX); entry threshold is dir_dead/2 + dir_hyst/2")
 PROPERTY(35, uint16_t, bellow_inertia_dir_hyst,
-         .default_value = 32, .min = 0, .max = 512,
+         .default_value = 512, .min = 0, .max = 8192,
          .description = "Inertia: margin given back before returning to neutral, pressure units; pair with dir_dead")
 PROPERTY(36, bool, bellow_inertia_impulse_directional,
          .default_value = 0,
@@ -174,10 +170,10 @@ PROPERTY(PROPERTY_TAG_NONE, uint16_t, report_hz,
          .default_value = 4, .min = 1, .max = 30,
          .description = "Live-report dashboard refresh rate in Hz")
 PROPERTY(PROPERTY_TAG_NONE, bool, show_bellow,
-         .default_value = 0,
+         .default_value = 1,
          .description = "Live-report the bellows direction, intensity and hall readings")
 PROPERTY(PROPERTY_TAG_NONE, bool, show_spi,
-         .default_value = 1,
+         .default_value = 0,
          .description = "Live-report the per-wing SPI link reception counters and rates")
 PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard,
          .default_value = 0, .min = 0, .max = 3,
@@ -191,3 +187,24 @@ PROPERTY(PROPERTY_TAG_NONE, bool, table_mode,
 PROPERTY(47, uint16_t, bellow_sens_level,
          .default_value = 0, .min = 0, .max = 2,
          .description = "Bellows sensitivity level: 0 unity (bellow_scale_low), 1 bellow_scale_mid, 2 bellow_scale_high; also advanced by the FN1 button")
+PROPERTY(48, uint16_t, bellow_sample_period_us,
+         .default_value = 250, .min = 250, .max = 10000,
+         .description = "Min microseconds between hall-sensor samples (caps sampling at 4kHz; sampling faster wastes CPU with no usable signal above it)")
+PROPERTY(49, uint16_t, bellow_cc_1e_mincutoff,
+         .default_value = 256, .min = 26, .max = 2560,
+         .description = "1-euro filter cutoff at rest, Hz/256 (256=1.0Hz); filters the raw hall total before classification. Lower smooths more at rest. See one_euro_filter.h")
+PROPERTY(50, uint16_t, bellow_cc_1e_beta,
+         .default_value = 459, .min = 0, .max = 65535,
+         .description = "1-euro filter speed coefficient /65536 (459~=0.007); same pre-classification hall filter as bellow_cc_1e_mincutoff. Higher tracks fast moves with less lag")
+PROPERTY(51, uint16_t, pedal1_1e_mincutoff,
+         .default_value = 256, .min = 26, .max = 2560,
+         .description = "Pedal 1 1-euro filter cutoff at rest, Hz /256 (256=1.0Hz); lower smooths more at rest")
+PROPERTY(52, uint16_t, pedal1_1e_beta,
+         .default_value = 459, .min = 0, .max = 65535,
+         .description = "Pedal 1 1-euro filter speed coefficient /65536 (459~=0.007); higher tracks fast moves with less lag")
+PROPERTY(53, uint16_t, pedal2_1e_mincutoff,
+         .default_value = 256, .min = 26, .max = 2560,
+         .description = "Pedal 2 1-euro filter cutoff at rest, Hz /256 (256=1.0Hz); lower smooths more at rest")
+PROPERTY(54, uint16_t, pedal2_1e_beta,
+         .default_value = 459, .min = 0, .max = 65535,
+         .description = "Pedal 2 1-euro filter speed coefficient /65536 (459~=0.007); higher tracks fast moves with less lag")

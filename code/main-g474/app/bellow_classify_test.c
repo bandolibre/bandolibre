@@ -53,8 +53,8 @@ static void test_enter_push_from_neutral(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_NEUTRAL, PUSH_EDGE - 1);
   CHECK(r.direction == BELLOWS_PUSH);
-  /* d=1, span=330: intensity = 1*1024/330 = 3 */
-  CHECK(r.intensity == 3);
+  /* d=1, span=330: intensity = 1*16384/330 = 49 (truncated) */
+  CHECK(r.intensity == 49);
 }
 
 /* One unit past the pull edge enters PULL. */
@@ -62,8 +62,8 @@ static void test_enter_pull_from_neutral(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_NEUTRAL, PULL_EDGE + 1);
   CHECK(r.direction == BELLOWS_PULL);
-  /* d=1, span=410: intensity = 1*1024/410 = 2 */
-  CHECK(r.intensity == 2);
+  /* d=1, span=410: intensity = 1*16384/410 = 39 (truncated) */
+  CHECK(r.intensity == 39);
 }
 
 /* From PUSH, retreating to push_edge + hyst - 1 stays in PUSH (hysteresis). */
@@ -103,38 +103,38 @@ static void test_return_to_neutral_from_pull(void)
   CHECK(r.intensity == 0);
 }
 
-/* Intensity is 1024 at full push. */
-static void test_intensity_1024_at_full_push(void)
+/* Intensity is BELLOW_INTENSITY_MAX at full push. */
+static void test_intensity_max_at_full_push(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PUSH, FULL_PUSH);
   CHECK(r.direction == BELLOWS_PUSH);
-  CHECK(r.intensity == 1024);
+  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
 }
 
-/* Intensity is 1024 at full pull. */
-static void test_intensity_1024_at_full_pull(void)
+/* Intensity is BELLOW_INTENSITY_MAX at full pull. */
+static void test_intensity_max_at_full_pull(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PULL, FULL_PULL);
   CHECK(r.direction == BELLOWS_PULL);
-  CHECK(r.intensity == 1024);
+  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
 }
 
-/* Intensity clamps to 1024 past full travel (sensor out of range). */
+/* Intensity clamps to BELLOW_INTENSITY_MAX past full travel (sensor out of range). */
 static void test_intensity_clamps_past_full(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PUSH, FULL_PUSH - 100);
   CHECK(r.direction == BELLOWS_PUSH);
-  CHECK(r.intensity == 1024);
+  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
 }
 
-/* Intensity at the midpoint of push span is approximately 512. */
+/* Intensity at the midpoint of push span is exactly half of BELLOW_INTENSITY_MAX. */
 static void test_intensity_midpoint_push(void)
 {
   /* midpoint = PUSH_EDGE - PUSH_SPAN/2 = 3730 - 165 = 3565 */
   bellow_classify_result_t r = classify(BELLOWS_PUSH, PUSH_EDGE - PUSH_SPAN/2);
   CHECK(r.direction == BELLOWS_PUSH);
-  /* d = PUSH_SPAN/2 = 165; intensity = 165*1024/330 = 512 */
-  CHECK(r.intensity == 512);
+  /* d = PUSH_SPAN/2 = 165; intensity = 165*16384/330 = 8192 (divides evenly) */
+  CHECK(r.intensity == 8192);
 }
 
 /* From PUSH, jumping directly past the pull edge transitions to PULL. */
@@ -187,8 +187,8 @@ int main(void)
   test_return_to_neutral_from_push();
   test_hysteresis_holds_pull();
   test_return_to_neutral_from_pull();
-  test_intensity_1024_at_full_push();
-  test_intensity_1024_at_full_pull();
+  test_intensity_max_at_full_push();
+  test_intensity_max_at_full_pull();
   test_intensity_clamps_past_full();
   test_intensity_midpoint_push();
   test_direct_push_to_pull();
