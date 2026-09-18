@@ -81,10 +81,18 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
 ## Configurer votre Bandolibre
 
 Un outil web permet de connecter le Bandolibre en USB-MIDI depuis votre
-navigateur, de visualiser le clavier en direct et de régler les propriétés du
-firmware, sans rien installer.
+navigateur, de dialoguer avec l'appareil en **MIDI Sysex**, de visualiser le
+clavier en direct et de régler les propriétés du firmware, sans rien
+installer.
 
 <a href="{{ '/tools/midi.html' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-sliders-h"></i> Ouvrir l'outil de configuration</a>
+
+## Mettre à Jour le Firmware
+
+La mise à jour se fait par glisser-déposer : placez la carte en mode DFU, elle
+apparaît comme une simple clé USB. Déposez-y le fichier `.uf2` et l'appareil
+redémarre avec la nouvelle version — aucun programmateur, aucun logiciel à
+installer.
 
 ## Characteristiques Techniques
 

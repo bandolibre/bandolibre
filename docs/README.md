@@ -1,5 +1,7 @@
 Website at http://bandolibre.github.io
 
+Main project (firmware, hardware, docs): https://github.com/bandolibre/bandolibre-main
+
 ## Serve locally with Jekyll:
 
 First you have to update the dependencies with the `bundle` tool once.
