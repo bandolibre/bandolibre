@@ -2,9 +2,21 @@
  * natively (see `just test`). Same framework as bellow_classify_test.c. */
 
 #include "bellow_curve.h"
+#include "keyboard_layout.h"   /* BELLOW_INTENSITY_MAX */
 
 #include <stdio.h>
 #include <stdint.h>
+
+/* bellow_curve_apply() itself works in 0.0..1.0 now (see bellow_curve.h); this
+ * test's expected values are all pre-existing, hand/Python-verified numbers
+ * at the old 0..BELLOW_INTENSITY_MAX integer scale, so round-trip every call
+ * through the same normalize-in/denormalize-out math bellow_curve_apply()
+ * used to do internally, rather than recomputing 37000+ expected values. */
+static uint16_t curve_apply_u16(uint16_t intensity, uint16_t cx1, uint16_t cy1, uint16_t cx2, uint16_t cy2)
+{
+  float y = bellow_curve_apply((float)intensity / (float)BELLOW_INTENSITY_MAX, cx1, cy1, cx2, cy2);
+  return (uint16_t)(y * (float)BELLOW_INTENSITY_MAX + 0.5f);
+}
 
 static int g_checks;
 static int g_failures;
@@ -22,12 +34,12 @@ static int g_failures;
  * points, so the endpoints are pinned for any legal (cx1,cy1,cx2,cy2). */
 static void test_endpoints(void)
 {
-  CHECK(bellow_curve_apply(0, 85, 85, 171, 171) == 0);
-  CHECK(bellow_curve_apply(BELLOW_INTENSITY_MAX, 85, 85, 171, 171) == BELLOW_INTENSITY_MAX);
-  CHECK(bellow_curve_apply(0, 0, 256, 256, 0) == 0);
-  CHECK(bellow_curve_apply(BELLOW_INTENSITY_MAX, 0, 256, 256, 0) == BELLOW_INTENSITY_MAX);
-  CHECK(bellow_curve_apply(0, 0, 0, 256, 256) == 0);
-  CHECK(bellow_curve_apply(BELLOW_INTENSITY_MAX, 0, 0, 256, 256) == BELLOW_INTENSITY_MAX);
+  CHECK(curve_apply_u16(0, 85, 85, 171, 171) == 0);
+  CHECK(curve_apply_u16(BELLOW_INTENSITY_MAX, 85, 85, 171, 171) == BELLOW_INTENSITY_MAX);
+  CHECK(curve_apply_u16(0, 0, 256, 256, 0) == 0);
+  CHECK(curve_apply_u16(BELLOW_INTENSITY_MAX, 0, 256, 256, 0) == BELLOW_INTENSITY_MAX);
+  CHECK(curve_apply_u16(0, 0, 0, 256, 256) == 0);
+  CHECK(curve_apply_u16(BELLOW_INTENSITY_MAX, 0, 0, 256, 256) == BELLOW_INTENSITY_MAX);
 }
 
 /* At the default (both control points on the diagonal: cx1=cy1=85,
@@ -44,7 +56,7 @@ static void test_near_linear_at_default(void)
 {
   for (uint32_t u = 0; u <= BELLOW_INTENSITY_MAX; u++)
   {
-    uint16_t v = bellow_curve_apply((uint16_t)u, 85, 85, 171, 171);
+    uint16_t v = curve_apply_u16((uint16_t)u, 85, 85, 171, 171);
     int32_t dev = (int32_t)v - (int32_t)u;
     CHECK(dev >= -2 && dev <= 2);
   }
@@ -60,11 +72,11 @@ static void test_near_linear_at_default(void)
  * 8192, scales cleanly). */
 static void test_hand_traceable_case(void)
 {
-  CHECK(bellow_curve_apply(0, 128, 0, 128, 256) == 0);
-  CHECK(bellow_curve_apply(4096, 128, 0, 128, 256) == 1735);
-  CHECK(bellow_curve_apply(8192, 128, 0, 128, 256) == 8192);
-  CHECK(bellow_curve_apply(12288, 128, 0, 128, 256) == 14649);
-  CHECK(bellow_curve_apply(16384, 128, 0, 128, 256) == 16384);
+  CHECK(curve_apply_u16(0, 128, 0, 128, 256) == 0);
+  CHECK(curve_apply_u16(4096, 128, 0, 128, 256) == 1735);
+  CHECK(curve_apply_u16(8192, 128, 0, 128, 256) == 8192);
+  CHECK(curve_apply_u16(12288, 128, 0, 128, 256) == 14649);
+  CHECK(curve_apply_u16(16384, 128, 0, 128, 256) == 16384);
 }
 
 /* Degenerate corner: cx1=cx2=0 makes x(t)=t^3, so the solver's derivative
@@ -83,7 +95,7 @@ static void test_degenerate_flat_start(void)
   uint16_t prev = 0;
   for (size_t i = 0; i < sizeof(inputs) / sizeof(inputs[0]); i++)
   {
-    uint16_t v = bellow_curve_apply((uint16_t)inputs[i], 0, 128, 0, 128);
+    uint16_t v = curve_apply_u16((uint16_t)inputs[i], 0, 128, 0, 128);
     CHECK(v == expect[i]);
     CHECK(v >= prev);
     prev = v;
@@ -109,7 +121,7 @@ static void test_monotonic_sweep(void)
           uint16_t prev = 0;
           for (uint32_t u = 0; u <= BELLOW_INTENSITY_MAX; u += 512)
           {
-            uint16_t v = bellow_curve_apply((uint16_t)u, vals[a], vals[b], vals[c], vals[d]);
+            uint16_t v = curve_apply_u16((uint16_t)u, vals[a], vals[b], vals[c], vals[d]);
             CHECK(v >= prev);
             prev = v;
           }

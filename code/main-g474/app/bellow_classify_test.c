@@ -18,6 +18,15 @@ static int g_failures;
     }                                                              \
   } while (0)
 
+static float fabs_f(float v)
+{
+  return v < 0.0f ? -v : v;
+}
+
+/* intensity is a fraction, not a pre-rounded count, so an inexact division
+ * (e.g. 1/330) needs a tolerance rather than exact equality. */
+#define CHECK_NEAR(a, b) CHECK(fabs_f((a) - (b)) < 1e-6f)
+
 /* Default calibration values matching property_table.def defaults. */
 #define CENTER     3760
 #define DEAD       40
@@ -45,7 +54,7 @@ static void test_neutral_at_rest(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_NEUTRAL, CENTER);
   CHECK(r.direction == BELLOWS_NEUTRAL);
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 /* One unit past the push edge enters PUSH with near-zero intensity. */
@@ -53,8 +62,9 @@ static void test_enter_push_from_neutral(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_NEUTRAL, PUSH_EDGE - 1);
   CHECK(r.direction == BELLOWS_PUSH);
-  /* d=1, span=330: intensity = 1*16384/330 = 49 (truncated) */
-  CHECK(r.intensity == 49);
+  /* d=1, span=330: intensity = 1/330 = 0.00303... (a fraction, not a
+   * pre-scaled count -- see bellow_classify_result_t) */
+  CHECK_NEAR(r.intensity, 1.0f / 330.0f);
 }
 
 /* One unit past the pull edge enters PULL. */
@@ -62,8 +72,8 @@ static void test_enter_pull_from_neutral(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_NEUTRAL, PULL_EDGE + 1);
   CHECK(r.direction == BELLOWS_PULL);
-  /* d=1, span=410: intensity = 1*16384/410 = 39 (truncated) */
-  CHECK(r.intensity == 39);
+  /* d=1, span=410: intensity = 1/410 = 0.00244... */
+  CHECK_NEAR(r.intensity, 1.0f / 410.0f);
 }
 
 /* From PUSH, retreating to push_edge + hyst - 1 stays in PUSH (hysteresis). */
@@ -73,7 +83,7 @@ static void test_hysteresis_holds_push(void)
   bellow_classify_result_t r = classify(BELLOWS_PUSH, PUSH_EDGE + HYST - 1);
   CHECK(r.direction == BELLOWS_PUSH);
   /* value > push_edge so d=0, intensity=0 (in the hysteresis band) */
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 /* From PUSH, reaching exactly push_edge + hyst returns to NEUTRAL. */
@@ -82,7 +92,7 @@ static void test_return_to_neutral_from_push(void)
   /* push_edge + hyst = 3730 + 20 = 3750 */
   bellow_classify_result_t r = classify(BELLOWS_PUSH, PUSH_EDGE + HYST);
   CHECK(r.direction == BELLOWS_NEUTRAL);
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 /* From PULL, retreating to pull_edge - hyst + 1 stays in PULL. */
@@ -91,7 +101,7 @@ static void test_hysteresis_holds_pull(void)
   /* pull_edge - hyst + 1 = 3790 - 20 + 1 = 3771 */
   bellow_classify_result_t r = classify(BELLOWS_PULL, PULL_EDGE - HYST + 1);
   CHECK(r.direction == BELLOWS_PULL);
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 /* From PULL, reaching exactly pull_edge - hyst returns to NEUTRAL. */
@@ -100,41 +110,41 @@ static void test_return_to_neutral_from_pull(void)
   /* pull_edge - hyst = 3790 - 20 = 3770 */
   bellow_classify_result_t r = classify(BELLOWS_PULL, PULL_EDGE - HYST);
   CHECK(r.direction == BELLOWS_NEUTRAL);
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
-/* Intensity is BELLOW_INTENSITY_MAX at full push. */
+/* Intensity is 1.0 (full scale) at full push. */
 static void test_intensity_max_at_full_push(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PUSH, FULL_PUSH);
   CHECK(r.direction == BELLOWS_PUSH);
-  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
+  CHECK(r.intensity == 1.0f);
 }
 
-/* Intensity is BELLOW_INTENSITY_MAX at full pull. */
+/* Intensity is 1.0 (full scale) at full pull. */
 static void test_intensity_max_at_full_pull(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PULL, FULL_PULL);
   CHECK(r.direction == BELLOWS_PULL);
-  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
+  CHECK(r.intensity == 1.0f);
 }
 
-/* Intensity clamps to BELLOW_INTENSITY_MAX past full travel (sensor out of range). */
+/* Intensity clamps to 1.0 past full travel (sensor out of range). */
 static void test_intensity_clamps_past_full(void)
 {
   bellow_classify_result_t r = classify(BELLOWS_PUSH, FULL_PUSH - 100);
   CHECK(r.direction == BELLOWS_PUSH);
-  CHECK(r.intensity == BELLOW_INTENSITY_MAX);
+  CHECK(r.intensity == 1.0f);
 }
 
-/* Intensity at the midpoint of push span is exactly half of BELLOW_INTENSITY_MAX. */
+/* Intensity at the midpoint of push span is exactly 0.5. */
 static void test_intensity_midpoint_push(void)
 {
   /* midpoint = PUSH_EDGE - PUSH_SPAN/2 = 3730 - 165 = 3565 */
   bellow_classify_result_t r = classify(BELLOWS_PUSH, PUSH_EDGE - PUSH_SPAN/2);
   CHECK(r.direction == BELLOWS_PUSH);
-  /* d = PUSH_SPAN/2 = 165; intensity = 165*16384/330 = 8192 (divides evenly) */
-  CHECK(r.intensity == 8192);
+  /* d = PUSH_SPAN/2 = 165; intensity = 165/330 = 0.5 exactly */
+  CHECK(r.intensity == 0.5f);
 }
 
 /* From PUSH, jumping directly past the pull edge transitions to PULL. */
@@ -153,7 +163,7 @@ static void test_miscalibration_zero_span(void)
                                                CENTER,   /* full_push == center -> span=0 */
                                                FULL_PULL);
   /* Direction may be PUSH (past push_edge), but intensity must be 0 (span=0). */
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 /* Direction-only call (full_push=full_pull=0): intensity is always 0, no crash. */
@@ -164,7 +174,7 @@ static void test_direction_only_call(void)
                                                -50, 0, 64, 32, 0, 0);
   /* push_edge = 0 - 32 - 16 = -48; value=-50 < -48 -> PUSH */
   CHECK(r.direction == BELLOWS_PUSH);
-  CHECK(r.intensity == 0);  /* span = push_edge - 0 = -48 < 0 -> 0 */
+  CHECK(r.intensity == 0.0f);  /* span = push_edge - 0 = -48 < 0 -> 0 */
 }
 
 /* Direction-only: NEUTRAL when |P| < push_edge threshold. */
@@ -174,7 +184,7 @@ static void test_direction_only_neutral(void)
                                                -10, 0, 64, 32, 0, 0);
   /* push_edge = -48; value=-10 > -48 -> NEUTRAL */
   CHECK(r.direction == BELLOWS_NEUTRAL);
-  CHECK(r.intensity == 0);
+  CHECK(r.intensity == 0.0f);
 }
 
 int main(void)

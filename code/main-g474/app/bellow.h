@@ -15,10 +15,11 @@
 /* Current bellows direction (BELLOWS_NEUTRAL/PUSH/PULL). */
 bellows_t bellow_direction(void);
 
-/* How hard the bellows is currently being pushed or pulled, 0..BELLOW_INTENSITY_MAX (0 in
- * BELLOWS_NEUTRAL). Same units as the CC#11 expression value; consumers use it
- * to set note-on velocity. */
-uint16_t bellow_intensity(void);
+/* How hard the bellows is currently being pushed or pulled, as a fraction of
+ * full travel: 0.0..1.0 (0.0 in BELLOWS_NEUTRAL). Consumers scale it to
+ * whatever discrete range they need (CC#11's 14-bit pair, MIDI velocity's
+ * 7-bit range, ...). */
+float bellow_intensity(void);
 
 /* Sensitivity multiplier for the level FN1 currently selects, as a Q8 fixed
  * point value (256 = x1.0). Already applied to bellow_intensity(). Table mode

@@ -48,19 +48,18 @@ static float solve_t_for_x(float x, float cx1, float cx2)
   return t;
 }
 
-uint16_t bellow_curve_apply(uint16_t intensity,
-                             uint16_t cx1, uint16_t cy1,
-                             uint16_t cx2, uint16_t cy2)
+float bellow_curve_apply(float intensity,
+                         uint16_t cx1, uint16_t cy1,
+                         uint16_t cx2, uint16_t cy2)
 {
-  float x = (float)intensity / (float)BELLOW_INTENSITY_MAX;
   float p1x = (float)cx1 / 256.0f, p1y = (float)cy1 / 256.0f;
   float p2x = (float)cx2 / 256.0f, p2y = (float)cy2 / 256.0f;
 
-  float t = solve_t_for_x(x, p1x, p2x);
+  float t = solve_t_for_x(intensity, p1x, p2x);
   float y = bezier_component(t, p1y, p2y);
 
   if (y < 0.0f) y = 0.0f;
   else if (y > 1.0f) y = 1.0f;
 
-  return (uint16_t)(y * (float)BELLOW_INTENSITY_MAX + 0.5f);
+  return y;
 }

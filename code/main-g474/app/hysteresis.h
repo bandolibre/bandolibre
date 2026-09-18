@@ -74,16 +74,15 @@ static inline bool hyst_update(hyst_state_t *st, const hyst_config_t *cfg,
 
   /* 1. Directional backlash on the sample. Moving with dir only needs to clear
    * fwd_thresh; reversing must clear the larger rev_thresh and flips dir. */
-  uint32_t x = sample;
   if (st->dir >= 0)
   {
-    if (x > st->anchor + cfg->fwd_thresh)        st->anchor = x - cfg->fwd_thresh;
-    else if (x + cfg->rev_thresh < st->anchor) { st->anchor = x + cfg->rev_thresh; st->dir = -1; }
+    if (sample > st->anchor + cfg->fwd_thresh)        st->anchor = sample - cfg->fwd_thresh;
+    else if (sample + cfg->rev_thresh < st->anchor) { st->anchor = sample + cfg->rev_thresh; st->dir = -1; }
   }
   else
   {
-    if (x + cfg->fwd_thresh < st->anchor)        st->anchor = x + cfg->fwd_thresh;
-    else if (x > st->anchor + cfg->rev_thresh) { st->anchor = x - cfg->rev_thresh; st->dir = 1; }
+    if (sample + cfg->fwd_thresh < st->anchor)        st->anchor = sample + cfg->fwd_thresh;
+    else if (sample > st->anchor + cfg->rev_thresh) { st->anchor = sample - cfg->rev_thresh; st->dir = 1; }
   }
 
   /* 2. Quantize the anchor to the output range. */

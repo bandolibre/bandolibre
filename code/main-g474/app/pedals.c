@@ -27,13 +27,14 @@ extern ADC_HandleTypeDef hadc2;
  * connected pedal doesn't flood the console. */
 static const uint32_t PEDAL_WIPER_HYST = 16;
 
-/* Per-pedal state retained across polls: the directional-hysteresis state that
- * cleans the wiper into a 0..127 CC, plus separate state for the diagnostic
- * log line. */
+/* Per-pedal state retained across polls: the 1-euro filter state that
+ * smooths the wiper, the directional-hysteresis state that then cleans it
+ * into a 0..127 CC, plus separate state for the diagnostic log line. */
 typedef struct {
-  hyst_state_t hyst;        /* sample -> CC hysteresis/rate-limit state */
-  uint8_t  connected_prev;  /* connected flag at the last logged line (0xFF = none yet) */
-  uint32_t sample_prev;     /* wiper sample at the last logged line */
+  one_euro_state_t oe;       /* pre-hysteresis adaptive low-pass state */
+  hyst_state_t hyst;         /* filtered sample -> CC hysteresis/rate-limit state */
+  uint8_t  connected_prev;   /* connected flag at the last logged line (0xFF = none yet) */
+  uint32_t sample_prev;      /* wiper sample at the last logged line */
 } pedal_state_t;
 
 /* Latest raw wiper reading and presence flag, for pedals_get_raw() below.
@@ -57,13 +58,15 @@ void pedals_get_raw(uint16_t *pedal1_sample, bool *pedal1_connected,
 }
 
 /* Polls one pedal: logs detect/movement changes, and while a pedal is connected
- * runs the wiper through directional hysteresis (see hysteresis.h) and emits its
- * Effect Controller CC whenever hyst_update() says the cleaned value is worth
- * sending. The detect line is pulled high in the no-pedal state (a normally-closed
- * jack switch biases it to VCC), so a connected pedal reads GPIO_PIN_RESET. */
+ * runs the wiper through a 1-euro adaptive low-pass (one_euro_filter.h) and then
+ * directional hysteresis (see hysteresis.h), emitting its Effect Controller CC
+ * whenever hyst_update() says the cleaned value is worth sending. The detect
+ * line is pulled high in the no-pedal state (a normally-closed jack switch
+ * biases it to VCC), so a connected pedal reads GPIO_PIN_RESET. */
 static void pedal_poll_one(const char *name, GPIO_TypeDef *det_port, uint16_t det_pin,
                            ADC_HandleTypeDef *adc, uint8_t controller,
-                           const hyst_config_t *cfg, pedal_state_t *st, pedal_raw_t *raw)
+                           const one_euro_config_t *oe_cfg, const hyst_config_t *cfg,
+                           pedal_state_t *st, pedal_raw_t *raw)
 {
   uint8_t connected = HAL_GPIO_ReadPin(det_port, det_pin) == GPIO_PIN_RESET;
   uint32_t sample = HAL_ADC_GetValue(adc);
@@ -91,8 +94,12 @@ static void pedal_poll_one(const char *name, GPIO_TypeDef *det_port, uint16_t de
     return;
   }
 
+  uint32_t now_ms = HAL_GetTick();
+  float xf = one_euro_update(&st->oe, oe_cfg, (float)sample, now_ms);
+  uint32_t filtered = (uint32_t)(xf < 0.0f ? 0.0f : xf + 0.5f);
+
   uint16_t value;
-  if (!hyst_update(&st->hyst, cfg, sample, HAL_GetTick(), &value)) return;
+  if (!hyst_update(&st->hyst, cfg, filtered, now_ms, &value)) return;
   /* Mirror the bellows expression CC: send on both keyboard channels so the
    * mapping works regardless of which channel the DAW listens on. */
   usb_app_midi_control_change(L_MIDI_CH, controller, value);
@@ -101,25 +108,30 @@ static void pedal_poll_one(const char *name, GPIO_TypeDef *det_port, uint16_t de
 
 void pedals_poll(void)
 {
-  static pedal_state_t pedal1 = { {0}, 0xFF, 0xFFFF };
-  static pedal_state_t pedal2 = { {0}, 0xFF, 0xFFFF };
+  static pedal_state_t pedal1 = { .connected_prev = 0xFF, .sample_prev = 0xFFFF };
+  static pedal_state_t pedal2 = { .connected_prev = 0xFF, .sample_prev = 0xFFFF };
 
-  /* Built per poll from g_properties so edits take effect live; hyst_update() is
-   * inlined, so these structs scalarize away rather than hitting the stack. */
+  /* Built per poll from g_properties so edits take effect live; hyst_update() and
+   * one_euro_update() are inlined, so these structs scalarize away rather than
+   * hitting the stack. */
+  one_euro_config_t oe_cfg1 = {
+    .mincutoff = g_properties->pedal1_1e_mincutoff / 256.0f,
+    .beta = g_properties->pedal1_1e_beta / 65536.0f,
+    .dcutoff = 1.0f,
+  };
   hyst_config_t cfg1 = {
     .in_min = g_properties->pedal1_min, .in_max = g_properties->pedal1_max, .out_max = 127,
     .fwd_thresh = g_properties->pedal1_hyst_fwd, .rev_thresh = g_properties->pedal1_hyst_rev,
-    .oe = { .mincutoff = g_properties->pedal1_1e_mincutoff / 256.0f,
-            .beta = g_properties->pedal1_1e_beta / 65536.0f,
-            .dcutoff = 1.0f },
     .min_period_ms = g_properties->pedal1_cc_period_ms,
+  };
+  one_euro_config_t oe_cfg2 = {
+    .mincutoff = g_properties->pedal2_1e_mincutoff / 256.0f,
+    .beta = g_properties->pedal2_1e_beta / 65536.0f,
+    .dcutoff = 1.0f,
   };
   hyst_config_t cfg2 = {
     .in_min = g_properties->pedal2_min, .in_max = g_properties->pedal2_max, .out_max = 127,
     .fwd_thresh = g_properties->pedal2_hyst_fwd, .rev_thresh = g_properties->pedal2_hyst_rev,
-    .oe = { .mincutoff = g_properties->pedal2_1e_mincutoff / 256.0f,
-            .beta = g_properties->pedal2_1e_beta / 65536.0f,
-            .dcutoff = 1.0f },
     .min_period_ms = g_properties->pedal2_cc_period_ms,
   };
 
@@ -131,7 +143,7 @@ void pedals_poll(void)
   HAL_ADC_PollForConversion(&hadc2, 1);
 
   pedal_poll_one("PEDAL1", EXP_PEDAL_INT_GPIO_Port, EXP_PEDAL_INT_Pin, &hadc1,
-                 PEDAL1_CC, &cfg1, &pedal1, &g_pedal1_raw);
+                 PEDAL1_CC, &oe_cfg1, &cfg1, &pedal1, &g_pedal1_raw);
   pedal_poll_one("PEDAL2", SUS_PEDAL_INT_GPIO_Port, SUS_PEDAL_INT_Pin, &hadc2,
-                 PEDAL2_CC, &cfg2, &pedal2, &g_pedal2_raw);
+                 PEDAL2_CC, &oe_cfg2, &cfg2, &pedal2, &g_pedal2_raw);
 }

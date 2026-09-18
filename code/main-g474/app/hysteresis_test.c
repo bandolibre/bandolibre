@@ -1,12 +1,6 @@
 /* Host unit tests for the directional-hysteresis helper. Pure C, no HAL --
  * compile and run natively (see `just test`). Framework-free: a tiny assert
- * macro that counts failures and reports a final summary.
- *
- * Filter-neutral configs use a very large mincutoff with beta=0, which
- * one_euro_filter_test.c's test_large_mincutoff_is_passthrough() confirms is
- * numerically indistinguishable from pass-through -- this isolates the
- * backlash/scale/rate-limit behavior under test here from the 1-euro filter's
- * own smoothing/lag behavior, which is tested in isolation over there. */
+ * macro that counts failures and reports a final summary. */
 
 #include "hysteresis.h"
 
@@ -24,20 +18,14 @@ static int g_failures;
     }                                                             \
   } while (0)
 
-/* mincutoff large enough that even a 16384-scale jump at the smallest clamped
- * dt (0.001s) rounds away to nothing (residual error stays well under 0.5) --
- * see one_euro_filter_test.c's test_large_mincutoff_is_passthrough() for the
- * same property demonstrated directly on the filter in isolation. */
-static const one_euro_config_t k_oe_passthrough = { .mincutoff = 1e8f, .beta = 0.0f, .dcutoff = 1.0f };
-
 /* A roomy default config: 0..1000 raw -> 0..100 (10 raw per output step),
- * small forward play, larger reverse play, filter neutralized, no rate limit. */
+ * small forward play, larger reverse play, no rate limit. */
 static hyst_config_t base_cfg(void)
 {
   hyst_config_t c = {
     .in_min = 0, .in_max = 1000, .out_max = 100,
     .fwd_thresh = 2, .rev_thresh = 30,
-    .oe = k_oe_passthrough, .min_period_ms = 0,
+    .min_period_ms = 0,
   };
   return c;
 }
@@ -143,21 +131,6 @@ static void test_zero_thresholds_disables_backlash(void)
   CHECK(v == 48);
 }
 
-/* Composition: the 1-euro filter actually runs ahead of the backlash stage --
- * a heavily-smoothing config visibly lags the output versus the filter-neutral
- * base_cfg() above, confirming the two stages are wired together in order. */
-static void test_filter_feeds_into_backlash(void)
-{
-  hyst_config_t cfg = base_cfg();
-  cfg.fwd_thresh = 0; cfg.rev_thresh = 0;
-  cfg.oe = (one_euro_config_t){ .mincutoff = 0.5f, .beta = 0.0f, .dcutoff = 1.0f };
-  hyst_state_t st = {0};
-  uint16_t v;
-  hyst_update(&st, &cfg, 0, 0, &v);            /* seed at 0 */
-  hyst_update(&st, &cfg, 1000, 10, &v);        /* sharp jump, 10ms later */
-  CHECK(v < 100);                              /* filter lag keeps it off the top step */
-}
-
 /* The output clamps to 0 and out_max at the range ends. */
 static void test_clamps(void)
 {
@@ -197,7 +170,6 @@ int main(void)
   test_large_reversal_flips();
   test_rate_limit_coalesces();
   test_zero_thresholds_disables_backlash();
-  test_filter_feeds_into_backlash();
   test_clamps();
   test_wide_out_max();
 

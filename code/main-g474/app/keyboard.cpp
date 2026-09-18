@@ -281,8 +281,8 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
   /* In table mode the bellows isn't moving, so every note plays at the same
    * constant velocity, tablemode_velocity (which CC#11 is also pinned to there);
    * otherwise derive velocity from how hard the bellows is moving
-   * (0..BELLOW_INTENSITY_MAX -> 1..127), floored at 1 so a note triggered just
-   * past the neutral deadzone is still audible (0 would be a NOTE OFF). */
+   * (0.0..1.0 -> 1..127), floored at 1 so a note triggered just past the
+   * neutral deadzone is still audible (0 would be a NOTE OFF). */
   uint8_t velocity;
   if (buttons_table_mode())
   {
@@ -290,7 +290,7 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
   }
   else
   {
-    velocity = (uint8_t)(1 + (uint32_t)bellow_intensity() * 126u / BELLOW_INTENSITY_MAX);
+    velocity = (uint8_t)(1.0f + bellow_intensity() * 126.0f);
   }
   printf("NOTE ON  %s wing=%u key=%2d note=%3u vel=%3u\r\n", b->name, wing_id, k, note, velocity);
   usb_app_midi_note_on(b->midi_ch, note, velocity);
