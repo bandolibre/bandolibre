@@ -8,7 +8,6 @@
 #include "bellow_curve.h"
 #include "buttons.h"
 #include "console.h"
-#include "hysteresis.h"
 #include "keyboard.h"   /* L_MIDI_CH / R_MIDI_CH */
 #include "main.h"
 #include "one_euro_filter.h"
@@ -23,7 +22,7 @@ extern ADC_HandleTypeDef hadc4;
 
 typedef struct {
   bellows_t direction;
-  float     intensity;
+  float     intensity;  /* 0.0..1.0, fraction of full travel (0 in BELLOWS_NEUTRAL) */
 } bellow_output_t;
 
 static bellow_output_t g_bellow_out = {.direction = BELLOWS_NEUTRAL, .intensity = 0};
@@ -74,27 +73,17 @@ uint16_t bellow_sens_scale_q8(void)
 }
 
 /* Emits CC#11 (Expression, paired with CC#43 as the 14-bit LSB) from the
- * effective intensity through the shared directional-hysteresis + rate-limit
- * pipeline (hysteresis.h, as the pedals use) -- noise suppression itself
- * already happened upstream, in bellow_poll() filtering the raw hall
- * reading before classification, so this stage only does backlash+scale.
- * bellow_cchyst is a small residual backlash on top (0 disables it) and
- * bellow_cc_period_ms caps the send rate. The rate limit coalesces rather than
- * drops, so the latest value is always eventually sent. Fed by
- * bellow_intensity(), whose 0.0..1.0 fraction is scaled to hyst_update()'s
- * 0..BELLOW_INTENSITY_MAX domain right here -- the one place that domain
- * still matters, since it's what the 14-bit CC#11/CC#43 pair carries on the
- * wire.
+ * effective intensity.
  *
- * When intensity drops to 0 (bellow at rest), CC=0 is forced and the hysteresis
- * state is reset so backlash restarts cleanly on the next gesture rather than
- * smoothing across the rest gap.
- *
+ * The rate limit itself is bypassed -- sending immediately -- on any
+ * transition into or out of rest (value or last_out == 0).
+ 
  * Table mode is the exception: the bellows rests there, so it must not drive
  * expression at all (see the branch below). */
 static void bellow_send_cc(void)
 {
-  static hyst_state_t st;
+  static uint16_t last_out;
+  static uint32_t last_emit_ms;
   static bool table_prev;
 
   /* Table mode plays with the bellows at rest, so the bellows drives nothing
@@ -115,33 +104,17 @@ static void bellow_send_cc(void)
   }
   table_prev = false;
 
-  float intensity = bellow_intensity();
-  if (intensity == 0.0f)
-  {
-    if (st.have_out && st.last_out != 0)
-    {
-      usb_app_midi_control_change_14bit(L_MIDI_CH, 11, 0);
-      usb_app_midi_control_change_14bit(R_MIDI_CH, 11, 0);
-    }
-    st = (hyst_state_t){0};
-    g_bellow_cc_out = 0;
-    return;
-  }
-
-  hyst_config_t cfg = {
-    .in_min = 0, .in_max = BELLOW_INTENSITY_MAX, .out_max = 16383,
-    .fwd_thresh = g_properties->bellow_cchyst, .rev_thresh = g_properties->bellow_cchyst,
-    .min_period_ms = g_properties->bellow_cc_period_ms,
-  };
-
-  uint32_t sample = (uint32_t)lroundf(intensity * BELLOW_INTENSITY_MAX);
-  uint16_t value;
-  bool emit = hyst_update(&st, &cfg, sample, HAL_GetTick(), &value);
-  /* hyst_update writes *out on every call regardless of whether it also says
-   * to emit -- so the report always has the latest scaled value even on a
-   * rate-limited or unchanged tick. */
+  uint16_t value = (uint16_t)lroundf(bellow_intensity() * 16383.0f);
   g_bellow_cc_out = value;
-  if (!emit) return;
+
+  uint32_t now_ms = HAL_GetTick();
+  bool changed = value != last_out;
+  bool period_ok = value == 0 || last_out == 0
+                 || (now_ms - last_emit_ms) >= g_properties->bellow_cc_period_ms;
+  if (!(changed && period_ok)) return;
+
+  last_out = value;
+  last_emit_ms = now_ms;
 
   /* The single bellows drives both keyboards, which play on separate MIDI
    * channels (L_MIDI_CH / R_MIDI_CH), so send the expression CC on both. */

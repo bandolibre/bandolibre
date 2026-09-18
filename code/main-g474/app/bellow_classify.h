@@ -9,9 +9,7 @@
 typedef struct {
   bellows_t direction;
   float     intensity;  /* 0.0..1.0, always 0 when NEUTRAL -- a fraction of
-                          * full travel, not a discrete count; a caller that
-                          * needs one (a MIDI CC, note velocity, ...) scales
-                          * this itself to whatever range it needs */
+                        * full travel */
 } bellow_classify_result_t;
 
 /* Classifies a (signed) reading into PUSH/NEUTRAL/PULL around a center, with a
@@ -27,11 +25,7 @@ typedef struct {
  *
  * Intensity is 0.0 at the entry edge (push_edge) and 1.0 at full_push/full_pull.
  * Pass full_push = full_pull = 0 to skip intensity (direction-only use).
- *
- * value_f is a float so a caller filtering upstream (e.g. bellow.c's 1-euro
- * stage) can pass its result straight through with no int conversion of its
- * own; the classification and intensity math run entirely in float (see the
- * .c file's comment on why that doesn't cost any real precision here). */
+ */
 bellow_classify_result_t bellow_classify(bellows_t prev, float value_f,
                                          int32_t center, int32_t dead, int32_t hyst,
                                          int32_t full_push, int32_t full_pull);

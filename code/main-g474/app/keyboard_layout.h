@@ -33,12 +33,6 @@ extern "C" {
 
 typedef enum { BELLOWS_PULL = 0, BELLOWS_PUSH = 1, BELLOWS_NEUTRAL = 2 } bellows_t;
 
-/* Size of the CC#11/CC#43 output domain bellow.c's bellow_send_cc() scales
- * the bellows intensity (a plain 0.0..1.0 fraction everywhere upstream of
- * it, see bellow_classify.h) into. 14-bit so the value can carry real
- * precision into that MSB/LSB pair (0..16383 on the wire) without padding. */
-#define BELLOW_INTENSITY_MAX 16384
-
 #define NUM_KEYS 40
 
 /* Tunings sharing the same button disposition. Rheinische is bisonoric (a key

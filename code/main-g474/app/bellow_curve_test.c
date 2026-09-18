@@ -2,16 +2,18 @@
  * natively (see `just test`). Same framework as bellow_classify_test.c. */
 
 #include "bellow_curve.h"
-#include "keyboard_layout.h"   /* BELLOW_INTENSITY_MAX */
 
 #include <stdio.h>
 #include <stdint.h>
 
 /* bellow_curve_apply() itself works in 0.0..1.0 now (see bellow_curve.h); this
  * test's expected values are all pre-existing, hand/Python-verified numbers
- * at the old 0..BELLOW_INTENSITY_MAX integer scale, so round-trip every call
- * through the same normalize-in/denormalize-out math bellow_curve_apply()
- * used to do internally, rather than recomputing 37000+ expected values. */
+ * at a 0..BELLOW_INTENSITY_MAX integer scale (no production meaning -- just
+ * the scale these values happen to have been computed at), so round-trip
+ * every call through the same normalize-in/denormalize-out math
+ * bellow_curve_apply() used to do internally, rather than recomputing
+ * 37000+ expected values. */
+#define BELLOW_INTENSITY_MAX 16384
 static uint16_t curve_apply_u16(uint16_t intensity, uint16_t cx1, uint16_t cy1, uint16_t cx2, uint16_t cy2)
 {
   float y = bellow_curve_apply((float)intensity / (float)BELLOW_INTENSITY_MAX, cx1, cy1, cx2, cy2);
