@@ -111,7 +111,8 @@ Pour un détail du comportement du firmware et des commandes, voir [`documentati
 
 - **Matériel et assemblage :** voir [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
 - **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
-- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
+- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) — dialogue avec l'appareil en MIDI Sysex pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
+- **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
 
 ---
 

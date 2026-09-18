@@ -111,7 +111,8 @@ For a detailed breakdown of the firmware behavior and controls, see [`documentat
 
 - **Hardware & assembly:** see [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
 - **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
-- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) to view the keyboard live and tune firmware properties, no install needed
+- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) — talks to the device over MIDI Sysex to view the keyboard live and tune firmware properties, no install needed
+- **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
 
 ---
 
