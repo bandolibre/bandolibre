@@ -5,9 +5,7 @@
 #include "keyboard_layout.h"
 
 /* Result of classifying a signed reading into a bellows direction and an
- * intensity on 0..BELLOW_INTENSITY_MAX (0 always when NEUTRAL). Used by both the
- * naive model (on the raw hall reading) and the inertia model (on the signed
- * pressure P, for the direction gate only). */
+ * intensity on 0..BELLOW_INTENSITY_MAX (0 always when NEUTRAL). */
 typedef struct {
   bellows_t direction;
   uint16_t  intensity;  /* 0..BELLOW_INTENSITY_MAX, always 0 when NEUTRAL */

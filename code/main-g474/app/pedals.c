@@ -5,6 +5,7 @@
 #include "hysteresis.h"
 #include "keyboard.h"   /* L_MIDI_CH / R_MIDI_CH */
 #include "main.h"
+#include "one_euro_filter.h"
 #include "properties.h"
 #include "usb_app.h"
 
