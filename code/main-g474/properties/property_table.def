@@ -16,10 +16,6 @@
  *   .min .max       inclusive bounds; set() clamps, flash load defaults on
  *                   violation. Omit for bool (range is implicitly 0..1).
  *   .description    human-readable text for the editor
- *
- * Reserved (removed) tags: 19 (pedal1_ema_alpha), 23 (pedal2_ema_alpha) —
- *   replaced by pedal{1,2}_1e_mincutoff/beta (the shared hyst_update()
- *   primitive's flat EMA stage was replaced by a One Euro filter).
  */
 
 PROPERTY(1, uint16_t, key_press,
@@ -43,87 +39,99 @@ PROPERTY(6, uint16_t, bellow_full_push,
 PROPERTY(7, uint16_t, bellow_full_pull,
          .default_value = 32000, .min = 0, .max = 50000,
          .description = "Combined hall reading at full pull (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
-PROPERTY(9, uint16_t, bellow_cc_period_ms,
+PROPERTY(8, uint16_t, bellow_cc_period_ms,
          .default_value = 10, .min = 1, .max = 1000,
          .description = "Min milliseconds between expression-CC sends")
-PROPERTY(10, uint16_t, bellow_settle_us,
+PROPERTY(9, uint16_t, bellow_settle_us,
          .default_value = 2, .min = 0, .max = 1000,
          .description = "Hall supply settling delay before sampling, microseconds")
-PROPERTY(11, uint16_t, midi_active_sensing_period,
-         .default_value = 200, .min = 10, .max = 300,
-         .description = "Milliseconds between MIDI Active Sensing bytes")
-PROPERTY(12, bool, midi_active_sensing_enable,
-         .default_value = 1,
-         .description = "Send MIDI Active Sensing (0xFE) periodically")
-PROPERTY(13, uint16_t, pedal1_min,
-         .default_value = 920, .min = 0, .max = 4095,
-         .description = "Pedal 1 (expression) ADC at minimum -> CC 0")
-PROPERTY(14, uint16_t, pedal1_max,
-         .default_value = 3100, .min = 0, .max = 4095,
-         .description = "Pedal 1 (expression) ADC at maximum -> CC 127")
-PROPERTY(15, uint16_t, pedal2_min,
-         .default_value = 920, .min = 0, .max = 4095,
-         .description = "Pedal 2 (sustain) ADC at minimum -> CC 0")
-PROPERTY(16, uint16_t, pedal2_max,
-         .default_value = 3100, .min = 0, .max = 4095,
-         .description = "Pedal 2 (sustain) ADC at maximum -> CC 127")
-PROPERTY(17, uint16_t, pedal1_hyst_fwd,
-         .default_value = 4, .min = 0, .max = 4095,
-         .description = "Pedal 1 forward play (raw units) before advance; 0 with pedal1_hyst_rev=0 disables this backlash entirely")
-PROPERTY(18, uint16_t, pedal1_hyst_rev,
-         .default_value = 16, .min = 0, .max = 4095,
-         .description = "Pedal 1 reverse play (raw units) before direction flips")
-PROPERTY(20, uint16_t, pedal1_cc_period_ms,
-         .default_value = 10, .min = 1, .max = 1000,
-         .description = "Pedal 1 min milliseconds between CC sends")
-PROPERTY(21, uint16_t, pedal2_hyst_fwd,
-         .default_value = 4, .min = 0, .max = 4095,
-         .description = "Pedal 2 forward play (raw units) before advance; 0 with pedal2_hyst_rev=0 disables this backlash entirely")
-PROPERTY(22, uint16_t, pedal2_hyst_rev,
-         .default_value = 16, .min = 0, .max = 4095,
-         .description = "Pedal 2 reverse play (raw units) before direction flips")
-PROPERTY(24, uint16_t, pedal2_cc_period_ms,
-         .default_value = 10, .min = 1, .max = 1000,
-         .description = "Pedal 2 min milliseconds between CC sends")
-PROPERTY(25, uint16_t, tablemode_velocity,
-         .default_value = 80, .min = 1, .max = 127,
-         .description = "CC#11 and velocity value sent in table mode")
-PROPERTY(26, uint16_t, bellow_scale_low,
+PROPERTY(10, uint16_t, bellow_scale_low,
          .default_value = 256, .min = 16, .max = 1024,
          .description = "Bellows sensitivity scale at level 0 (unity), /256 (256 = x1.0)")
-PROPERTY(27, uint16_t, bellow_scale_mid,
+PROPERTY(11, uint16_t, bellow_scale_mid,
          .default_value = 384, .min = 16, .max = 1024,
          .description = "Bellows sensitivity scale at level 1, /256 (256 = x1.0)")
-PROPERTY(28, uint16_t, bellow_scale_high,
+PROPERTY(12, uint16_t, bellow_scale_high,
          .default_value = 512, .min = 16, .max = 1024,
          .description = "Bellows sensitivity scale at level 2, /256 (256 = x1.0)")
+PROPERTY(13, uint16_t, bellow_push_curve_x1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Push response curve, control point 1 X (near center), cubic Bezier /256")
+PROPERTY(14, uint16_t, bellow_push_curve_y1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Push response curve, control point 1 Y (near center), cubic Bezier /256")
+PROPERTY(15, uint16_t, bellow_push_curve_x2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Push response curve, control point 2 X (near full travel), cubic Bezier /256")
+PROPERTY(16, uint16_t, bellow_push_curve_y2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Push response curve, control point 2 Y (near full travel), cubic Bezier /256")
+PROPERTY(17, uint16_t, bellow_pull_curve_x1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 1 X (near center), cubic Bezier /256")
+PROPERTY(18, uint16_t, bellow_pull_curve_y1,
+         .default_value = 85, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 1 Y (near center), cubic Bezier /256")
+PROPERTY(19, uint16_t, bellow_pull_curve_x2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 2 X (near full travel), cubic Bezier /256")
+PROPERTY(20, uint16_t, bellow_pull_curve_y2,
+         .default_value = 171, .min = 0, .max = 256,
+         .description = "Pull response curve, control point 2 Y (near full travel), cubic Bezier /256")
+PROPERTY(21, uint16_t, bellow_sens_level,
+         .default_value = 0, .min = 0, .max = 2,
+         .description = "Bellows sensitivity level: 0 unity (bellow_scale_low), 1 bellow_scale_mid, 2 bellow_scale_high; also advanced by the FN1 button")
+PROPERTY(22, uint16_t, bellow_sample_period_us,
+         .default_value = 250, .min = 250, .max = 10000,
+         .description = "Min microseconds between hall-sensor samples (caps sampling at 4kHz; sampling faster wastes CPU with no usable signal above it)")
+PROPERTY(23, uint16_t, bellow_cc_1e_mincutoff,
+         .default_value = 256, .min = 26, .max = 2560,
+         .description = "1-euro filter cutoff at rest, Hz/256 (256=1.0Hz); filters the raw hall total before classification. Lower smooths more at rest. See one_euro_filter.h")
+PROPERTY(24, uint16_t, bellow_cc_1e_beta,
+         .default_value = 459, .min = 0, .max = 65535,
+         .description = "1-euro filter speed coefficient /65536 (459~=0.007); same pre-classification hall filter as bellow_cc_1e_mincutoff. Higher tracks fast moves with less lag")
+PROPERTY(25, uint16_t, midi_active_sensing_period,
+         .default_value = 200, .min = 10, .max = 300,
+         .description = "Milliseconds between MIDI Active Sensing bytes")
+PROPERTY(26, bool, midi_active_sensing_enable,
+         .default_value = 1,
+         .description = "Send MIDI Active Sensing (0xFE) periodically")
+PROPERTY(27, uint16_t, pedal1_min,
+         .default_value = 920, .min = 0, .max = 4095,
+         .description = "Pedal 1 (expression) ADC at minimum -> CC 0")
+PROPERTY(28, uint16_t, pedal1_max,
+         .default_value = 3100, .min = 0, .max = 4095,
+         .description = "Pedal 1 (expression) ADC at maximum -> CC 127")
+PROPERTY(29, uint16_t, pedal2_min,
+         .default_value = 920, .min = 0, .max = 4095,
+         .description = "Pedal 2 (sustain) ADC at minimum -> CC 0")
+PROPERTY(30, uint16_t, pedal2_max,
+         .default_value = 3100, .min = 0, .max = 4095,
+         .description = "Pedal 2 (sustain) ADC at maximum -> CC 127")
+PROPERTY(31, uint16_t, pedal1_hyst_fwd,
+         .default_value = 4, .min = 0, .max = 4095,
+         .description = "Pedal 1 forward play (raw units) before advance; 0 with pedal1_hyst_rev=0 disables this backlash entirely")
+PROPERTY(32, uint16_t, pedal1_hyst_rev,
+         .default_value = 16, .min = 0, .max = 4095,
+         .description = "Pedal 1 reverse play (raw units) before direction flips")
+PROPERTY(33, uint16_t, pedal1_cc_period_ms,
+         .default_value = 10, .min = 1, .max = 1000,
+         .description = "Pedal 1 min milliseconds between CC sends")
+PROPERTY(34, uint16_t, pedal2_hyst_fwd,
+         .default_value = 4, .min = 0, .max = 4095,
+         .description = "Pedal 2 forward play (raw units) before advance; 0 with pedal2_hyst_rev=0 disables this backlash entirely")
+PROPERTY(35, uint16_t, pedal2_hyst_rev,
+         .default_value = 16, .min = 0, .max = 4095,
+         .description = "Pedal 2 reverse play (raw units) before direction flips")
+PROPERTY(36, uint16_t, pedal2_cc_period_ms,
+         .default_value = 10, .min = 1, .max = 1000,
+         .description = "Pedal 2 min milliseconds between CC sends")
+PROPERTY(37, uint16_t, tablemode_velocity,
+         .default_value = 80, .min = 1, .max = 127,
+         .description = "CC#11 and velocity value sent in table mode")
 PROPERTY(38, uint16_t, keyboard_tuning,
          .default_value = 0, .min = 0, .max = 2,
          .description = "Note layout: 0 Rheinische (bisonoric), 1 Peguri, 2 Manoury (unisonoric)")
-PROPERTY(39, uint16_t, bellow_push_curve_x1,
-         .default_value = 85, .min = 0, .max = 256,
-         .description = "Push response curve, control point 1 X (near center), cubic Bezier /256")
-PROPERTY(40, uint16_t, bellow_push_curve_y1,
-         .default_value = 85, .min = 0, .max = 256,
-         .description = "Push response curve, control point 1 Y (near center), cubic Bezier /256")
-PROPERTY(41, uint16_t, bellow_push_curve_x2,
-         .default_value = 171, .min = 0, .max = 256,
-         .description = "Push response curve, control point 2 X (near full travel), cubic Bezier /256")
-PROPERTY(42, uint16_t, bellow_push_curve_y2,
-         .default_value = 171, .min = 0, .max = 256,
-         .description = "Push response curve, control point 2 Y (near full travel), cubic Bezier /256")
-PROPERTY(43, uint16_t, bellow_pull_curve_x1,
-         .default_value = 85, .min = 0, .max = 256,
-         .description = "Pull response curve, control point 1 X (near center), cubic Bezier /256")
-PROPERTY(44, uint16_t, bellow_pull_curve_y1,
-         .default_value = 85, .min = 0, .max = 256,
-         .description = "Pull response curve, control point 1 Y (near center), cubic Bezier /256")
-PROPERTY(45, uint16_t, bellow_pull_curve_x2,
-         .default_value = 171, .min = 0, .max = 256,
-         .description = "Pull response curve, control point 2 X (near full travel), cubic Bezier /256")
-PROPERTY(46, uint16_t, bellow_pull_curve_y2,
-         .default_value = 171, .min = 0, .max = 256,
-         .description = "Pull response curve, control point 2 Y (near full travel), cubic Bezier /256")
 PROPERTY(PROPERTY_TAG_NONE, bool, log_bellow,
          .default_value = 0,
          .description = "Log hall readings and bellows direction each poll")
@@ -154,27 +162,15 @@ PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard_stats,
 PROPERTY(PROPERTY_TAG_NONE, bool, table_mode,
          .default_value = 0,
          .description = "Bellows direction pinned to PULL so keys sound at rest on a table; also toggled by the FN0 button")
-PROPERTY(47, uint16_t, bellow_sens_level,
-         .default_value = 0, .min = 0, .max = 2,
-         .description = "Bellows sensitivity level: 0 unity (bellow_scale_low), 1 bellow_scale_mid, 2 bellow_scale_high; also advanced by the FN1 button")
-PROPERTY(48, uint16_t, bellow_sample_period_us,
-         .default_value = 250, .min = 250, .max = 10000,
-         .description = "Min microseconds between hall-sensor samples (caps sampling at 4kHz; sampling faster wastes CPU with no usable signal above it)")
-PROPERTY(49, uint16_t, bellow_cc_1e_mincutoff,
-         .default_value = 256, .min = 26, .max = 2560,
-         .description = "1-euro filter cutoff at rest, Hz/256 (256=1.0Hz); filters the raw hall total before classification. Lower smooths more at rest. See one_euro_filter.h")
-PROPERTY(50, uint16_t, bellow_cc_1e_beta,
-         .default_value = 459, .min = 0, .max = 65535,
-         .description = "1-euro filter speed coefficient /65536 (459~=0.007); same pre-classification hall filter as bellow_cc_1e_mincutoff. Higher tracks fast moves with less lag")
-PROPERTY(51, uint16_t, pedal1_1e_mincutoff,
+PROPERTY(39, uint16_t, pedal1_1e_mincutoff,
          .default_value = 256, .min = 26, .max = 2560,
          .description = "Pedal 1 1-euro filter cutoff at rest, Hz /256 (256=1.0Hz); lower smooths more at rest")
-PROPERTY(52, uint16_t, pedal1_1e_beta,
+PROPERTY(40, uint16_t, pedal1_1e_beta,
          .default_value = 459, .min = 0, .max = 65535,
          .description = "Pedal 1 1-euro filter speed coefficient /65536 (459~=0.007); higher tracks fast moves with less lag")
-PROPERTY(53, uint16_t, pedal2_1e_mincutoff,
+PROPERTY(41, uint16_t, pedal2_1e_mincutoff,
          .default_value = 256, .min = 26, .max = 2560,
          .description = "Pedal 2 1-euro filter cutoff at rest, Hz /256 (256=1.0Hz); lower smooths more at rest")
-PROPERTY(54, uint16_t, pedal2_1e_beta,
+PROPERTY(42, uint16_t, pedal2_1e_beta,
          .default_value = 459, .min = 0, .max = 65535,
          .description = "Pedal 2 1-euro filter speed coefficient /65536 (459~=0.007); higher tracks fast moves with less lag")
