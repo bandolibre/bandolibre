@@ -35,13 +35,13 @@ PROPERTY(4, uint16_t, bellow_dead,
          .default_value = 64, .min = 0, .max = 4095,
          .description = "Travel each way before registering direction; entry threshold is dead/2 + hyst/2 from center")
 PROPERTY(5, uint16_t, bellow_hyst,
-         .default_value = 60, .min = 0, .max = 4095,
+         .default_value = 12, .min = 0, .max = 4095,
          .description = "Margin given back before returning to neutral")
 PROPERTY(6, uint16_t, bellow_full_push,
-         .default_value = 23400, .min = 0, .max = 34000,
+         .default_value = 23400, .min = 0, .max = 50000,
          .description = "Combined hall reading at full push (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
 PROPERTY(7, uint16_t, bellow_full_pull,
-         .default_value = 32000, .min = 0, .max = 34000,
+         .default_value = 32000, .min = 0, .max = 50000,
          .description = "Combined hall reading at full pull (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
 PROPERTY(8, uint16_t, bellow_cchyst,
          .default_value = 0, .min = 0, .max = 16384,

@@ -682,7 +682,7 @@
         <div class="bp-cp-row">
           <span class="bp-cp-row-label">Bellow sensor reading at full push</span>
           <div class="bp-x">
-            <label><span>full push</span><input type="number" id="num-full-push" min="0" max="34000" value="23400"></label>
+            <label><span>full push</span><input type="number" id="num-full-push" min="0" max="50000" value="23400"></label>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -705,7 +705,7 @@
         <div class="bp-cp-row">
           <span class="bp-cp-row-label">Bellow sensor reading at full pull</span>
           <div class="bp-x">
-            <label><span>full pull</span><input type="number" id="num-full-pull" min="0" max="34000" value="32000"></label>
+            <label><span>full pull</span><input type="number" id="num-full-pull" min="0" max="50000" value="32000"></label>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -1876,7 +1876,7 @@
     bpEls.roAdc.textContent = Math.round(liveAdcTotal);
   }
 
-  const X_TICK_STEP = 500;
+  const X_TICK_STEP = 1000;
   function renderXTicks(xMin, xMax) {
     const group = bpEls.xticks;
     while (group.firstChild) group.removeChild(group.firstChild);
@@ -2041,11 +2041,11 @@
   makeDraggableVLine(bpEls.hitFullPush, () => bg.fullPush, (v) => {
     bg.fullPush = v;
     if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPush, v);
-  }, 0, 30000, 20);
+  }, 0, 50000, 20);
   makeDraggableVLine(bpEls.hitFullPull, () => bg.fullPull, (v) => {
     bg.fullPull = v;
     if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPull, v);
-  }, 0, 30000, 20);
+  }, 0, 50000, 20);
 
   /* Draggable Bezier control point: full 2D, within its own ramp's box.
    * Pixel deltas are converted to xfrac/yfrac deltas using that ramp's own
