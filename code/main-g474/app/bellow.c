@@ -282,9 +282,9 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_o
     console_dash_println("        hall0=%5u hall1=%5u total=%5u  (min %u max %u)  sample_count=%lu  conv=%.1fus",
                          (unsigned)s->hall0, (unsigned)s->hall1, (unsigned)s->hall0 + s->hall1,
                          hall_min, hall_max, (unsigned long)n, (double)conv_us);
-    console_dash_println("        std0 =%5.1f std1 =%5.1f stdT =%5.1f",
+    console_dash_println("        std0 =%5.2f std1 =%5.2f stdT =%5.2f",
                          (double)std0, (double)std1, (double)stdT);
-    console_dash_println("        1euro=%8.1f std=%5.1f  (mincutoff=%.2fHz beta=%.4f)",
+    console_dash_println("        1euro=%8.1f std=%5.2f  (mincutoff=%.2fHz beta=%.4f)",
                          (double)g_bellow_1e_out, (double)std1e,
                          (double)g_properties->bellow_cc_1e_mincutoff / 256.0,
                          (double)g_properties->bellow_cc_1e_beta / 65536.0);

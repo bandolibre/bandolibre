@@ -40,7 +40,7 @@ PROPERTY(7, uint16_t, bellow_full_pull,
          .default_value = 32000, .min = 0, .max = 50000,
          .description = "Combined hall reading at full pull (UNCONFIRMED estimate scaled from bellow_center's measured value; re-tune with bellow_tune/show_bellow on hardware)")
 PROPERTY(8, uint16_t, bellow_cc_period_ms,
-         .default_value = 10, .min = 1, .max = 1000,
+         .default_value = 5, .min = 1, .max = 1000,
          .description = "Min milliseconds between expression-CC sends")
 PROPERTY(9, uint16_t, bellow_settle_us,
          .default_value = 2, .min = 0, .max = 1000,
@@ -55,28 +55,28 @@ PROPERTY(12, uint16_t, bellow_scale_high,
          .default_value = 512, .min = 16, .max = 1024,
          .description = "Bellows sensitivity scale at level 2, /256 (256 = x1.0)")
 PROPERTY(13, uint16_t, bellow_push_curve_x1,
-         .default_value = 85, .min = 0, .max = 256,
+         .default_value = 10, .min = 0, .max = 256,
          .description = "Push response curve, control point 1 X (near center), cubic Bezier /256")
 PROPERTY(14, uint16_t, bellow_push_curve_y1,
-         .default_value = 85, .min = 0, .max = 256,
+         .default_value = 0, .min = 0, .max = 256,
          .description = "Push response curve, control point 1 Y (near center), cubic Bezier /256")
 PROPERTY(15, uint16_t, bellow_push_curve_x2,
-         .default_value = 171, .min = 0, .max = 256,
+         .default_value = 245, .min = 0, .max = 256,
          .description = "Push response curve, control point 2 X (near full travel), cubic Bezier /256")
 PROPERTY(16, uint16_t, bellow_push_curve_y2,
-         .default_value = 171, .min = 0, .max = 256,
+         .default_value = 256, .min = 0, .max = 256,
          .description = "Push response curve, control point 2 Y (near full travel), cubic Bezier /256")
 PROPERTY(17, uint16_t, bellow_pull_curve_x1,
-         .default_value = 85, .min = 0, .max = 256,
+         .default_value = 10, .min = 0, .max = 256,
          .description = "Pull response curve, control point 1 X (near center), cubic Bezier /256")
 PROPERTY(18, uint16_t, bellow_pull_curve_y1,
-         .default_value = 85, .min = 0, .max = 256,
+         .default_value = 0, .min = 0, .max = 256,
          .description = "Pull response curve, control point 1 Y (near center), cubic Bezier /256")
 PROPERTY(19, uint16_t, bellow_pull_curve_x2,
-         .default_value = 171, .min = 0, .max = 256,
+         .default_value = 245, .min = 0, .max = 256,
          .description = "Pull response curve, control point 2 X (near full travel), cubic Bezier /256")
 PROPERTY(20, uint16_t, bellow_pull_curve_y2,
-         .default_value = 171, .min = 0, .max = 256,
+         .default_value = 256, .min = 0, .max = 256,
          .description = "Pull response curve, control point 2 Y (near full travel), cubic Bezier /256")
 PROPERTY(21, uint16_t, bellow_sens_level,
          .default_value = 0, .min = 0, .max = 2,
@@ -85,11 +85,11 @@ PROPERTY(22, uint16_t, bellow_sample_period_us,
          .default_value = 250, .min = 250, .max = 10000,
          .description = "Min microseconds between hall-sensor samples (caps sampling at 4kHz; sampling faster wastes CPU with no usable signal above it)")
 PROPERTY(23, uint16_t, bellow_cc_1e_mincutoff,
-         .default_value = 256, .min = 26, .max = 2560,
-         .description = "1-euro filter cutoff at rest, Hz/256 (256=1.0Hz); filters the raw hall total before classification. Lower smooths more at rest. See one_euro_filter.h")
+         .default_value = 16, .min = 26, .max = 2560,
+         .description = "1-euro filter cutoff at rest, Hz/256 (256=1.0Hz); Lower smooths more at rest. See one_euro_filter.h")
 PROPERTY(24, uint16_t, bellow_cc_1e_beta,
-         .default_value = 459, .min = 0, .max = 65535,
-         .description = "1-euro filter speed coefficient /65536 (459~=0.007); same pre-classification hall filter as bellow_cc_1e_mincutoff. Higher tracks fast moves with less lag")
+         .default_value = 20, .min = 0, .max = 65535,
+         .description = "1-euro filter speed coefficient /65536 (459~=0.007); Higher tracks fast moves with less lag")
 PROPERTY(25, uint16_t, midi_active_sensing_period,
          .default_value = 200, .min = 10, .max = 300,
          .description = "Milliseconds between MIDI Active Sensing bytes")
