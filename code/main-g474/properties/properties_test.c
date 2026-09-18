@@ -35,7 +35,7 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 62);
+  CHECK(property_count() == 53);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);
@@ -222,9 +222,9 @@ static void test_flash_stubs(void)
 static void test_complete(void)
 {
   const char *out[64];
-  /* "bellow_" matches the bellow_* properties (calibration, CC, scale, inertia,
+  /* "bellow_" matches the bellow_* properties (calibration, CC, scale,
    * curve, sens_level, sample rate, 1-euro filter) */
-  CHECK(properties_complete("bellow_", out, 64) == 32);
+  CHECK(properties_complete("bellow_", out, 64) == 23);
   /* "key_" matches the two key_* properties, not keyboard_tuning */
   CHECK(properties_complete("key_", out, 64) == 2);
   /* empty prefix matches all (buffer is sized above property_count()) */

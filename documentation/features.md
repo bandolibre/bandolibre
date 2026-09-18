@@ -85,21 +85,6 @@ saturates.
 Table mode has no bellows signal to scale, so the sensitivity levels do not
 affect it; it plays at `tablemode_velocity` whatever the level.
 
-## Bellows inertia mode
-
-Set `bellow_inertia_enable` to turn bellows inertia mode on; it is **off by
-default**. Off, the bellows reading drives the sound
-directly. On, the reading is run through a virtual-bellows pressure model that
-gives the light blade spring the feel of an acoustic bandoneon's bellows: a quick
-impulse stores energy that stays available for the note played just after, held
-chords soften as air escapes through the open pallets (pressed keys), and the
-push/pull direction is committed so it does not flicker near rest.
-
-The behaviour is shaped by the `bellow_inertia_*` properties (responsiveness,
-damping, impulse strength, air leak, and the direction deadzone/hysteresis). See
-[bellow_simulation.md](bellow_simulation.md) for the principle, the model, and a
-tuning guide.
-
 ## Pedals
 
 Two pedal inputs, each accepting an expression pedal wired like the M-Audio

@@ -71,7 +71,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/bellow.c
     app/bellow_classify.c
     app/bellow_curve.c
-    app/bellow_phys.c
     app/buttons.c
     app/cmd.cc
     app/keyboard.cpp

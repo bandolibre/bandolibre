@@ -21,11 +21,7 @@
  * back). It writes the keyboard_tuning property rather than latching state of
  * its own, so read the tuning from g_properties->keyboard_tuning. Held at
  * power-on, FN2 instead enters the UF2 bootloader; that is the bootloader's
- * own check and is unrelated to this module.
- *
- * FN2 used to toggle bellows inertia mode. That model is still in the firmware
- * but is off by default and now switched by the bellow_inertia_enable property
- * (see documentation/bellow_simulation.md). */
+ * own check and is unrelated to this module. */
 
 /* Reads the three function buttons and logs the combined state on any change.
  * Call once per main loop iteration. */

@@ -6,7 +6,6 @@
 
 #include "bellow_classify.h"
 #include "bellow_curve.h"
-#include "bellow_phys.h"
 #include "buttons.h"
 #include "console.h"
 #include "swo.h"
@@ -27,12 +26,6 @@ typedef struct {
   bellows_t direction;
   uint16_t intensity;
 } bellow_naive_state_t;
-
-/* Physical simulation model state (HAL-side wrapper adds last_tick). */
-typedef struct {
-  bellow_phys_state_t core;
-  uint32_t            last_tick;
-} bellow_physical_simulation_state_t;
 
 typedef struct {
   bellows_t direction;
@@ -118,61 +111,7 @@ static void bellow_naive(uint32_t hall_total, bellow_naive_state_t *state)
         g_properties->bellow_pull_curve_x2, g_properties->bellow_pull_curve_y2);
 }
 
-/* Physical simulation model: HAL wrapper that derives F from the hall reading,
- * computes dt from the system tick, and delegates the pure-math integration to
- * bellow_phys_step (bellow_phys.h). See documentation/bellow_simulation.md. */
-static void bellow_physical_simulation(uint32_t hall_total, uint16_t pressed_key_count,
-                                       bellows_t naive_dir,
-                                       bellow_physical_simulation_state_t *state)
-{
-  uint32_t center = g_properties->bellow_center;
-
-  /* Derive a continuous signed force from the raw sensor offset.
-   * Inside the deadzone (±bellow_dead from center), F = 0.
-   * Outside the deadzone, F increases linearly from 0 at the boundary
-   * to ±BELLOW_INTENSITY_MAX at the full travel limits (full_push/full_pull). */
-  int32_t d = (int32_t)hall_total - (int32_t)center;
-  int32_t dead = (int32_t)g_properties->bellow_dead /2;
-  float F;
-
-  if (d < -dead)
-  {
-    /* Push: interpolate from -dead to full_push, with F ranging from 0 to -BELLOW_INTENSITY_MAX */
-    int32_t span = center - g_properties->bellow_full_push - dead;
-    int32_t effective_d = d + dead;  /* offset from deadzone boundary */
-    F = (float)effective_d * (float)BELLOW_INTENSITY_MAX / (float)span;
-  }
-  else if(d > dead)
-  {
-    /* Pull: interpolate from +dead to full_pull, with F ranging from 0 to +BELLOW_INTENSITY_MAX */
-    int32_t span = g_properties->bellow_full_pull - center - dead;
-    int32_t effective_d = d - dead;  /* offset from deadzone boundary */
-    F = (float)effective_d * (float)BELLOW_INTENSITY_MAX / (float)span;
-  }
-  else
-  {
-    /* Inside deadzone */
-    F = 0.0f;
-  }
-
-  uint32_t now = HAL_GetTick();
-  float dt_s = (float)(now - state->last_tick) / 1000.0f;
-  state->last_tick = now;
-  if (dt_s > 0.02f) dt_s = 0.02f;   /* clamp so a stalled loop can't blow up the integrator */
-
-  bellow_phys_params_t params = {
-    .track_ms      = g_properties->bellow_inertia_track_ms,
-    .damping       = g_properties->bellow_inertia_damping,
-    .impulse_gain  = g_properties->bellow_inertia_impulse_gain,
-    .leak_quiet    = g_properties->bellow_inertia_leak_quiet,
-    .leak_per_key  = g_properties->bellow_inertia_leak_per_key,
-    .dir_dead      = g_properties->bellow_inertia_dir_dead,
-    .dir_hyst      = g_properties->bellow_inertia_dir_hyst,
-  };
-  bellow_phys_step(&state->core, F, dt_s, pressed_key_count, &params);
-}
-
-static void bellow_swo_trace(const bellow_naive_state_t *naive, const bellow_physical_simulation_state_t *phys,
+static void bellow_swo_trace(const bellow_naive_state_t *naive,
                              int32_t hall_total_centred, uint16_t keys)
 {
   static uint32_t last_tick;
@@ -182,21 +121,17 @@ static void bellow_swo_trace(const bellow_naive_state_t *naive, const bellow_phy
   last_tick = now;
   if (last_header_sent == 0)
   {
-    swo_print("timestamp,use_inertia,"
+    swo_print("timestamp,"
               "naive.direction,naive.intensity,"
-              "phys.v,phys.p,phys.eff_intensity,phys.eff_dir,phys.f_prev,"
               "hall_total_centred,keys\n");
     last_header_sent = 100;
   }
   last_header_sent--;
-  swo_printf("%lu,%u,"
+  swo_printf("%lu,"
              "%d,%u,"
-             "%.3f,%.3f,%u,%d,%.3f,"
              "%ld,%u\n",
-             (unsigned long)now, (unsigned)g_properties->bellow_inertia_enable,
+             (unsigned long)now,
              (int)naive->direction, (unsigned)naive->intensity,
-             (double)phys->core.v, (double)phys->core.p, (unsigned)phys->core.eff_intensity,
-             (int)phys->core.eff_dir, (double)phys->core.f_prev,
              (long)hall_total_centred, (unsigned)keys);
 }
 
@@ -209,7 +144,7 @@ static void bellow_swo_trace(const bellow_naive_state_t *naive, const bellow_phy
  * bellow_cchyst is a small residual backlash on top (0 disables it) and
  * bellow_cc_period_ms caps the send rate. The rate limit coalesces rather than
  * drops, so the latest value is always eventually sent. Fed by
- * bellow_intensity(), so the naive and inertia models share one CC pipeline.
+ * bellow_intensity().
  *
  * When intensity drops to 0 (bellow at rest), CC=0 is forced and the hysteresis
  * state is reset so backlash restarts cleanly on the next gesture rather than
@@ -376,8 +311,7 @@ static const char *bellows_dir_str(bellows_t dir)
  * driven by its independent report_hz timer) always gets its rows even on a
  * tick where the two rates don't line up; a skipped sampling tick just adds
  * nothing new to accumulate. */
-static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_naive_state_t *naive_state,
-                          const bellow_physical_simulation_state_t *phys)
+static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_naive_state_t *naive_state)
 {
 
   /* Per-frame stats, accumulated every sample and reset after each emitted report
@@ -445,11 +379,9 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_n
     float conv_us = (float)s->conv_cycles / (SystemCoreClock / 1000000.0f);
     float force = (naive_state->direction == BELLOWS_PUSH) ? -(float)naive_state->intensity
                 : (naive_state->direction == BELLOWS_PULL) ?  (float)naive_state->intensity : 0.0f;
-    console_dash_println("BELLOW  dir=%-7s int=%4u  force=%+5d v=%+8.1f P=%+7.1f  eff=%4u(%d) keys=%u",
+    console_dash_println("BELLOW  dir=%-7s int=%4u  force=%+5d keys=%u",
                          bellows_dir_str(naive_state->direction), naive_state->intensity,
-                         (int)force, (double)phys->core.v, (double)phys->core.p,
-                         phys->core.eff_intensity, (int)phys->core.eff_dir,
-                         keyboard_keys_pressed());
+                         (int)force, keyboard_keys_pressed());
     /* std0/std1/stdT line's "std0 =" / "std1 =" / "stdT =" labels are each
      * padded to the same width as "hall0=" / "hall1=" / "total=" above (and
      * the value fields use matching widths), so the two lines' columns
@@ -491,7 +423,6 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_n
 void bellow_poll(void)
 {
   static bellow_naive_state_t naive = {.direction = BELLOWS_NEUTRAL, .intensity = 0};
-  static bellow_physical_simulation_state_t phys = {0};
   static bellow_sample_t s;
 
   bool sampled = bellow_sample_due();
@@ -502,23 +433,17 @@ void bellow_poll(void)
     g_bellow_last_hall1 = s.hall1;
     uint32_t hall_total = bellow_filter_total(s.hall0 + s.hall1);
     bellow_naive(hall_total, &naive);
-    bellow_physical_simulation(hall_total, keyboard_keys_pressed(), naive.direction, &phys);
 
-    if (g_properties->bellow_inertia_enable) {
-      g_bellow_out.direction = phys.core.eff_dir;
-      g_bellow_out.intensity = phys.core.eff_intensity;
-    } else {
-      g_bellow_out.direction = naive.direction;
-      g_bellow_out.intensity = naive.intensity;
-    }
+    g_bellow_out.direction = naive.direction;
+    g_bellow_out.intensity = naive.intensity;
     uint32_t scaled = ((uint32_t)g_bellow_out.intensity * bellow_sens_scale_q8()) >> 8;
     g_bellow_out.intensity = (uint16_t)(scaled > BELLOW_INTENSITY_MAX ? BELLOW_INTENSITY_MAX : scaled);
 
     int32_t hall_total_centred = (int32_t)hall_total - (int32_t)g_properties->bellow_center;
-    bellow_swo_trace(&naive, &phys, hall_total_centred, keyboard_keys_pressed());
+    bellow_swo_trace(&naive, hall_total_centred, keyboard_keys_pressed());
     bellow_send_cc();
   }
-  bellow_report(sampled, &s, &naive, &phys);
+  bellow_report(sampled, &s, &naive);
 }
 
 /* Diagnostic sweep: for each bellow_settle_us value in a fixed range, take

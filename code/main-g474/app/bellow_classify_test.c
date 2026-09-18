@@ -156,11 +156,10 @@ static void test_miscalibration_zero_span(void)
   CHECK(r.intensity == 0);
 }
 
-/* Direction-only call (full_push=full_pull=0): intensity is always 0, no crash.
- * This is how bellow_phys_step uses classify to gate direction from pressure P. */
+/* Direction-only call (full_push=full_pull=0): intensity is always 0, no crash. */
 static void test_direction_only_call(void)
 {
-  /* Use physical-sim style: center=0, dead=64, hyst=32, full=0 */
+  /* center=0, dead=64, hyst=32, full=0 */
   bellow_classify_result_t r = bellow_classify(BELLOWS_NEUTRAL,
                                                -50, 0, 64, 32, 0, 0);
   /* push_edge = 0 - 32 - 16 = -48; value=-50 < -48 -> PUSH */

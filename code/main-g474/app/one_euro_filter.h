@@ -55,8 +55,7 @@ static inline float one_euro_alpha(float cutoff, float dt)
  * HAL_GetTick()). dt is derived from now_ms - last_tick, clamped to [0.001,
  * 0.02]s: the floor avoids a divide-by-zero in one_euro_alpha if called twice
  * within the same millisecond tick, the ceiling guards against a stalled loop
- * blowing up the derivative estimate (the same guard bellow_physical_simulation()
- * already applies to its own dt_s). The first sample seeds x_prev=x, dx_prev=0
+ * blowing up the derivative estimate. The first sample seeds x_prev=x, dx_prev=0
  * and returns x unfiltered, matching hyst_update's own "first sample always
  * emits" seeding. */
 static inline float one_euro_update(one_euro_state_t *st, const one_euro_config_t *cfg,

@@ -21,8 +21,6 @@ test:
     ./build/bellow_curve_test
     cc -std=c11 -Wall -Wextra -Iapp app/keyboard_layout.c app/keyboard_layout_test.c -o build/keyboard_layout_test
     ./build/keyboard_layout_test
-    cc -std=c11 -Wall -Wextra -Iapp -lm app/bellow_classify.c app/bellow_phys.c app/bellow_physical_sim_test.c -o build/bellow_physical_sim_test
-    ./build/bellow_physical_sim_test
 
 # Flash the Debug build over SWD. Links at 0x08000000, so it REPLACES the bootloader.
 flash: _flash
