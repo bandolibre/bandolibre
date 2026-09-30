@@ -30,7 +30,7 @@ planet.
 
 | Part | Qty | Notes |
 |------|-----|-------|
-| Main PCB | 1 | [EasyEDA design](../boards), [Production files](https://github.com/bandolibre/bandolibre.github.io/releases) |
+| Main PCB | 1 | [EasyEDA design](../boards), [Production files](https://github.com/bandolibre/bandolibre/releases) |
 | Left wing PCB | 1 | idem |
 | Right wing PCB | 1 | idem |
 
