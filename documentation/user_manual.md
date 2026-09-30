@@ -1,3 +1,5 @@
+🇬🇧 **English** | 🇫🇷 [Français](user_manual.fr.md) | 🇪🇸 [Español](user_manual.es.md)
+
 # Bandolibre user manual
 
 This manual is for players. It explains how to connect the Bandolibre, set up
