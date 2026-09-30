@@ -13,6 +13,8 @@ The Bandolibre is a MIDI controller shaped like an Argentine bandoneon. It makes
 no sound on its own: it sends what you play to a computer, tablet or phone,
 where a virtual instrument turns it into sound.
 
+<img src="images/bandolibre_overview.webp" alt="The Bandolibre: two keyboards joined by the main module" width="320">
+
 - **Two keyboards**, left and right hand, with the 142-tone Rheinische Tonlage
   layout.
 - **Bellows**: a spring blade between the two hands. It measures how hard you
@@ -49,19 +51,6 @@ input.
 
 ---
 
-## Playing
-
-The Bandolibre plays like a bandoneon:
-
-- **A note sounds only while you push or pull the bellows.** Pressing a key
-  with the bellows at rest plays nothing, as on the real instrument.
-- **Push and pull play different notes.** With the default Rheinische Tonlage
-  tuning, each key has one note when you push and another when you pull.
-- **The bellows controls the dynamics.** How hard you push or pull sets how
-  loud each note starts, and keeps shaping the sound for as long as it lasts.
-
----
-
 ## Function buttons
 
 ### Left button: table mode
@@ -95,13 +84,6 @@ Press the **right button** to step through the three keyboard systems:
 | **Manoury** | Same note both ways (unisonoric) |
 
 After Manoury it goes back to Rheinische Tonlage.
-
-The Peguri and Manoury right-hand keyboards normally have 40 buttons; the
-Bandolibre has 38. The two missing notes are the lowest D4 and D♯4. Everything
-from E4 upward is complete.
-
-You can switch tuning while holding keys: notes already sounding keep their
-pitch until you release them.
 
 ---
 
@@ -140,7 +122,7 @@ With it you can:
 
 Changes apply immediately, so you can adjust the feel while playing.
 
-[Open the configuration tool](https://bandolibre.github.io/tools/midi.html)
+<a href="https://bandolibre.github.io/tools/midi.html"><img width="385" alt="Open the configuration tool" src="https://img.shields.io/badge/Open_the_configuration_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
   <img src="images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
@@ -193,23 +175,34 @@ Use the [**FlowTones**](https://play.google.com/store/apps/details?id=com.tonebo
 3. Link the bellows to the volume with **MIDI learn**:
    1. Open the **☰** menu at the top right and choose **MIDI learn settings**.
 
-      ![FlowTones menu with MIDI learn settings](images/flowtones_midi_learn_menu.webp)
+      <img src="images/flowtones_midi_learn_menu.webp" alt="FlowTones menu with MIDI learn settings" width="600">
 
    2. With the MIDI learn window open, tap the **Out** tab on the right edge of
       the screen to show the output pane.
    3. Tap the **Out** volume knob, then push or pull the bellows. A new line
       appears in the window: MIDI CC **11**, mapped to **OutGain**.
 
-      ![FlowTones MIDI learn window with CC 11 mapped to OutGain](images/flowtones_midi_learn_out.webp)
+      <img src="images/flowtones_midi_learn_out.webp" alt="FlowTones MIDI learn window with CC 11 mapped to OutGain" width="600">
 
    4. Close the window. The volume knob now moves with the bellows, and the
       bellows shapes the loudness of every note.
 
 ### On an iPhone or iPad
 
-Plug in the Bandolibre, then open a synth app that accepts MIDI input. For the
-soundfont, use a player such as **bs-16i**. The SWAM instruments are also
-available for iPhone and iPad from the App Store.
+The Bandolibre works with Apple's free
+[**GarageBand**](https://apps.apple.com/app/garageband/id408709785) app: plug it
+in, open GarageBand and play one of its instruments.
+
+The [**SWAM** instruments](https://audiomodeling.com/iosproducts) also exist for
+iPhone and iPad. They run on their own or inside GarageBand as a plugin (Audio
+Unit).
+
+### Share what you find
+
+Finding good sounds for the Bandolibre is still an open question, and we are
+very interested in what you discover. If an app, instrument, soundfont or
+setting works well for you, or doesn't, please keep us posted at
+[bandolibre@googlegroups.com](mailto:bandolibre@googlegroups.com).
 
 ---
 
