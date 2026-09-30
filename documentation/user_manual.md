@@ -5,6 +5,27 @@ your music software, use the function buttons and pedals, tune the feel of the
 bellows, and update the firmware. You don't need any tools or technical
 knowledge.
 
+<img src="images/bandolibre_overview.webp" alt="The Bandolibre: two keyboards joined by the main module" width="320">
+
+---
+
+## A shared instrument
+
+[![CC BY-NC-SA 4.0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg)](../LICENSE.md)
+
+The Bandolibre is published under the
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) license:
+you are free to build, repair, modify and share it, for non-commercial use.
+
+It exists thanks to people who gave their time and knowledge freely, in the
+spirit of [L'Atelier du bandonéon libre](https://bandolibre.github.io). Make
+good use of it: play, teach, experiment. And if you can, pass it on: share
+what you learn, help someone build theirs, or contribute to the project, so
+this chain of generosity keeps growing.
+
+For commercial use, contact the association at
+[bandolibre@googlegroups.com](mailto:bandolibre@googlegroups.com).
+
 ---
 
 ## Overview
@@ -12,8 +33,6 @@ knowledge.
 The Bandolibre is a MIDI controller shaped like an Argentine bandoneon. It makes
 no sound on its own: it sends what you play to a computer, tablet or phone,
 where a virtual instrument turns it into sound.
-
-<img src="images/bandolibre_overview.webp" alt="The Bandolibre: two keyboards joined by the main module" width="320">
 
 - **Two keyboards**, left and right hand, with the 142-tone Rheinische Tonlage
   layout.
@@ -140,6 +159,9 @@ off, and the default bellows and pedal settings.
 If you have tuned the bellows or pedals in the configuration tool, you need to
 set them again after reconnecting.
 
+A future firmware update will let the Bandolibre remember its settings. Stay
+tuned!
+
 ---
 
 ## Making sound
@@ -249,14 +271,6 @@ stay there.
 - Push or pull the bellows while pressing a key, or turn on table mode (left button).
 - Check that your instrument responds to CC#11: some stay silent while CC#11
   is at 0.
-
-**Notes are too quiet or too loud**
-- Press the middle button to change the bellows sensitivity.
-- Adjust the bellows curves in the configuration tool.
-
-**Wrong notes**
-- Press the right button until the tuning you play is selected. After unplugging, the
-  tuning goes back to Rheinische Tonlage.
 
 **A note keeps sounding after you release the key**
 - Unplug and reconnect the Bandolibre. Most software also stops stuck notes on
