@@ -67,12 +67,20 @@ They are best built in batches of five — JLCPCB minimum orders make that the n
 At fifty units, PCB fabrication and Gateron switches — the two biggest line items — drop by half again.
 
 - **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
-- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) — talks to the device over MIDI Sysex to view the keyboard live and tune firmware properties, no install needed
 - **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
 
-The configuration tool is a single web page that talks to the instrument over USB-MIDI — it works in any browser with Web MIDI support, such as Chrome or Edge. It shows both keyboards live as you play, lets you shape the bellows response by dragging the push and pull curves (or picking a preset), calibrate the rest position and the pedals, switch tuning, sensitivity and table mode, and edit every firmware property. Changes apply immediately, so you can tune the feel while playing.
+---
 
-![Configuration tool](documentation/images/configuration_tool.webp)
+## Configuration tool
+
+The configuration tool is a web page that displays and changes the instrument's parameters over USB-MIDI — it works on a computer, tablet or phone. It lets you tune the bellows by dragging the push and pull curves (or picking a preset) to shape how effort turns into expression, and calibrate the rest position. Changes apply immediately, so you can adjust the feel while playing. It also calibrates the pedals, switches tuning, sensitivity and table mode, edits every firmware property, and shows both keyboards live as you play.
+
+<a href="https://bandolibre.github.io/tools/midi.html"><img width="481" alt="Open the configuration tool" src="https://img.shields.io/badge/Open_the_configuration_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
+
+<p>
+  <img src="documentation/images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
+  <img src="documentation/images/configuration_tool_keyboard.webp" alt="Configuration tool, live keyboards" width="49%">
+</p>
 
 ---
 

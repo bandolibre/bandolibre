@@ -66,12 +66,20 @@ La construction par lot de cinq est idéale — les commandes minimum JLCPCB en 
 À cinquante unités, la fabrication des PCB et les interrupteurs Gateron — les deux postes les plus importants — baissent encore de moitié.
 
 - **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
-- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) — dialogue avec l'appareil en MIDI Sysex pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
 - **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
 
-L'outil de configuration est une simple page web qui dialogue avec l'instrument en USB-MIDI — il fonctionne dans tout navigateur compatible Web MIDI, comme Chrome ou Edge. Il affiche les deux claviers en direct pendant le jeu, permet de façonner la réponse du soufflet en déplaçant les courbes de poussé et de tiré (ou en choisissant un préréglage), de calibrer la position de repos et les pédales, de changer d'accord, de sensibilité et de mode table, et de modifier toutes les propriétés du firmware. Les changements s'appliquent immédiatement : on peut régler le toucher tout en jouant.
+---
 
-![Configuration tool](documentation/images/configuration_tool.webp)
+## Outil de configuration
+
+L'outil de configuration est une page web qui affiche et modifie les paramètres de l'instrument en USB-MIDI — il fonctionne sur ordinateur, tablette ou téléphone. Il permet de régler le soufflet en déplaçant les courbes de poussé et de tiré (ou en choisissant un préréglage) pour façonner la façon dont l'effort se traduit en expression, et de calibrer la position de repos. Les changements s'appliquent immédiatement : on peut ajuster le toucher tout en jouant. Il permet aussi de calibrer les pédales, de changer d'accord, de sensibilité et de mode table, de modifier toutes les propriétés du firmware, et affiche les deux claviers en direct pendant le jeu.
+
+<a href="https://bandolibre.github.io/tools/midi.html"><img width="507" alt="Ouvrir l'outil de configuration" src="https://img.shields.io/badge/Ouvrir_l%27outil_de_configuration-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
+
+<p>
+  <img src="documentation/images/configuration_tool.webp" alt="Outil de configuration, courbe du soufflet" width="49%">
+  <img src="documentation/images/configuration_tool_keyboard.webp" alt="Outil de configuration, claviers en direct" width="49%">
+</p>
 
 ---
 
