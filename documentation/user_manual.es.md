@@ -163,7 +163,6 @@ icono:
 - **Ordenador**: en Chrome o Edge, haz clic en el icono de instalación a la
   derecha de la barra de direcciones.
 
-
 ---
 
 ## Los ajustes se pierden al desconectar

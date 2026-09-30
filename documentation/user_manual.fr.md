@@ -163,11 +163,10 @@ propre icône :
 - **Android** : dans Chrome, ouvrez le menu ⋮ et choisissez **Ajouter à l'écran
   d'accueil**.
 - **iPhone ou iPad** : dans Safari, touchez **Partager**, puis **Sur l'écran
-  d'accueil**. Elle s'installe, mais ne peut pas joindre l'instrument tant
-  qu'Apple ne prend pas en charge Web MIDI.
+  d'accueil**. Elle s'installe, mais ne peut pas communiquer avec l'instrument
+  tant qu'Apple ne prend pas en charge Web MIDI.
 - **Ordinateur** : dans Chrome ou Edge, cliquez sur l'icône d'installation à
   droite de la barre d'adresse.
-
 
 ---
 
