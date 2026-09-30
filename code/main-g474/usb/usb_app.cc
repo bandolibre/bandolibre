@@ -13,37 +13,21 @@
 constexpr uint8_t MIDI_SYSEX_START = 0xF0;
 constexpr uint8_t MIDI_SYSEX_END = 0xF7;
 
-/* Max size of a decoded (checksum + payload) sysex body. Also bounds how
- * large an incoming encoded wire frame we're willing to accumulate (see
- * midi_input_process) - matched by CFG_TUD_MIDI_TX_BUFSIZE in
- * tusb_config.h. */
+/* Max decoded sysex body (checksum + payload); also caps the incoming raw
+ * frame midi_input_process accumulates. */
 constexpr size_t MAX_SYSEX = 256;
 
-/* 7-bit-safe encoding for the checksum+payload region between the literal
- * 0xF0/0xF7 markers above. Property values (and any future binary payload,
- * e.g. raw hall sensor readings) are arbitrary 16-bit numbers, so a data
- * byte in there can have its high bit set. An earlier version of this
- * protocol escaped only the 3 literal byte values that collide with our own
- * 0xF0/0xF7 framing (SLIP/PPP-style byte-stuffing), on the theory that this
- * is a closed protocol between this firmware and code/tool/sysex/sysex_dump.py
- * / site/midi.html that didn't need full MIDI-spec compliance. That was
- * wrong: confirmed empirically, the Linux kernel's own USB-MIDI driver
- * reconstructs a standard MIDI byte stream when feeding ALSA/Web MIDI, and
- * any byte with bit 7 set gets misread there as a new status byte,
- * corrupting the frame - even though the exact same bytes survive raw USB
- * access (sysex_dump.py) untouched, since that path decodes USB-MIDI
- * CIN-tagged packets directly and never reinterprets them as generic MIDI.
- * Real MIDI sysex avoids this entirely by repacking every byte into 7-bit
- * groups, which this now does too: each run of up to 7 input bytes becomes
- * 8 output bytes - a leading byte holding the high bit of each input byte
- * (bit j = input byte j's bit 7), followed by those bytes with bit 7
- * cleared. Every output byte is then <= 0x7F, so it can never collide with
- * 0xF0/0xF7 either - no separate escaping step is needed on top. */
+/* The body between 0xF0/0xF7 carries arbitrary 16-bit values, but ALSA/Web
+ * MIDI read any byte with bit 7 set as a new status byte and corrupt the
+ * frame (escaping only 0xF0/0xF7 was tried and failed). So, as in standard
+ * MIDI sysex, each run of up to 7 bytes becomes 8: a leading byte whose
+ * bit j is input byte j's bit 7, then the bytes with bit 7 cleared.
+ * CFG_TUD_MIDI_TX_BUFSIZE is sized from MAX_ENCODED_SYSEX. */
 constexpr size_t sysex7_encoded_size(size_t decoded_len) { return ((decoded_len + 6) / 7) * 8; }
 constexpr size_t MAX_ENCODED_SYSEX = sysex7_encoded_size(MAX_SYSEX);
 
-/* [seconds.millis] prefix matching the format the host-side sysex_dump.py
- * tool uses, so the two logs can be compared line by line. */
+/* [seconds.millis] prefix on SysEx console lines (errors, and the
+ * log_midi_sysex trace), to line them up against host-side captures. */
 static void print_timestamp(void)
 {
   uint32_t ms = HAL_GetTick();
@@ -52,13 +36,11 @@ static void print_timestamp(void)
 
 void usb_app_init(void)
 {
-  /* The 48 MHz USB kernel clock (HSI48 + CRS, crystal-less) and the USB
-   * peripheral clock are configured by the CubeMX-generated
-   * SystemClock_Config() and MX_USB_PCD_Init(); enforced by
-   * code/tests/test_usb_config.py against the .ioc. */
+  /* USB clocks (HSI48 + CRS) come from CubeMX init code, checked by
+   * code/tests/test_usb_config.py. */
 
-  /* Keep USB below the console UART so a CDC write burst cannot starve
-   * character reception (HAL tick stays at 0, set by HAL_Init). */
+  /* Below the console UART, so a CDC burst can't starve reception (HAL tick
+   * stays at 0). */
   NVIC_SetPriority(USB_HP_IRQn, 6);
   NVIC_SetPriority(USB_LP_IRQn, 6);
   NVIC_SetPriority(USBWakeUp_IRQn, 6);
@@ -75,9 +57,8 @@ bool usb_app_mounted(void)
   return tud_mounted();
 }
 
-/* XOR-fold checksum over 16-bit little-endian words, folding in a lone
- * trailing byte if len is odd. Used to both seal outgoing sysex frames and
- * verify incoming ones. */
+/* XOR of 16-bit little-endian words (odd trailing byte folded in), for both
+ * directions. */
 static uint16_t sysex_checksum(const uint8_t *data, size_t len)
 {
   uint16_t cs = 0;
@@ -88,9 +69,7 @@ static uint16_t sysex_checksum(const uint8_t *data, size_t len)
   return cs;
 }
 
-/* Encodes in[0..len) into 7-bit-safe groups written to out (see comment on
- * sysex7_encoded_size above). Returns the number of bytes written, or
- * SIZE_MAX if out_cap is too small. */
+/* Returns bytes written, or SIZE_MAX if out_cap is too small. */
 static size_t sysex_encode7(const uint8_t *in, size_t len, uint8_t *out, size_t out_cap)
 {
   size_t n = 0, i = 0;
@@ -107,9 +86,7 @@ static size_t sysex_encode7(const uint8_t *in, size_t len, uint8_t *out, size_t 
   return n;
 }
 
-/* Reverses sysex_encode7: decodes in[0..len) into out. Returns the number
- * of bytes written, or SIZE_MAX if out_cap is too small or `in` ends mid
- * group (truncated frame). */
+/* Returns bytes written, or SIZE_MAX if out_cap is too small. */
 static size_t sysex_decode7(const uint8_t *in, size_t len, uint8_t *out, size_t out_cap)
 {
   size_t n = 0, i = 0;
@@ -127,11 +104,8 @@ static size_t sysex_decode7(const uint8_t *in, size_t len, uint8_t *out, size_t 
   return n;
 }
 
-/* Strips a complete raw sysex frame (0xF0 ... 0xF7, as accumulated by
- * midi_input_process) down to its checksum-verified payload (message
- * identifier + body). On success returns nullptr and sets *payload; on
- * failure returns a short reason string to log and leaves *payload
- * untouched. */
+/* Raw 0xF0..0xF7 frame -> checksum-verified payload (message id + body).
+ * Returns nullptr on success, else a reason to log. */
 static const char *unpack_sysex(gsl::span<const uint8_t> frame, gsl::span<const uint8_t> *payload)
 {
   if (frame.size() < 5) return "frame too short";
@@ -156,11 +130,8 @@ static void midi_input_process(gsl::span<const uint8_t, 4> packet)
   static std::array<uint8_t, MAX_SYSEX> sysex_buf;
   static size_t sysex_len = 0;
 
-  /* The low nibble of byte 0 is the USB-MIDI Code Index Number, which says
-   * how many of the next three bytes are real payload versus unused packet
-   * tail. Sysex payload can legitimately contain 0x00 (our checksum framing
-   * does this constantly), so a zero byte can't be used to detect the end
-   * of valid data. */
+  /* The Code Index Number (low nibble of byte 0) gives the payload length;
+   * 0x00 is valid sysex data, so it can't mark the end. */
   uint8_t valid_bytes;
   switch (packet[0] & 0x0F) {
     case 0x4: case 0x7: valid_bytes = 3; break;  /* sysex starts/continues, or ends with 3 bytes */
@@ -297,12 +268,8 @@ void usb_app_midi_send_sysex(const uint8_t *data, size_t len)
   tud_midi_stream_write(cable, &footer, 1);
 }
 
-/* USB interrupt handlers (override the weak defaults from the startup file).
- * extern "C" is required here: the vector table in startup_stm32g474xx.s
- * declares these with C linkage, so without it these get C++-mangled names
- * that don't override the weak aliases, and --gc-sections silently drops
- * them as unreferenced, leaving the vectors pointing at Default_Handler's
- * infinite loop. */
+/* extern "C" so these override the startup file's weak handlers; mangled
+ * names would be silently dropped, leaving the vectors on Default_Handler. */
 extern "C" {
 
 void USB_HP_IRQHandler(void)
