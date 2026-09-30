@@ -147,6 +147,14 @@ Changes apply immediately, so you can adjust the feel while playing.
   <img src="images/configuration_tool_keyboard.webp" alt="Configuration tool, live keyboards" width="49%">
 </p>
 
+You can also install it as an app, so it opens from its own icon:
+
+- **Android**: in Chrome, open the ⋮ menu and choose **Add to Home screen**.
+- **iPhone or iPad**: in Safari, tap **Share**, then **Add to Home Screen**. It
+  installs, but cannot reach the instrument until Apple supports Web MIDI.
+- **Computer**: in Chrome or Edge, click the install icon at the right of the
+  address bar.
+
 ---
 
 ## Settings are reset when you unplug

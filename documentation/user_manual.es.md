@@ -152,6 +152,18 @@ tocas.
   <img src="images/configuration_tool_keyboard.webp" alt="Herramienta de configuración, teclados en vivo" width="49%">
 </p>
 
+También puedes instalarla como una aplicación, que se abre desde su propio
+icono:
+
+- **Android**: en Chrome, abre el menú ⋮ y elige **Añadir a pantalla de
+  inicio**.
+- **iPhone o iPad**: en Safari, toca **Compartir** y luego **Añadir a pantalla
+  de inicio**. Se instala, pero no puede comunicarse con el instrumento hasta
+  que Apple admita Web MIDI.
+- **Ordenador**: en Chrome o Edge, haz clic en el icono de instalación a la
+  derecha de la barra de direcciones.
+
+
 ---
 
 ## Los ajustes se pierden al desconectar

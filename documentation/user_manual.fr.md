@@ -157,6 +157,18 @@ tout en jouant.
   <img src="images/configuration_tool_keyboard.webp" alt="Outil de configuration, claviers en direct" width="49%">
 </p>
 
+Vous pouvez aussi l'installer comme une application, qui s'ouvre depuis sa
+propre icône :
+
+- **Android** : dans Chrome, ouvrez le menu ⋮ et choisissez **Ajouter à l'écran
+  d'accueil**.
+- **iPhone ou iPad** : dans Safari, touchez **Partager**, puis **Sur l'écran
+  d'accueil**. Elle s'installe, mais ne peut pas joindre l'instrument tant
+  qu'Apple ne prend pas en charge Web MIDI.
+- **Ordinateur** : dans Chrome ou Edge, cliquez sur l'icône d'installation à
+  droite de la barre d'adresse.
+
+
 ---
 
 ## Les réglages sont perdus au débranchement
