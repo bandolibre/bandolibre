@@ -69,6 +69,10 @@ A partir de cincuenta unidades, la fabricación de PCB y los interruptores Gater
 - **Herramienta de configuración:** [conéctate por USB-MIDI desde tu navegador](https://bandolibre.github.io/tools/midi.html) — se comunica con el dispositivo por MIDI Sysex para visualizar el teclado en vivo y ajustar las propiedades del firmware, sin instalar nada
 - **Actualización de firmware:** pon la placa en modo DFU y aparecerá como una unidad de almacenamiento masivo USB — arrastra el archivo `.uf2` sobre ella y reiniciará con el nuevo firmware, sin necesidad de programador
 
+La herramienta de configuración es una simple página web que se comunica con el instrumento por USB-MIDI — funciona en cualquier navegador compatible con Web MIDI, como Chrome o Edge. Muestra ambos teclados en vivo mientras tocas, permite dar forma a la respuesta del fuelle arrastrando las curvas de abrir y cerrar (o eligiendo un ajuste predefinido), calibrar la posición de reposo y los pedales, cambiar la afinación, la sensibilidad y el modo mesa, y editar todas las propiedades del firmware. Los cambios se aplican al instante, así que puedes ajustar el tacto mientras tocas.
+
+![Configuration tool](documentation/images/configuration_tool.webp)
+
 ---
 
 ## Diseño
@@ -129,7 +133,7 @@ Si quieres que te avisemos cuando sea posible:
 
 <div align="center">
 
-### ✉️ **[Únete a la lista de espera →](https://forms.gle/amgxEX4XTy9Jfd538)**
+<a href="https://forms.gle/amgxEX4XTy9Jfd538"><img width="454" alt="Únete a la lista de espera" src="https://img.shields.io/badge/%C3%9Anete_a_la_lista_de_espera-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTUwMi4zIDE5MC44YzMuOS0zLjEgOS43LS4yIDkuNyA0LjdWNDAwYzAgMjYuNS0yMS41IDQ4LTQ4IDQ4SDQ4Yy0yNi41IDAtNDgtMjEuNS00OC00OFYxOTUuNmMwLTUgNS43LTcuOCA5LjctNC43IDIyLjQgMTcuNCA1Mi4xIDM5LjUgMTU0LjEgMTEzLjYgMjEuMSAxNS40IDU2LjcgNDcuOCA5Mi4yIDQ3LjYgMzUuNy4zIDcyLTMyLjggOTIuMy00Ny42IDEwMi03NC4xIDEzMS42LTk2LjMgMTU0LTExMy43ek0yNTYgMzIwYzIzLjIuNCA1Ni42LTI5LjIgNzMuNC00MS40IDEzMi43LTk2LjMgMTQyLjgtMTA0LjcgMTczLjQtMTI4LjcgNS44LTQuNSA5LjItMTEuNSA5LjItMTguOXYtMTljMC0yNi41LTIxLjUtNDgtNDgtNDhINDhDMjEuNSA2NCAwIDg1LjUgMCAxMTJ2MTljMCA3LjQgMy40IDE0LjMgOS4yIDE4LjkgMzAuNiAyMy45IDQwLjcgMzIuNCAxNzMuNCAxMjguNyAxNi44IDEyLjIgNTAuMiA0MS44IDczLjQgNDEuNHoiLz48L3N2Zz4="></a>
 
 </div>
 

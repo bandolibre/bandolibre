@@ -69,6 +69,10 @@ La construction par lot de cinq est idéale — les commandes minimum JLCPCB en 
 - **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) — dialogue avec l'appareil en MIDI Sysex pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
 - **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
 
+L'outil de configuration est une simple page web qui dialogue avec l'instrument en USB-MIDI — il fonctionne dans tout navigateur compatible Web MIDI, comme Chrome ou Edge. Il affiche les deux claviers en direct pendant le jeu, permet de façonner la réponse du soufflet en déplaçant les courbes de poussé et de tiré (ou en choisissant un préréglage), de calibrer la position de repos et les pédales, de changer d'accord, de sensibilité et de mode table, et de modifier toutes les propriétés du firmware. Les changements s'appliquent immédiatement : on peut régler le toucher tout en jouant.
+
+![Configuration tool](documentation/images/configuration_tool.webp)
+
 ---
 
 ## Conception
@@ -129,7 +133,7 @@ Si vous souhaitez que nous vous prévenions quand ce sera possible :
 
 <div align="center">
 
-### ✉️ **[Rejoindre la liste d'attente →](https://forms.gle/amgxEX4XTy9Jfd538)**
+<a href="https://forms.gle/amgxEX4XTy9Jfd538"><img width="470" alt="Rejoindre la liste d'attente" src="https://img.shields.io/badge/Rejoindre_la_liste_d%27attente-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTUwMi4zIDE5MC44YzMuOS0zLjEgOS43LS4yIDkuNyA0LjdWNDAwYzAgMjYuNS0yMS41IDQ4LTQ4IDQ4SDQ4Yy0yNi41IDAtNDgtMjEuNS00OC00OFYxOTUuNmMwLTUgNS43LTcuOCA5LjctNC43IDIyLjQgMTcuNCA1Mi4xIDM5LjUgMTU0LjEgMTEzLjYgMjEuMSAxNS40IDU2LjcgNDcuOCA5Mi4yIDQ3LjYgMzUuNy4zIDcyLTMyLjggOTIuMy00Ny42IDEwMi03NC4xIDEzMS42LTk2LjMgMTU0LTExMy43ek0yNTYgMzIwYzIzLjIuNCA1Ni42LTI5LjIgNzMuNC00MS40IDEzMi43LTk2LjMgMTQyLjgtMTA0LjcgMTczLjQtMTI4LjcgNS44LTQuNSA5LjItMTEuNSA5LjItMTguOXYtMTljMC0yNi41LTIxLjUtNDgtNDgtNDhINDhDMjEuNSA2NCAwIDg1LjUgMCAxMTJ2MTljMCA3LjQgMy40IDE0LjMgOS4yIDE4LjkgMzAuNiAyMy45IDQwLjcgMzIuNCAxNzMuNCAxMjguNyAxNi44IDEyLjIgNTAuMiA0MS44IDczLjQgNDEuNHoiLz48L3N2Zz4="></a>
 
 </div>
 

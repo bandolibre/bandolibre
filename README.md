@@ -70,6 +70,10 @@ At fifty units, PCB fabrication and Gateron switches — the two biggest line it
 - **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) — talks to the device over MIDI Sysex to view the keyboard live and tune firmware properties, no install needed
 - **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
 
+The configuration tool is a single web page that talks to the instrument over USB-MIDI — it works in any browser with Web MIDI support, such as Chrome or Edge. It shows both keyboards live as you play, lets you shape the bellows response by dragging the push and pull curves (or picking a preset), calibrate the rest position and the pedals, switch tuning, sensitivity and table mode, and edit every firmware property. Changes apply immediately, so you can tune the feel while playing.
+
+![Configuration tool](documentation/images/configuration_tool.webp)
+
 ---
 
 ## Design
@@ -130,7 +134,7 @@ If you'd like to hear from us when it becomes possible:
 
 <div align="center">
 
-### ✉️ **[Join the interest list →](https://forms.gle/amgxEX4XTy9Jfd538)**
+<a href="https://forms.gle/amgxEX4XTy9Jfd538"><img width="368" alt="Join the interest list" src="https://img.shields.io/badge/Join_the_interest_list-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTUwMi4zIDE5MC44YzMuOS0zLjEgOS43LS4yIDkuNyA0LjdWNDAwYzAgMjYuNS0yMS41IDQ4LTQ4IDQ4SDQ4Yy0yNi41IDAtNDgtMjEuNS00OC00OFYxOTUuNmMwLTUgNS43LTcuOCA5LjctNC43IDIyLjQgMTcuNCA1Mi4xIDM5LjUgMTU0LjEgMTEzLjYgMjEuMSAxNS40IDU2LjcgNDcuOCA5Mi4yIDQ3LjYgMzUuNy4zIDcyLTMyLjggOTIuMy00Ny42IDEwMi03NC4xIDEzMS42LTk2LjMgMTU0LTExMy43ek0yNTYgMzIwYzIzLjIuNCA1Ni42LTI5LjIgNzMuNC00MS40IDEzMi43LTk2LjMgMTQyLjgtMTA0LjcgMTczLjQtMTI4LjcgNS44LTQuNSA5LjItMTEuNSA5LjItMTguOXYtMTljMC0yNi41LTIxLjUtNDgtNDgtNDhINDhDMjEuNSA2NCAwIDg1LjUgMCAxMTJ2MTljMCA3LjQgMy40IDE0LjMgOS4yIDE4LjkgMzAuNiAyMy45IDQwLjcgMzIuNCAxNzMuNCAxMjguNyAxNi44IDEyLjIgNTAuMiA0MS44IDczLjQgNDEuNHoiLz48L3N2Zz4="></a>
 
 </div>
 
