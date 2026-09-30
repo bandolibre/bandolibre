@@ -123,7 +123,7 @@ installer.
 
 Retrouvez tous les détails techniques, le code source et les fichiers de fabrication sur
 
-<a href="https://github.com/bandolibre/bandolibre.github.io" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
+<a href="https://github.com/bandolibre/bandolibre" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Voir le projet sur GitHub</a>
 
 ## Rejoignez la Communauté !
 
