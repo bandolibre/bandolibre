@@ -49,65 +49,12 @@ input.
 
 ---
 
-## Choosing a sound
-
-The Bandolibre needs a virtual instrument to make sound. Whatever you use:
-
-- choose an instrument that responds to **CC#11**, otherwise the bellows has no
-  effect on the sound;
-- make it listen on **channels 1 and 2** (or on all channels), otherwise one
-  hand stays silent.
-
-For practice, a simple bandoneon soundfont is enough:
-[European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) by Jörg
-Bleymehl gives good results and works on any device below.
-
-### On a computer
-
-Use a DAW (Reaper, Ableton Live, Logic, Cubase…) or a notation program, and
-load a virtual instrument plugin on the Bandolibre's MIDI input.
-
-- The physically modelled **SWAM** instruments from
-  [Audio Modeling](https://audiomodeling.com/) give the most expressive
-  results: the bellows drives the sound itself, not just its volume.
-- [Native Instruments Session Strings](https://www.native-instruments.com/en/products/komplete/cinematic/session-strings-2)
-  also works very well.
-
-### On an Android phone or tablet
-
-Use the [**FlowTones**](https://play.google.com/store/apps/details?id=com.toneboosters.flowtonesedit) app:
-
-1. Plug in the Bandolibre and open FlowTones.
-2. Pick a program with **Load**. Organ sounds work quite well.
-3. Link the bellows to the volume with **MIDI learn**:
-   1. Open the **☰** menu at the top right and choose **MIDI learn settings**.
-
-      ![FlowTones menu with MIDI learn settings](images/flowtones_midi_learn_menu.webp)
-
-   2. With the MIDI learn window open, tap the **Out** tab on the right edge of
-      the screen to show the output pane.
-   3. Tap the **Out** volume knob, then push or pull the bellows. A new line
-      appears in the window: MIDI CC **11**, mapped to **OutGain**.
-
-      ![FlowTones MIDI learn window with CC 11 mapped to OutGain](images/flowtones_midi_learn_out.webp)
-
-   4. Close the window. The volume knob now moves with the bellows, and the
-      bellows shapes the loudness of every note.
-
-### On an iPhone or iPad
-
-Plug in the Bandolibre, then open a synth app that accepts MIDI input. For the
-soundfont, use a player such as **bs-16i**. The SWAM instruments are also
-available for iPhone and iPad from the App Store.
-
----
-
 ## Playing
 
 The Bandolibre plays like a bandoneon:
 
-- **A note sounds only while the bellows moves.** Pressing a key with the
-  bellows at rest plays nothing, as on the real instrument.
+- **A note sounds only while you push or pull the bellows.** Pressing a key
+  with the bellows at rest plays nothing, as on the real instrument.
 - **Push and pull play different notes.** With the default Rheinische Tonlage
   tuning, each key has one note when you push and another when you pull.
 - **The bellows controls the dynamics.** How hard you push or pull sets how
@@ -122,7 +69,7 @@ The Bandolibre plays like a bandoneon:
 Press the **left button** to switch table mode on or off.
 
 In table mode you can play with the instrument resting flat on a table. Each key
-sounds as soon as you press it, without moving the bellows. Every key plays its
+sounds as soon as you press it, without pushing or pulling the bellows. Every key plays its
 **pull** note, and every note plays at the same fixed loudness.
 
 This is useful for entering a score into notation software one note at a time.
@@ -213,6 +160,59 @@ set them again after reconnecting.
 
 ---
 
+## Making sound
+
+The Bandolibre needs a virtual instrument to make sound. Whatever you use:
+
+- choose an instrument that responds to **CC#11**, otherwise the bellows has no
+  effect on the sound;
+- make it listen on **channels 1 and 2** (or on all channels), otherwise one
+  hand stays silent.
+
+For practice, a simple bandoneon soundfont is enough:
+[European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) by Jörg
+Bleymehl gives good results and works on any device below.
+
+### On a computer
+
+Use a DAW (Reaper, Ableton Live, Logic, Cubase…) or a notation program, and
+load a virtual instrument plugin on the Bandolibre's MIDI input.
+
+- The physically modelled **SWAM** instruments from
+  [Audio Modeling](https://audiomodeling.com/) give the most expressive
+  results: the bellows drives the sound itself, not just its volume.
+- [Native Instruments Session Strings](https://www.native-instruments.com/en/products/komplete/cinematic/session-strings-2)
+  also works very well.
+
+### On an Android phone or tablet
+
+Use the [**FlowTones**](https://play.google.com/store/apps/details?id=com.toneboosters.flowtonesedit) app:
+
+1. Plug in the Bandolibre and open FlowTones.
+2. Pick a program with **Load**. Organ sounds work quite well.
+3. Link the bellows to the volume with **MIDI learn**:
+   1. Open the **☰** menu at the top right and choose **MIDI learn settings**.
+
+      ![FlowTones menu with MIDI learn settings](images/flowtones_midi_learn_menu.webp)
+
+   2. With the MIDI learn window open, tap the **Out** tab on the right edge of
+      the screen to show the output pane.
+   3. Tap the **Out** volume knob, then push or pull the bellows. A new line
+      appears in the window: MIDI CC **11**, mapped to **OutGain**.
+
+      ![FlowTones MIDI learn window with CC 11 mapped to OutGain](images/flowtones_midi_learn_out.webp)
+
+   4. Close the window. The volume knob now moves with the bellows, and the
+      bellows shapes the loudness of every note.
+
+### On an iPhone or iPad
+
+Plug in the Bandolibre, then open a synth app that accepts MIDI input. For the
+soundfont, use a player such as **bs-16i**. The SWAM instruments are also
+available for iPhone and iPad from the App Store.
+
+---
+
 ## Updating the firmware
 
 The firmware is the software inside the instrument. You update it over the same
@@ -253,7 +253,7 @@ stay there.
 - Check that **Bandolibre** is selected as the MIDI input in your software.
 - Check that the instrument listens on channel 1 (left hand) and channel 2
   (right hand), or on all channels.
-- Move the bellows while pressing a key, or turn on table mode (left button).
+- Push or pull the bellows while pressing a key, or turn on table mode (left button).
 - Check that your instrument responds to CC#11: some stay silent while CC#11
   is at 0.
 
