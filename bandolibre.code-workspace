@@ -6,6 +6,9 @@
 		},
 		{
 			"path": "../site"
+		},
+		{
+			"path": "../datasheets"
 		}
 	],
 	"settings": {
