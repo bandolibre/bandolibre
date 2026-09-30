@@ -60,8 +60,7 @@ The Bandolibre needs a virtual instrument to make sound. Whatever you use:
 
 For practice, a simple bandoneon soundfont is enough:
 [European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) by Jörg
-Bleymehl gives good results and works on any device below. The
-[Sound](../README.md#sound) section of the README has more background.
+Bleymehl gives good results and works on any device below.
 
 ### On a computer
 
@@ -76,14 +75,24 @@ load a virtual instrument plugin on the Bandolibre's MIDI input.
 
 ### On an Android phone or tablet
 
-Use the **FlowTones** app:
+Use the [**FlowTones**](https://play.google.com/store/apps/details?id=com.toneboosters.flowtonesedit) app:
 
 1. Plug in the Bandolibre and open FlowTones.
-2. Load the European Bandoneon soundfont and select the Bandolibre as MIDI
-   input.
-3. Link the bellows to the volume with **MIDI learn**: start MIDI learn on the
-   volume control, then push or pull the bellows. FlowTones assigns CC#11 to
-   the volume, and the bellows now shapes the loudness of every note.
+2. Pick a program with **Load**. Organ sounds work quite well.
+3. Link the bellows to the volume with **MIDI learn**:
+   1. Open the **☰** menu at the top right and choose **MIDI learn settings**.
+
+      ![FlowTones menu with MIDI learn settings](images/flowtones_midi_learn_menu.webp)
+
+   2. With the MIDI learn window open, tap the **Out** tab on the right edge of
+      the screen to show the output pane.
+   3. Tap the **Out** volume knob, then push or pull the bellows. A new line
+      appears in the window: MIDI CC **11**, mapped to **OutGain**.
+
+      ![FlowTones MIDI learn window with CC 11 mapped to OutGain](images/flowtones_midi_learn_out.webp)
+
+   4. Close the window. The volume knob now moves with the bellows, and the
+      bellows shapes the loudness of every note.
 
 ### On an iPhone or iPad
 
