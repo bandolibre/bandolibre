@@ -78,6 +78,20 @@ Pour obtenir le vôtre, deux chemins s'offrent à vous :
   C'est l'occasion de partager les coûts, de s'entraider pendant l'assemblage
   et de rejoindre une communauté de constructeurs.
 
+## Rejoindre la Liste d'Attente
+
+Il manque encore le cadre administratif qui permettrait à l'association de
+conclure une transaction — céder des cartes, un kit ou un instrument fini à
+quelqu'un qui le demande.
+
+Si vous souhaitez que nous vous prévenions quand ce sera possible :
+
+<a href="https://forms.gle/amgxEX4XTy9Jfd538" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-clipboard-list"></i> Rejoindre la liste d'attente</a>
+
+Cela nous aide aussi à voir combien de personnes sont intéressées et ce
+qu'elles aimeraient en jouer. Vos réponses restent au sein de l'association et
+servent uniquement à vous recontacter au sujet de Bandolibre.
+
 ## Configurer votre Bandolibre
 
 Un outil web permet de connecter le Bandolibre en USB-MIDI depuis votre
