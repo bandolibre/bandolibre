@@ -97,7 +97,7 @@ l'autre : **faible → moyenne → forte**, puis retour à faible.
 sur le soufflet. Utile pour jouer doucement, ou si la lame-ressort vous semble
 trop raide. La sensibilité n'a pas d'effet en mode table.
 
-### Bouton droit : accord
+### Bouton droit : système de clavier
 
 Appuyez sur le **bouton droit** pour passer d'un système de clavier à l'autre :
 
@@ -144,7 +144,7 @@ Il vous permet de :
   volume ;
 - **calibrer la position de repos** du soufflet ;
 - **calibrer les pédales** ;
-- changer l'accord, la sensibilité et le mode table ;
+- changer le système de clavier, la sensibilité et le mode table ;
 - voir les deux claviers en direct pendant le jeu.
 
 Les changements s'appliquent immédiatement : vous pouvez ajuster le toucher
@@ -173,7 +173,7 @@ propre icône :
 ## Les réglages sont perdus au débranchement
 
 Le Bandolibre ne mémorise pas encore ses réglages. Quand vous le débranchez, il
-revient à ses valeurs par défaut : accord Rheinische Tonlage, sensibilité
+revient à ses valeurs par défaut : clavier Rheinische Tonlage, sensibilité
 faible, mode table désactivé, et réglages par défaut du soufflet et des
 pédales.
 

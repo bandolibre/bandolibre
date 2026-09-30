@@ -41,7 +41,7 @@ Voir les démos : [avec une clarinette virtuelle](https://youtu.be/6s1wlRKlAk4) 
 
 ## Fonctionnalités
 
-**Accord du clavier** — un bouton pour selecionne la dispositions de clavier parmis: Rheinische Tonlage (bisonore, 142 tons), Peguri ou Manoury.
+**Système de clavier** — un bouton pour passer d'un système de clavier à l'autre : Rheinische Tonlage (bisonore, 142 tons), Peguri ou Manoury.
 
 **Mode table** — un bouton active le mode table : les touches se déclenchent immédiatement à vélocité fixe, sans mouvement de soufflet. Idéal pour saisir une partition note par note sans actionner le soufflet.
 
@@ -74,7 +74,7 @@ La construction par lot de cinq est idéale — les commandes minimum JLCPCB en 
 
 ## Outil de configuration
 
-L'outil de configuration est une page web qui affiche et modifie les paramètres de l'instrument en USB-MIDI — il fonctionne sur ordinateur, tablette ou téléphone. Il permet de régler le soufflet en déplaçant les courbes de poussé et de tiré (ou en choisissant un préréglage) pour façonner la façon dont l'effort se traduit en expression, et de calibrer la position de repos. Les changements s'appliquent immédiatement : on peut ajuster le toucher tout en jouant. Il permet aussi de calibrer les pédales, de changer d'accord, de sensibilité et de mode table, de modifier toutes les propriétés du firmware, et affiche les deux claviers en direct pendant le jeu.
+L'outil de configuration est une page web qui affiche et modifie les paramètres de l'instrument en USB-MIDI — il fonctionne sur ordinateur, tablette ou téléphone. Il permet de régler le soufflet en déplaçant les courbes de poussé et de tiré (ou en choisissant un préréglage) pour façonner la façon dont l'effort se traduit en expression, et de calibrer la position de repos. Les changements s'appliquent immédiatement : on peut ajuster le toucher tout en jouant. Il permet aussi de calibrer les pédales, de changer de système de clavier, de sensibilité et de mode table, de modifier toutes les propriétés du firmware, et affiche les deux claviers en direct pendant le jeu.
 
 <a href="https://bandolibre.github.io/tools/midi.html"><img width="406" alt="Ouvrir l'outil de configuration" src="https://img.shields.io/badge/Ouvrir_l%27outil_de_configuration-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 

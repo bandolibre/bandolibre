@@ -91,7 +91,7 @@ At a higher level, you reach full loudness with less bellows effort. Use it for
 quiet practice, or if the spring blade feels too stiff. Sensitivity has no
 effect in table mode.
 
-### Right button: tuning
+### Right button: keyboard system
 
 Press the **right button** to step through the three keyboard systems:
 
@@ -135,7 +135,7 @@ With it you can:
   choose how your effort turns into loudness;
 - **calibrate the rest position** of the bellows;
 - **calibrate the pedals**;
-- switch tuning, sensitivity and table mode;
+- switch keyboard system, sensitivity and table mode;
 - see both keyboards live as you play.
 
 Changes apply immediately, so you can adjust the feel while playing.
@@ -160,7 +160,7 @@ You can also install it as an app, so it opens from its own icon:
 ## Settings are reset when you unplug
 
 The Bandolibre does not yet remember its settings. When you unplug it, it goes
-back to its defaults: Rheinische Tonlage tuning, low sensitivity, table mode
+back to its defaults: Rheinische Tonlage keyboard, low sensitivity, table mode
 off, and the default bellows and pedal settings.
 
 If you have tuned the bellows or pedals in the configuration tool, you need to

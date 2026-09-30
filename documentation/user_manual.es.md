@@ -94,7 +94,7 @@ En un nivel más alto, alcanzas el volumen máximo con menos esfuerzo del fuelle
 Úsalo para practicar en voz baja, o si la lámina de resorte te parece
 demasiado dura. La sensibilidad no tiene efecto en modo mesa.
 
-### Botón derecho: afinación
+### Botón derecho: sistema de teclado
 
 Pulsa el **botón derecho** para pasar por los tres sistemas de teclado:
 
@@ -139,7 +139,7 @@ Con ella puedes:
   ajuste predefinido, para definir cómo tu esfuerzo se convierte en volumen;
 - **calibrar la posición de reposo** del fuelle;
 - **calibrar los pedales**;
-- cambiar la afinación, la sensibilidad y el modo mesa;
+- cambiar el sistema de teclado, la sensibilidad y el modo mesa;
 - ver ambos teclados en vivo mientras tocas.
 
 Los cambios se aplican al instante, así que puedes ajustar el tacto mientras
@@ -168,7 +168,7 @@ icono:
 ## Los ajustes se pierden al desconectar
 
 El Bandolibre aún no recuerda sus ajustes. Al desconectarlo, vuelve a sus
-valores por defecto: afinación Rheinische Tonlage, sensibilidad baja, modo mesa
+valores por defecto: teclado Rheinische Tonlage, sensibilidad baja, modo mesa
 desactivado, y los ajustes por defecto del fuelle y los pedales.
 
 Si ajustaste el fuelle o los pedales en la herramienta de configuración,

@@ -41,7 +41,7 @@ Mira las demos: [con un clarinete virtual](https://youtu.be/6s1wlRKlAk4) · [con
 
 ## Funcionalidades
 
-**Sintonización del teclado** — un botón para ciclar entre las tres disposiciones de teclado: Rheinische Tonlage (bisonórico, 142 tonos), Peguri o Manoury.
+**Sistema de teclado** — un botón para pasar por los tres sistemas de teclado: Rheinische Tonlage (bisonórico, 142 tonos), Peguri o Manoury.
 
 **Modo mesa** — un botón activa el modo mesa: las teclas suenan inmediatamente a velocidad fija, sin necesidad de mover el fuelle. Ideal para ingresar una partitura nota a nota sin accionar el fuelle.
 
@@ -74,7 +74,7 @@ A partir de cincuenta unidades, la fabricación de PCB y los interruptores Gater
 
 ## Herramienta de configuración
 
-La herramienta de configuración es una página web que muestra y modifica los parámetros del instrumento por USB-MIDI — funciona en ordenador, tableta o teléfono. Permite ajustar el fuelle arrastrando las curvas de empuje y tracción (o eligiendo un ajuste predefinido) para dar forma a cómo el esfuerzo se traduce en expresión, y calibrar la posición de reposo. Los cambios se aplican al instante, así que puedes ajustar el tacto mientras tocas. También permite calibrar los pedales, cambiar la afinación, la sensibilidad y el modo mesa, editar todas las propiedades del firmware, y muestra ambos teclados en vivo mientras tocas.
+La herramienta de configuración es una página web que muestra y modifica los parámetros del instrumento por USB-MIDI — funciona en ordenador, tableta o teléfono. Permite ajustar el fuelle arrastrando las curvas de empuje y tracción (o eligiendo un ajuste predefinido) para dar forma a cómo el esfuerzo se traduce en expresión, y calibrar la posición de reposo. Los cambios se aplican al instante, así que puedes ajustar el tacto mientras tocas. También permite calibrar los pedales, cambiar el sistema de teclado, la sensibilidad y el modo mesa, editar todas las propiedades del firmware, y muestra ambos teclados en vivo mientras tocas.
 
 <a href="https://bandolibre.github.io/tools/midi.html"><img width="505" alt="Abrir la herramienta de configuración" src="https://img.shields.io/badge/Abrir_la_herramienta_de_configuraci%C3%B3n-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
