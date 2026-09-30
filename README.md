@@ -57,32 +57,18 @@ This is a fully open DIY project. PCBs are designed for economic JLCPCB two-laye
 
 Building one costs about as much as a decent MIDI keyboard or a good pair of studio headphones like the DT-770 Pro.
 
----
 
-## Bill of Materials
+The parts list, tools, consumables and step-by-step assembly are in the assembly instructions:
 
-| Part | Qty | Notes |
-|------|-----|-------|
-| 3D-printed body parts + 71 keys | — | ~880 g filament, ~24 h print time, [STEP files](https://github.com/bandolibre/bandolibre.github.io/releases)|
-| Electronics board: Main, left and right PCBs  | 1 | [EasyEDA design](boards), [Gerber files](https://github.com/bandolibre/bandolibre.github.io/releases) |
-| Hall-effect switches | 71 | [GATERON Low Profile Magnetic Jade HE](https://www.gateron.com/products/gateron-low-profile-magnetic-jade-switch?VariantsId=10872) |
-| Bellows spring strip | 1 | [65Mn spring steel, 1.2 × 40 × 300 mm](https://fr.aliexpress.com/item/1005006952720032.html?spm=a2g0o.order_list.order_list_main.17.3cfd1802U67eT2&gatewayAdapt=glo2fra) |
-| Permanent magnets 14.5 × 6 × 2 mm | 2 |  |
-| M4 × 30 socket head cap, stainless A2 | 4 | [supplier](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36756-927484-vis-metaux-inox-a2-chc-btr-cle-de-3-hc3-m4x40-filetee-sur-22.html#/267-conditionnement-200_pieces)|
-| M4 × 10 × 0.8 flat washer, stainless A2 | 4 | [supplier](https://www.vis-express.fr/rondelle-plate-m-inox-a2-nfe-25513vs-nfe25513-grade-c/36925-940576-rondelle-plate-m4x10x08-m-inox-a2.html#/267-conditionnement-200_pieces)|
-| M3 × 6 socket head cap, stainless A2 | 19 | [supplier](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36726-2595617-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x6-filetage-total.html#/21-conditionnement-1_piece)|
-| M3 × 8 socket head cap, stainless A2 | 11 | [supplier](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36728-2610009-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x8-filetage-total.html#/21-conditionnement-1_piece) |
-| M3 × 12 socket head cap, stainless A2 | 4 | [supplier](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36731-2616466-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x12-filetage-total.html#/21-conditionnement-1_piece) |
-| M3 × 18 socket head cap, stainless A2 | 4 | [supplier](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36734-2596394-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x18-filetage-total.html#/21-conditionnement-1_piece) |
-| Adhesives | 2 drops | Loctite 480 |
-| USB Type-B cable | 1 | |
-| Ribbon cable, FC 1.27 mm, 12P (2×6), 10 cm | 2 | [supplier](https://fr.aliexpress.com/item/1005005058041580.html) |
-
-The full list, including tools and consumables, is in [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md).
+<a href="documentation/assembly_instructions.md"><img width="400" alt="Assembly instructions" src="https://img.shields.io/badge/Assembly_instructions-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
 
 They are best built in batches of five — JLCPCB minimum orders make that the natural unit. Team up with friends or reach out to [L'Atelier du bandonéon libre](https://github.com/bandolibre) to express interest in a community build.
 
 At fifty units, PCB fabrication and Gateron switches — the two biggest line items — drop by half again.
+
+- **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
+- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) — talks to the device over MIDI Sysex to view the keyboard live and tune firmware properties, no install needed
+- **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
 
 ---
 
@@ -104,15 +90,6 @@ The bellows is replaced by a **blade spring instrumented with two Hall-effect se
 A sensitivity selector button cycles through three amplification levels so the player can adjust how much bellows travel is needed to reach full expression — useful for quiet practice or a stiffer spring.
 
 For a detailed breakdown of the firmware behavior and controls, see [`documentation/features.md`](documentation/features.md).
-
----
-
-## Build it
-
-- **Hardware & assembly:** see [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
-- **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
-- **Configuration tool:** [connect over USB-MIDI in your browser](https://bandolibre.github.io/tools/midi.html) — talks to the device over MIDI Sysex to view the keyboard live and tune firmware properties, no install needed
-- **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
 
 ---
 

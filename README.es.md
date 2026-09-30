@@ -57,32 +57,17 @@ Este es un proyecto DIY completamente abierto. Los PCB están diseñados para la
 
 Construir un Bandolibre cuesta aproximadamente lo mismo que un buen teclado MIDI o un buen par de auriculares de estudio como el DT-770 Pro.
 
----
+La lista de materiales, las herramientas, los consumibles y el montaje paso a paso están en las instrucciones de montaje:
 
-## Lista de materiales
-
-| Pieza | Cant. | Notas |
-|-------|-------|-------|
-| Piezas impresas en 3D + 71 teclas | — | ~880 g de filamento, ~24 h de impresión, [archivos STEP](https://github.com/bandolibre/bandolibre.github.io/releases)|
-| Placas electrónicas: principal, izquierda y derecha | 1 | [Diseño EasyEDA](boards), [archivos Gerber](https://github.com/bandolibre/bandolibre.github.io/releases) |
-| Interruptores de efecto Hall | 71 | [GATERON Low Profile Magnetic Jade HE](https://www.gateron.com/products/gateron-low-profile-magnetic-jade-switch?VariantsId=10872) |
-| Lámina resorte para fuelle | 1 | [Acero para resorte 65Mn, 1,2 × 40 × 300 mm](https://fr.aliexpress.com/item/1005006952720032.html?spm=a2g0o.order_list.order_list_main.17.3cfd1802U67eT2&gatewayAdapt=glo2fra) |
-| Imanes permanentes 14,5 × 6 × 2 mm | 2 | |
-| Tornillo allen M4 × 30, acero inox A2 | 4 | [proveedor](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36756-927484-vis-metaux-inox-a2-chc-btr-cle-de-3-hc3-m4x40-filetee-sur-22.html#/267-conditionnement-200_pieces)|
-| Arandela plana M4 × 10 × 0,8, acero inox A2 | 4 | [proveedor](https://www.vis-express.fr/rondelle-plate-m-inox-a2-nfe-25513vs-nfe25513-grade-c/36925-940576-rondelle-plate-m4x10x08-m-inox-a2.html#/267-conditionnement-200_pieces)|
-| Tornillo allen M3 × 6, acero inox A2 | 19 | [proveedor](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36726-2595617-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x6-filetage-total.html#/21-conditionnement-1_piece)|
-| Tornillo allen M3 × 8, acero inox A2 | 11 | [proveedor](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36728-2610009-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x8-filetage-total.html#/21-conditionnement-1_piece) |
-| Tornillo allen M3 × 12, acero inox A2 | 4 | [proveedor](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36731-2616466-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x12-filetage-total.html#/21-conditionnement-1_piece) |
-| Tornillo allen M3 × 18, acero inox A2 | 4 | [proveedor](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36734-2596394-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x18-filetage-total.html#/21-conditionnement-1_piece) |
-| Adhesivos | 2 gotas | Loctite 480 |
-| Cable USB Type-B | 1 | |
-| Cable plano, FC 1.27 mm, 12P (2×6), 10 cm | 2 | [proveedor](https://fr.aliexpress.com/item/1005005058041580.html) |
-
-La lista completa, incluidas herramientas y consumibles, está en [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md).
+<a href="documentation/assembly_instructions.md"><img width="454" alt="Instrucciones de montaje" src="https://img.shields.io/badge/Instrucciones_de_montaje-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
 
 Lo ideal es construirlos por lotes de cinco — los pedidos mínimos de JLCPCB hacen de esta la cantidad mas conveniente. Únete a amigos o contacta a [L'Atelier du bandonéon libre](https://github.com/bandolibre) para expresar interés en una construcción colectiva.
 
 A partir de cincuenta unidades, la fabricación de PCB y los interruptores Gateron — las dos partidas más importantes — el costo baja a la mitad nuevamente.
+
+- **Firmware:** ver [`code/`](code/) — compilar con `just build` y `just flash` para flashear via ST-LINK
+- **Herramienta de configuración:** [conéctate por USB-MIDI desde tu navegador](https://bandolibre.github.io/tools/midi.html) — se comunica con el dispositivo por MIDI Sysex para visualizar el teclado en vivo y ajustar las propiedades del firmware, sin instalar nada
+- **Actualización de firmware:** pon la placa en modo DFU y aparecerá como una unidad de almacenamiento masivo USB — arrastra el archivo `.uf2` sobre ella y reiniciará con el nuevo firmware, sin necesidad de programador
 
 ---
 
@@ -104,15 +89,6 @@ El fuelle es reemplazado por una **lámina de resorte equipada con dos sensores 
 Un botón selector de sensibilidad permite selectionar entre tres niveles de amplificación para ajustar cuánto recorrido de fuelle se necesita para alcanzar la máxima expresión — útil para tocar suave.
 
 Para un desglose detallado del comportamiento del firmware y los controles, ver [`documentation/features.md`](documentation/features.md).
-
----
-
-## Construcción
-
-- **Hardware y ensamblado:** ver [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
-- **Firmware:** ver [`code/`](code/) — compilar con `just build` y `just flash` para flashear via ST-LINK
-- **Herramienta de configuración:** [conéctate por USB-MIDI desde tu navegador](https://bandolibre.github.io/tools/midi.html) — se comunica con el dispositivo por MIDI Sysex para visualizar el teclado en vivo y ajustar las propiedades del firmware, sin instalar nada
-- **Actualización de firmware:** pon la placa en modo DFU y aparecerá como una unidad de almacenamiento masivo USB — arrastra el archivo `.uf2` sobre ella y reiniciará con el nuevo firmware, sin necesidad de programador
 
 ---
 

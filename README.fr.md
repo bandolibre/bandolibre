@@ -57,32 +57,17 @@ C'est un projet DIY entièrement ouvert. Les PCB sont conçus pour la fabricatio
 
 Construire un Bandolibre coûte à peu près autant qu'un bon clavier MIDI ou une bonne paire de casques de studio comme le DT-770 Pro.
 
----
+La nomenclature, l'outillage, les consommables et le montage pas à pas se trouvent dans les instructions de montage :
 
-## Nomenclature
-
-| Pièce | Qté | Notes |
-|-------|-----|-------|
-| Pièces imprimées 3D + 71 touches | — | ~880 g de filament, ~24 h d'impression, [fichiers STEP](https://github.com/bandolibre/bandolibre.github.io/releases)|
-| Cartes électroniques : principale, gauche et droite | 1 | [Conception EasyEDA](boards), [fichiers Gerber](https://github.com/bandolibre/bandolibre.github.io/releases) |
-| Interrupteurs à effet Hall | 71 | [GATERON Low Profile Magnetic Jade HE](https://www.gateron.com/products/gateron-low-profile-magnetic-jade-switch?VariantsId=10872) |
-| Lame-ressort soufflet | 1 | [Acier à ressort 65Mn, 1,2 × 40 × 300 mm](https://fr.aliexpress.com/item/1005006952720032.html?spm=a2g0o.order_list.order_list_main.17.3cfd1802U67eT2&gatewayAdapt=glo2fra) |
-| Aimants permanents 14,5 × 6 × 2 mm | 2 | |
-| Vis CHC M4 × 30, inox A2 | 4 | [fournisseur](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36756-927484-vis-metaux-inox-a2-chc-btr-cle-de-3-hc3-m4x40-filetee-sur-22.html#/267-conditionnement-200_pieces)|
-| Rondelle plate M4 × 10 × 0,8, inox A2 | 4 | [fournisseur](https://www.vis-express.fr/rondelle-plate-m-inox-a2-nfe-25513vs-nfe25513-grade-c/36925-940576-rondelle-plate-m4x10x08-m-inox-a2.html#/267-conditionnement-200_pieces)|
-| Vis CHC M3 × 6, inox A2 | 19 | [fournisseur](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36726-2595617-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x6-filetage-total.html#/21-conditionnement-1_piece)|
-| Vis CHC M3 × 8, inox A2 | 11 | [fournisseur](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36728-2610009-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x8-filetage-total.html#/21-conditionnement-1_piece) |
-| Vis CHC M3 × 12, inox A2 | 4 | [fournisseur](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36731-2616466-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x12-filetage-total.html#/21-conditionnement-1_piece) |
-| Vis CHC M3 × 18, inox A2 | 4 | [fournisseur](https://www.vis-express.fr/vis-metaux-inox-a2-chc-btr-cle-de-8-hc8-filetage-total-din-912-din-912-iso-4762/36734-2596394-vis-metaux-inox-a2-chc-btr-cle-de-25-hc25-m3x18-filetage-total.html#/21-conditionnement-1_piece) |
-| Adhésifs | 2 gouttes | Loctite 480 |
-| Câble USB Type-B | 1 | |
-| Nappe, FC 1.27 mm, 12P (2×6), 10 cm | 2 | [fournisseur](https://fr.aliexpress.com/item/1005005058041580.html) |
-
-La liste complète, outillage et consommables compris, se trouve dans [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md).
+<a href="documentation/assembly_instructions.md"><img width="438" alt="Instructions de montage" src="https://img.shields.io/badge/Instructions_de_montage-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
 
 La construction par lot de cinq est idéale — les commandes minimum JLCPCB en font l'unité naturelle. Faites équipe avec des amis ou contactez [L'Atelier du bandonéon libre](https://github.com/bandolibre) pour manifester votre intérêt pour une construction collective.
 
 À cinquante unités, la fabrication des PCB et les interrupteurs Gateron — les deux postes les plus importants — baissent encore de moitié.
+
+- **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
+- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) — dialogue avec l'appareil en MIDI Sysex pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
+- **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
 
 ---
 
@@ -104,15 +89,6 @@ Le soufflet est remplacé par une **lame-ressort instrumentée de deux capteurs 
 Un bouton sélecteur de sensibilité permet de cycler entre trois niveaux d'amplification pour ajuster la course de soufflet nécessaire à l'expression maximale — utile pour jouer doucement ou avec une lame plus rigide.
 
 Pour un détail du comportement du firmware et des commandes, voir [`documentation/features.md`](documentation/features.md).
-
----
-
-## Construction
-
-- **Matériel et assemblage :** voir [`documentation/assembly_instructions.md`](documentation/assembly_instructions.md)
-- **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
-- **Outil de configuration :** [connectez-vous en USB-MIDI depuis votre navigateur](https://bandolibre.github.io/tools/midi.html) — dialogue avec l'appareil en MIDI Sysex pour visualiser le clavier en direct et régler les propriétés du firmware, sans rien installer
-- **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
 
 ---
 
