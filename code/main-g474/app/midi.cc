@@ -132,9 +132,12 @@ void send_hello_response()
   usb_app_midi_send_sysex(body.data(), body.size());
 }
 
-/* Raw ADC readings, for diagnostics/calibration: the bellows' two hall
- * sensors and both pedal wipers (each paired with its presence flag, since a
- * disconnected pedal's ADC value is floating and meaningless). */
+/* Live state, polled several times a second by the configuration tool. Raw
+ * ADC readings, for diagnostics/calibration: the bellows' two hall sensors and
+ * both pedal wipers (each paired with its presence flag, since a disconnected
+ * pedal's ADC value is floating and meaningless). Then the settings the
+ * function buttons change (table_mode, keyboard_tuning, bellow_program), so a
+ * button press shows up in the tool without a property read of each. */
 void send_peripherals_response()
 {
   uint16_t hall0, hall1;
@@ -154,6 +157,9 @@ void send_peripherals_response()
   writer.write(pedal1_sample);
   writer.write((uint8_t)(pedal2_connected ? 1 : 0));
   writer.write(pedal2_sample);
+  writer.write((uint8_t)(g_properties->table_mode ? 1 : 0));
+  writer.write((uint8_t)g_properties->keyboard_tuning);
+  writer.write((uint8_t)g_properties->bellow_program);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());

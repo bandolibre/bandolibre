@@ -319,14 +319,15 @@
   }
   .bp-presets button:hover { border-color: var(--muted); }
 
-  /* Bellows program selector, above the graph: the active one is filled. */
-  .bp-programs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .bp-programs button {
+  /* One-of-N selectors (bellows program, keyboard system): every value is visible
+   * upfront and the active one is filled. */
+  .choice-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .choice-buttons button {
     font-size: 0.85rem; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
     padding: 5px 14px; border-radius: 999px; cursor: pointer;
   }
-  .bp-programs button:hover { border-color: var(--muted); }
-  .bp-programs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .choice-buttons button:hover { border-color: var(--muted); }
+  .choice-buttons button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
   .bp-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
   @media (max-width: 520px) { .bp-params { grid-template-columns: 1fr; } }
@@ -377,14 +378,15 @@
   .bp-vline.ped-max { stroke: var(--pull); }
 
   /* ---- Function buttons (mirrors the 3 physical FN buttons, left to
-     right: tuning, bellows sensitivity, table mode) ---- */
-  .fnbtn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+     right: keyboard system, table mode) ---- */
+  .bp-programs { justify-content: flex-start; margin-top: 8px; }
+
+  .fnbtn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
   .fnbtn-box {
     min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
     display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
   }
   .fnbtn-title { font-size: 0.75rem; color: var(--muted); }
-  .fnbtn-box select { font-size: 0.85rem; padding: 4px 6px; }
   .fnbtn-desc { font-size: 0.7rem; color: var(--muted); margin: 0; line-height: 1.35; }
 
   /* ---- Keyboard layout diagrams ---- */
@@ -604,7 +606,7 @@
       </label>
     </div>
 
-    <div class="bp-programs" id="bpPrograms" role="group" aria-label="Bellows program">
+    <div class="choice-buttons bp-programs" id="bpPrograms" role="group" aria-label="Bellows program">
       <button type="button" data-program="0" aria-pressed="true">Program 1</button>
       <button type="button" data-program="1" aria-pressed="false">Program 2</button>
       <button type="button" data-program="2" aria-pressed="false">Program 3</button>
@@ -813,13 +815,13 @@
     <label>Function buttons</label>
     <div class="fnbtn-grid">
       <div class="fnbtn-box">
-        <div class="fnbtn-title">Tuning</div>
-        <select id="kbdTuningSelect">
-          <option value="0">Rheinische Tonlage</option>
-          <option value="1">Peguri</option>
-          <option value="2">Manoury</option>
-        </select>
-        <p class="fnbtn-desc">Selects which mapping from key to notes is used: Rheinische, Peguri, or Manoury.</p>
+        <div class="fnbtn-title">Keyboard system</div>
+        <div class="choice-buttons" id="kbdTuningButtons" role="group" aria-label="Keyboard system">
+          <button type="button" data-tuning="0" aria-pressed="true">Rheinische Tonlage</button>
+          <button type="button" data-tuning="1" aria-pressed="false">Peguri</button>
+          <button type="button" data-tuning="2" aria-pressed="false">Manoury</button>
+        </div>
+        <p class="fnbtn-desc">Which notes each key plays. Also cycled by the right button on the instrument.</p>
       </div>
       <div class="fnbtn-box">
         <div class="fnbtn-title">Table mode</div>
@@ -1298,9 +1300,14 @@
         const pedal1Sample = reader.readUInt16();
         const pedal2Connected = reader.readUint8();
         const pedal2Sample = reader.readUInt16();
+        const tableMode = reader.readUint8();
+        const tuning = reader.readUint8();
+        const bellowProgram = reader.readUint8();
         return name + " hall0=" + hall0 + " hall1=" + hall1 +
                " pedal1=" + (pedal1Connected ? "connected" : "disconnected") + ":" + pedal1Sample +
-               " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample;
+               " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample +
+               (tableMode !== null ? " table_mode=" + tableMode + " keyboard_tuning=" + tuning +
+                                     " bellow_program=" + bellowProgram : "");
       }
       case SYSEX_MSG_BELLOWS_DIRECTION: {
         const dir = reader.readUint8();
@@ -1413,7 +1420,9 @@
 
   /* The bellows' two raw hall ADC readings and both pedals' wiper ADC
    * readings + presence flags (a disconnected pedal's sample is floating and
-   * meaningless). */
+   * meaningless), then the settings the function buttons change: table mode,
+   * keyboard system and bellows program (null from an older firmware that
+   * doesn't send them). */
   async function requestPeripherals() {
     const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_GET_PERIPHERALS).toBytes());
     const reader = new DataReader(payload);
@@ -1424,7 +1433,11 @@
     const pedal1Sample = reader.readUInt16();
     const pedal2Connected = !!reader.readUint8();
     const pedal2Sample = reader.readUInt16();
-    return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample };
+    const tableMode = reader.readUint8();
+    const tuning = reader.readUint8();
+    const bellowProgram = reader.readUint8();
+    return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample,
+             tableMode, tuning, bellowProgram };
   }
 
   async function requestSetProperty(index, value) {
@@ -2474,6 +2487,7 @@
       liveAdcTotal = p.hall0 + p.hall1;
       updateLiveDot();
       updatePedalLiveState(p);
+      updateButtonSettingsFromDevice(p);
     } catch (err) {
       // Transient: another request may have been in flight. Retried next tick.
     }
@@ -3054,10 +3068,13 @@
     }
   }
 
-  const kbdTuningSelect = document.getElementById("kbdTuningSelect");
+  const kbdTuningButtons = document.querySelectorAll("#kbdTuningButtons button");
   const kbdTableModeToggle = document.getElementById("kbdTableModeToggle");
 
-  function syncTuningUi() { kbdTuningSelect.value = String(currentTuning); }
+  function syncTuningUi() {
+    kbdTuningButtons.forEach((btn) =>
+      btn.setAttribute("aria-pressed", String(+btn.dataset.tuning === currentTuning)));
+  }
   function syncTableModeUi() { kbdTableModeToggle.checked = currentTableMode; }
 
   /* Reads keyboard_tuning/table_mode from the initial
@@ -3074,7 +3091,7 @@
       currentTuning = fetched.get(index).value;
       keyboardTuningLive = true;
     } else {
-      log("keyboard tuning: property \"keyboard_tuning\" not found on this device - showing default tuning.", "sysexGetPropertyDescription");
+      log("keyboard system: property \"keyboard_tuning\" not found on this device - showing the default keyboard system.", "sysexGetPropertyDescription");
     }
     syncTuningUi();
     renderKeyboard("left");
@@ -3104,41 +3121,34 @@
     }
   }
 
+  /* Follows the function buttons on the instrument (or a console edit): the
+   * peripherals poll carries table_mode, keyboard_tuning and bellow_program.
+   * A setting is skipped while this page's own write is in flight or still
+   * queued (writeInFlight is a single slot, so it covers whichever write it
+   * is), so a reply from just before the write lands can't bounce the UI back. */
+  function updateButtonSettingsFromDevice(p) {
+    if (p.tableMode === null || p.bellowProgram === null) return; // older firmware
+    const settled = (index) => !writeInFlight && !writeQueue.has(index);
+    if (keyboardTuningLive && settled(KEYBOARD_TUNING_PROP_INDEX)
+        && p.tuning !== currentTuning && p.tuning < KBD_NOTE_TABLE.length) {
+      currentTuning = p.tuning;
+      syncTuningUi();
+      renderKeyboard("left");
+      renderKeyboard("right");
+    }
+    if (tableModeLive && settled(TABLE_MODE_PROP_INDEX) && !!p.tableMode !== currentTableMode) {
+      currentTableMode = !!p.tableMode;
+      syncTableModeUi();
+    }
+    if (bellowProgramLive && settled(BELLOW_PROGRAM_PROP_INDEX)
+        && p.bellowProgram !== currentBellowProgram && p.bellowProgram < BELLOW_PROGRAM_COUNT) {
+      selectBellowProgram(p.bellowProgram, { fromDevice: true });
+    }
+  }
+
   let keyboardPropsTimer = null;
   async function pollKeyboardPropsOnce() {
     if (!activeOutput) return;
-    if (keyboardTuningLive) try {
-      const value = await requestPropertyValue(KEYBOARD_TUNING_PROP_INDEX);
-      if (value !== currentTuning && value >= 0 && value < KBD_NOTE_TABLE.length) {
-        currentTuning = value;
-        syncTuningUi();
-        renderKeyboard("left");
-        renderKeyboard("right");
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
-    if (tableModeLive) try {
-      const value = await requestPropertyValue(TABLE_MODE_PROP_INDEX);
-      const boolValue = !!value;
-      if (boolValue !== currentTableMode) {
-        currentTableMode = boolValue;
-        syncTableModeUi();
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
-    // FN1 on the instrument (or a console edit) changed the program. Skipped
-    // while this page's own program write is still queued or in flight, so a
-    // read from just before it lands doesn't bounce the selection back.
-    if (bellowProgramLive && !writeInFlight && !writeQueue.has(BELLOW_PROGRAM_PROP_INDEX)) try {
-      const value = await requestPropertyValue(BELLOW_PROGRAM_PROP_INDEX);
-      if (value !== currentBellowProgram && value >= 0 && value < BELLOW_PROGRAM_COUNT) {
-        selectBellowProgram(value, { fromDevice: true });
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
     // No UI to sync here - just keeps the cached value current in case
     // tablemode_velocity is edited from the generic Properties table.
     if (tablemodeVelocityLive) try {
@@ -3156,13 +3166,14 @@
     if (keyboardPropsTimer) { clearInterval(keyboardPropsTimer); keyboardPropsTimer = null; }
   }
 
-  kbdTuningSelect.addEventListener("change", () => {
-    const value = +kbdTuningSelect.value;
+  kbdTuningButtons.forEach((btn) => btn.addEventListener("click", () => {
+    const value = +btn.dataset.tuning;
     currentTuning = value;
+    syncTuningUi();
     renderKeyboard("left");
     renderKeyboard("right");
     if (keyboardTuningLive) queueSetProperty(KEYBOARD_TUNING_PROP_INDEX, value);
-  });
+  }));
   kbdTableModeToggle.addEventListener("change", () => {
     currentTableMode = kbdTableModeToggle.checked;
     if (tableModeLive) queueSetProperty(TABLE_MODE_PROP_INDEX, currentTableMode ? 1 : 0);
