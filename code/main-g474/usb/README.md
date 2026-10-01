@@ -31,10 +31,22 @@ the two devices expose different classes.
 - `tusb_config.h` — TinyUSB feature configuration (device-only, MIDI).
 - `usb_descriptors.c` — device/configuration/string descriptors. Strings are
   UTF-8 and converted to UTF-16 on the fly, so accented names work.
-- `usb_app.c/.h` — glue: `usb_app_init()` starts the stack (called from
+- `usb_app.cc/.h` — glue: `usb_app_init()` starts the stack (called from
   `main()` after `MX_USB_PCD_Init()`), `usb_app_task()` runs `tud_task()` from
-  the main loop, and the three USB IRQ handlers (which override the weak
-  symbols in `startup_stm32g474xx.s`).
+  the main loop and reassembles incoming SysEx, the `usb_app_midi_*` senders
+  (note, CC, 14-bit CC, active sensing, SysEx), and the three USB IRQ handlers
+  (which override the weak symbols in `startup_stm32g474xx.s`).
+
+## SysEx framing
+
+The configuration tool talks to the firmware over SysEx (message handling in
+`app/midi.cc`). Between 0xF0 and 0xF7, the body is a 16-bit XOR checksum
+followed by the payload, then repacked into 7-bit groups: each run of up to 7
+bytes becomes 8, a leading byte holding the seven bit-7s, then the bytes with
+bit 7 cleared. ALSA and Web MIDI read any byte with bit 7 set as a new status
+byte, so escaping only 0xF0/0xF7 is not enough. `CFG_TUD_MIDI_TX_BUFSIZE` is
+sized to hold one full encoded response. `code/web/midi.html` implements the
+host side; change both together.
 
 The TinyUSB sources, include paths, and the `CFG_TUSB_MCU=OPT_MCU_STM32G4`
 define are listed in the user sections of [CMakeLists.txt](../CMakeLists.txt).

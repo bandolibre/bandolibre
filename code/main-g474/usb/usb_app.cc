@@ -39,7 +39,7 @@ void usb_app_init(void)
   /* USB clocks (HSI48 + CRS) come from CubeMX init code, checked by
    * code/tests/test_usb_config.py. */
 
-  /* Below the console UART, so a CDC burst can't starve reception (HAL tick
+  /* Below the console UART, so a USB burst can't starve reception (HAL tick
    * stays at 0). */
   NVIC_SetPriority(USB_HP_IRQn, 6);
   NVIC_SetPriority(USB_LP_IRQn, 6);

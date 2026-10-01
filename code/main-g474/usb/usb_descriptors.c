@@ -1,6 +1,6 @@
 /*
  * USB descriptors for the Bandolibre main board.
- * Composite full-speed device: MIDI + CDC (console mirror).
+ * Full-speed MIDI-only device (CDC is disabled in tusb_config.h).
  */
 
 #include "tusb.h"
