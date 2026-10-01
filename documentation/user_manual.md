@@ -82,13 +82,16 @@ sounds as soon as you press it, without pushing or pulling the bellows. Every ke
 This is useful for entering a score into notation software one note at a time.
 Press it again to go back to normal playing.
 
-### Middle button: bellows sensitivity
+### Middle button: bellows program
 
-Press the **middle button** to step through three sensitivity levels: **low → medium →
-high**, then back to low.
+Press the **middle button** to step through three bellows programs:
+**1 → 2 → 3**, then back to 1.
 
-At a higher level, you reach full loudness with less bellows effort. Use it for
-quiet practice, or if the spring blade feels too stiff. Sensitivity has no
+Each program has its own bellows settings: rest position, how far you move the
+bellows before a note sounds, and how your effort turns into loudness. You can
+tune each of them in the configuration tool. By default, programs 2 and 3
+reach full loudness with less bellows effort than program 1. Use them for quiet
+practice, or if the spring blade feels too stiff. The bellows program has no
 effect in table mode.
 
 ### Right button: keyboard system
@@ -135,7 +138,7 @@ With it you can:
   choose how your effort turns into loudness;
 - **calibrate the rest position** of the bellows;
 - **calibrate the pedals**;
-- switch keyboard system, sensitivity and table mode;
+- switch keyboard system, bellows program and table mode;
 - see both keyboards live as you play.
 
 Changes apply immediately, so you can adjust the feel while playing.
@@ -160,8 +163,8 @@ You can also install it as an app, so it opens from its own icon:
 ## Settings are reset when you unplug
 
 The Bandolibre does not yet remember its settings. When you unplug it, it goes
-back to its defaults: Rheinische Tonlage keyboard, low sensitivity, table mode
-off, and the default bellows and pedal settings.
+back to its defaults: Rheinische Tonlage keyboard, bellows program 1, table
+mode off, and the default bellows and pedal settings.
 
 If you have tuned the bellows or pedals in the configuration tool, you need to
 set them again after reconnecting.

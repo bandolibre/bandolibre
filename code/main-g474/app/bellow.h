@@ -21,10 +21,9 @@ bellows_t bellow_direction(void);
  * 7-bit range, ...). */
 float bellow_intensity(void);
 
-/* Sensitivity multiplier for the level FN1 currently selects, as a Q8 fixed
- * point value (256 = x1.0). Already applied to bellow_intensity(). Table mode
- * has no bellows signal to scale, so the levels do not affect it. */
-uint16_t bellow_sens_scale_q8(void);
+/* Number of bellows programs (bellow_p<n>_* in property_table.def). The
+ * bellow_program property selects the active one; FN1 cycles it. */
+#define BELLOW_PROGRAM_COUNT 3
 
 /* Samples both hall sensors, updates the direction/intensity, and emits the
  * expression CC. Call once per main loop iteration. Read the result via

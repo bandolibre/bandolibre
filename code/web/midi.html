@@ -319,6 +319,15 @@
   }
   .bp-presets button:hover { border-color: var(--muted); }
 
+  /* Bellows program selector, above the graph: the active one is filled. */
+  .bp-programs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .bp-programs button {
+    font-size: 0.85rem; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+    padding: 5px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .bp-programs button:hover { border-color: var(--muted); }
+  .bp-programs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
   .bp-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
   @media (max-width: 520px) { .bp-params { grid-template-columns: 1fr; } }
   .bp-group {
@@ -586,13 +595,19 @@
     <div class="bellow-header">
       <label>Bellow</label>
       <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
-      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on bellow_center">
+      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on the program's center">
         <span>🔍 ×4</span>
         <span class="kbd-toggle-switch">
           <input type="checkbox" id="zoomCenterToggle">
           <span class="kbd-toggle-track"></span>
         </span>
       </label>
+    </div>
+
+    <div class="bp-programs" id="bpPrograms" role="group" aria-label="Bellows program">
+      <button type="button" data-program="0" aria-pressed="true">Program 1</button>
+      <button type="button" data-program="1" aria-pressed="false">Program 2</button>
+      <button type="button" data-program="2" aria-pressed="false">Program 3</button>
     </div>
 
     <svg class="bellow-plot" viewBox="0 0 900 396" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
@@ -646,7 +661,7 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Hold Shift while dragging for fine adjustment. Shown at unity sensitivity; hysteresis not shown (deadzone lines use <code>bellow_dead</code> only).</p>
+    <p class="bp-caption">Each program has its own center, deadzone, full push/pull and curves; the FN1 button cycles through them. Hold Shift while dragging for fine adjustment. Hysteresis not shown (deadzone lines use the program's deadzone only).</p>
 
     <div class="bp-group">
       <div class="bp-group-title">Presets</div>
@@ -805,15 +820,6 @@
           <option value="2">Manoury</option>
         </select>
         <p class="fnbtn-desc">Selects which mapping from key to notes is used: Rheinische, Peguri, or Manoury.</p>
-      </div>
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Bellows sensitivity</div>
-        <select id="bellowSensSelect">
-          <option value="0">Low (unity)</option>
-          <option value="1">Medium</option>
-          <option value="2">High</option>
-        </select>
-        <p class="fnbtn-desc">How much bellows travel is needed for full expression (CC#11) - higher levels reach full swing with less push/pull. Also cycled by the FN1 button.</p>
       </div>
       <div class="fnbtn-box">
         <div class="fnbtn-title">Table mode</div>
@@ -1591,7 +1597,6 @@
       applyPedalGraphFromFetched(fetched, byName);
       applyKeyboardTuningFromFetched(fetched, byName);
       applyTableModeFromFetched(fetched, byName);
-      applyBellowSensFromFetched(fetched, byName);
       applyTablemodeVelocityFromFetched(fetched, byName);
 
       try {
@@ -1620,7 +1625,7 @@
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
   // GET_PROPERTY_DESCRIPTION now returns a property's symbolic name (see
-  // midi.cc), so which index is "bellow_center" etc. is resolved by looking
+  // midi.cc), so which index is "bellow_p0_center" etc. is resolved by looking
   // it up by name among the just-fetched properties (byName, built in
   // enumerateProperties) rather than assumed from property_table.def's
   // declaration order. PROP_INDEX starts empty and is filled in by
@@ -1628,13 +1633,28 @@
   // (an older firmware, say) leaves it unresolved, and bellowGraphLive stays
   // false - a local-only (read-only-to-the-device) graph instead of risking
   // a write to the wrong property.
-  const PROP_NAMES = {
-    center: "bellow_center", dead: "bellow_dead", fullPush: "bellow_full_push", fullPull: "bellow_full_pull",
-    pushX1: "bellow_push_curve_x1", pushY1: "bellow_push_curve_y1", pushX2: "bellow_push_curve_x2", pushY2: "bellow_push_curve_y2",
-    pullX1: "bellow_pull_curve_x1", pullY1: "bellow_pull_curve_y1", pullX2: "bellow_pull_curve_x2", pullY2: "bellow_pull_curve_y2",
+  //
+  // The firmware has BELLOW_PROGRAM_COUNT programs (bellow.h), each a full
+  // set of bellow_p<n>_* properties; bellow_program selects the active one
+  // (also cycled by FN1). The graph always shows and edits the active
+  // program, so PROP_INDEX is per program: PROP_INDEX[n][key].
+  const BELLOW_PROGRAM_COUNT = 3;
+  const BELLOW_PROP_SUFFIX = {
+    center: "center", dead: "dead", fullPush: "full_push", fullPull: "full_pull",
+    pushX1: "push_curve_x1", pushY1: "push_curve_y1", pushX2: "push_curve_x2", pushY2: "push_curve_y2",
+    pullX1: "pull_curve_x1", pullY1: "pull_curve_y1", pullX2: "pull_curve_x2", pullY2: "pull_curve_y2",
   };
-  const PROP_INDEX = {};
+  const bellowPropName = (n, key) => "bellow_p" + n + "_" + BELLOW_PROP_SUFFIX[key];
+  const PROP_INDEX = [];
   let bellowGraphLive = false;
+  let BELLOW_PROGRAM_PROP_INDEX = null;
+  let currentBellowProgram = 0; // matches bellow_program's default_value
+  let bellowProgramLive = false; // true once bellow_program resolved on a connected device
+
+  // Writes one field of the active program (key as in BELLOW_PROP_SUFFIX).
+  function writeBellowProp(key, value) {
+    if (bellowGraphLive) queueSetProperty(PROP_INDEX[currentBellowProgram][key], value);
+  }
   let liveAdcTotal = null;
 
   // Latest CC#11 (Expression, 14-bit MSB/LSB pair with CC#43) actually
@@ -1646,7 +1666,7 @@
   // shows "-" until a real message has actually arrived.
   let liveCcMsb = null, liveCcLsb = 0;
 
-  // Same name-lookup approach as PROP_NAMES/PROP_INDEX above, for the two
+  // Same name-lookup approach as PROP_INDEX above, for the two
   // pedal calibration ranges.
   const PEDAL_PROP_NAMES = { p1Min: "pedal1_min", p1Max: "pedal1_max", p2Min: "pedal2_min", p2Max: "pedal2_max" };
   const PEDAL_PROP_INDEX = {};
@@ -1660,10 +1680,12 @@
   // Function buttons card further down) are left out of the generic
   // Properties table below, so there's one place to edit each of them rather
   // than two that could drift out of sync. Named rather than indexed, same
-  // reasoning as PROP_NAMES above.
+  // reasoning as PROP_INDEX above.
   const PROPS_EDITED_ELSEWHERE = new Set([
-    ...Object.values(PROP_NAMES), ...Object.values(PEDAL_PROP_NAMES),
-    "keyboard_tuning", "table_mode", "bellow_sens_level",
+    ...Array.from({ length: BELLOW_PROGRAM_COUNT }, (_, n) =>
+      Object.keys(BELLOW_PROP_SUFFIX).map((key) => bellowPropName(n, key))).flat(),
+    ...Object.values(PEDAL_PROP_NAMES),
+    "keyboard_tuning", "table_mode", "bellow_program",
   ]);
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
@@ -1701,11 +1723,21 @@
     return y * 1024;
   }
 
-  const bg = {
-    center: 27800, dead: 32, fullPush: 23400, fullPull: 32000,
-    push: { x1: 85, y1: 85, x2: 171, y2: 171 },
-    pull: { x1: 85, y1: 85, x2: 171, y2: 171 },
-  };
+  // Per-program values, mirroring property_table.def's defaults until a
+  // device is read. bg is the program being shown and edited; it is copied
+  // back into bgPrograms when another program is selected.
+  const bgProgramDefault = (fullPush, fullPull) => ({
+    center: 28972, dead: 64, fullPush, fullPull,
+    push: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    pull: { x1: 10, y1: 0, x2: 245, y2: 256 },
+  });
+  const bgPrograms = [
+    bgProgramDefault(25849, 32000),
+    bgProgramDefault(26890, 30991),
+    bgProgramDefault(27410, 30486),
+  ];
+  const copyBellowProgram = (p) => ({ ...p, push: { ...p.push }, pull: { ...p.pull } });
+  const bg = copyBellowProgram(bgPrograms[0]);
   const bgPresets = {
     linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
     feather: { x1: 40, y1: 220, x2: 150, y2: 235 },
@@ -1766,7 +1798,7 @@
     },
   };
 
-  // ---- Geometry: a plain linear ADC axis, 10% beyond bellow_full_push/pull
+  // ---- Geometry: a plain linear ADC axis, 10% beyond the full push/pull
   // on each side, and a CC (0..127) axis. ----
   const PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_TOP = 30, PLOT_BOTTOM = 340;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -1804,11 +1836,9 @@
   }
 
   /* CC for a raw ADC total: 0 in the deadzone, saturating at 127 beyond
-   * bellow_full_push/pull (never negative, never implies the opposite
-   * direction), a cubic-Bezier ramp (bellow_push_curve/bellow_pull_curve) in
-   * between - mirrors bellow_classify() + bellow_curve_apply() in the
-   * firmware, at unity sensitivity (bellow_scale_* depends on the FN1
-   * button level, out of scope for this static graph). */
+   * the program's full push/pull (never negative, never implies the opposite
+   * direction), the program's cubic-Bezier push/pull curve in between -
+   * mirrors bellow_classify() + bellow_curve_apply() in the firmware. */
   function ccForAdc(adc) {
     const { pushEdge, pullEdge } = edges();
     if (adc >= Math.min(pushEdge, pullEdge) && adc <= Math.max(pushEdge, pullEdge)) return 0;
@@ -2037,15 +2067,15 @@
   }
   makeDraggableVLine(bpEls.hitCenter, () => bg.center, (v) => {
     bg.center = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, v);
+    writeBellowProp("center", v);
   }, 17000, 34000, 20);
   makeDraggableVLine(bpEls.hitFullPush, () => bg.fullPush, (v) => {
     bg.fullPush = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPush, v);
+    writeBellowProp("fullPush", v);
   }, 0, 50000, 20);
   makeDraggableVLine(bpEls.hitFullPull, () => bg.fullPull, (v) => {
     bg.fullPull = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPull, v);
+    writeBellowProp("fullPull", v);
   }, 0, 50000, 20);
 
   /* Draggable Bezier control point: full 2D, within its own ramp's box.
@@ -2084,20 +2114,16 @@
       e.preventDefault();
       bg[side]["x" + cpNum] = clamp(bg[side]["x" + cpNum] + dx, 0, 256);
       bg[side]["y" + cpNum] = clamp(bg[side]["y" + cpNum] + dy, 0, 256);
-      if (bellowGraphLive) {
-        queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
-        queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
-      }
+      writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
+      writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
       redrawGraph();
     });
   }
   function applyCpFrac(side, cpNum, xfrac, yfrac) {
     bg[side]["x" + cpNum] = clamp(Math.round(xfrac * 256), 0, 256);
     bg[side]["y" + cpNum] = clamp(Math.round(yfrac * 256), 0, 256);
-    if (bellowGraphLive) {
-      queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
-      queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
-    }
+    writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
+    writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
     redrawGraph();
   }
   makeDraggableCP(bpEls.hitCpPush1, bpEls.hCpPush1, "push", 1);
@@ -2111,7 +2137,7 @@
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), 0, 256);
       bg[side][axis] = v;
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX[side + axis[0].toUpperCase() + axis.slice(1)], v);
+      writeBellowProp(side + axis[0].toUpperCase() + axis.slice(1), v);
       redrawGraph();
     });
   }
@@ -2121,18 +2147,16 @@
     });
   });
 
-  // key doubles as both the bg[] field name and the PROP_INDEX lookup key
-  // (they're spelled the same for all three) - PROP_INDEX[key] is read
-  // lazily inside the listener, not captured here, since it's still empty
-  // at bind time and only resolved once a device connects (see
-  // applyBellowGraphFromFetched).
+  // key doubles as both the bg[] field name and the BELLOW_PROP_SUFFIX key
+  // (they're spelled the same for all three); writeBellowProp resolves the
+  // index lazily, at write time, for whichever program is active then.
   function bindRangeNum(id, key) {
     const input = bp(id);
     input.addEventListener("input", () => {
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), +input.min, +input.max);
       bg[key] = v;
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX[key], v);
+      writeBellowProp(key, v);
       redrawGraph();
     });
   }
@@ -2142,7 +2166,7 @@
 
   /* Samples the live combined hall reading (liveAdcTotal, already kept
    * current by startPeripheralPolling() at 10 Hz) for one second and sets
-   * bellow_center to the average - an easy way to (re-)zero the rest
+   * the active program's center to the average - an easy way to (re-)zero the rest
    * position without reading the raw ADC value off the graph by eye. */
   const zoomCenterToggle = document.getElementById("zoomCenterToggle");
   zoomCenterToggle.addEventListener("change", () => {
@@ -2171,14 +2195,14 @@
       bg.center = clamp(Math.round(sum / count), 17000, 34000);
       syncParamInputs();
       redrawGraph();
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, bg.center);
+      writeBellowProp("center", bg.center);
     }, 1000);
   });
 
   bpEls.sliderDead.addEventListener("input", () => {
     bg.dead = clamp(Math.round(+bpEls.sliderDead.value), +bpEls.sliderDead.min, +bpEls.sliderDead.max);
     bpEls.sliderDeadValue.textContent = bg.dead;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.dead, bg.dead);
+    writeBellowProp("dead", bg.dead);
     redrawGraph();
   });
 
@@ -2186,48 +2210,79 @@
     btn.addEventListener("click", () => {
       const p = bgPresets[btn.dataset.preset];
       bg.push = { ...p }; bg.pull = { ...p };
-      if (bellowGraphLive) {
-        queueSetProperty(PROP_INDEX.pushX1, p.x1); queueSetProperty(PROP_INDEX.pushY1, p.y1);
-        queueSetProperty(PROP_INDEX.pushX2, p.x2); queueSetProperty(PROP_INDEX.pushY2, p.y2);
-        queueSetProperty(PROP_INDEX.pullX1, p.x1); queueSetProperty(PROP_INDEX.pullY1, p.y1);
-        queueSetProperty(PROP_INDEX.pullX2, p.x2); queueSetProperty(PROP_INDEX.pullY2, p.y2);
-      }
+      writeBellowProp("pushX1", p.x1); writeBellowProp("pushY1", p.y1);
+      writeBellowProp("pushX2", p.x2); writeBellowProp("pushY2", p.y2);
+      writeBellowProp("pullX1", p.x1); writeBellowProp("pullY1", p.y1);
+      writeBellowProp("pullX2", p.x2); writeBellowProp("pullY2", p.y2);
       redrawGraph();
     });
   });
 
+  /* Shows program n: stores the edited bg back into its slot, loads n's
+   * values, and highlights its button. fromDevice is set when the device
+   * itself changed program (FN1, or bellow_program edited elsewhere), so
+   * nothing is written back. */
+  const bellowProgramButtons = document.querySelectorAll("#bpPrograms button");
+  function selectBellowProgram(n, { fromDevice = false } = {}) {
+    if (n !== currentBellowProgram) {
+      bgPrograms[currentBellowProgram] = copyBellowProgram(bg);
+      Object.assign(bg, copyBellowProgram(bgPrograms[n]));
+      currentBellowProgram = n;
+    }
+    bellowProgramButtons.forEach((btn) =>
+      btn.setAttribute("aria-pressed", String(+btn.dataset.program === n)));
+    if (!fromDevice && bellowProgramLive) queueSetProperty(BELLOW_PROGRAM_PROP_INDEX, n);
+    redrawGraph();
+    updateLiveDot();
+  }
+  bellowProgramButtons.forEach((btn) =>
+    btn.addEventListener("click", () => selectBellowProgram(+btn.dataset.program)));
+
   function applyBellowGraphFromFetched(fetched, byName) {
     let ok = true;
-    for (const [key, propName] of Object.entries(PROP_NAMES)) {
-      const index = byName.get(propName);
-      if (index === undefined) {
-        ok = false;
-        log("bellows graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
-        break;
+    for (let n = 0; n < BELLOW_PROGRAM_COUNT && ok; n++) {
+      PROP_INDEX[n] = {};
+      for (const key of Object.keys(BELLOW_PROP_SUFFIX)) {
+        const propName = bellowPropName(n, key);
+        const index = byName.get(propName);
+        if (index === undefined) {
+          ok = false;
+          log("bellows graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing defaults.", "sysexGetPropertyDescription");
+          break;
+        }
+        PROP_INDEX[n][key] = index;
       }
-      PROP_INDEX[key] = index;
     }
     bellowGraphLive = ok;
     if (ok) {
-      bg.center = fetched.get(PROP_INDEX.center).value;
-      bg.dead = fetched.get(PROP_INDEX.dead).value;
-      bg.fullPush = fetched.get(PROP_INDEX.fullPush).value;
-      bg.fullPull = fetched.get(PROP_INDEX.fullPull).value;
-      bg.push = {
-        x1: fetched.get(PROP_INDEX.pushX1).value, y1: fetched.get(PROP_INDEX.pushY1).value,
-        x2: fetched.get(PROP_INDEX.pushX2).value, y2: fetched.get(PROP_INDEX.pushY2).value,
-      };
-      bg.pull = {
-        x1: fetched.get(PROP_INDEX.pullX1).value, y1: fetched.get(PROP_INDEX.pullY1).value,
-        x2: fetched.get(PROP_INDEX.pullX2).value, y2: fetched.get(PROP_INDEX.pullY2).value,
-      };
+      for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
+        const v = (key) => fetched.get(PROP_INDEX[n][key]).value;
+        bgPrograms[n] = {
+          center: v("center"), dead: v("dead"), fullPush: v("fullPush"), fullPull: v("fullPull"),
+          push: { x1: v("pushX1"), y1: v("pushY1"), x2: v("pushX2"), y2: v("pushY2") },
+          pull: { x1: v("pullX1"), y1: v("pullY1"), x2: v("pullX2"), y2: v("pullY2") },
+        };
+      }
       bpEls.status.textContent = "Connected — live, dragging writes to the device.";
       bpEls.status.classList.add("live");
     } else {
       bpEls.status.textContent = "Connected, but this firmware's property layout doesn't match this page's build — showing defaults, editing is local-only.";
       bpEls.status.classList.remove("live");
     }
-    redrawGraph();
+
+    const programIndex = byName.get("bellow_program");
+    let program = 0;
+    if (ok && programIndex !== undefined) {
+      BELLOW_PROGRAM_PROP_INDEX = programIndex;
+      bellowProgramLive = true;
+      program = clamp(fetched.get(programIndex).value, 0, BELLOW_PROGRAM_COUNT - 1);
+    } else if (programIndex === undefined) {
+      log("bellows program: property \"bellow_program\" not found on this device - showing program 1.", "sysexGetPropertyDescription");
+    }
+    // Load the fetched values even if the program number didn't change.
+    Object.assign(bg, copyBellowProgram(bgPrograms[program]));
+    currentBellowProgram = program;
+    selectBellowProgram(program, { fromDevice: true });
   }
 
   function applyPedalGraphFromFetched(fetched, byName) {
@@ -2264,7 +2319,7 @@
 
   // The domain is fixed, so these are drawn once rather than on every
   // redraw (unlike the bellows graph's renderXTicks, whose range moves with
-  // bellow_full_push/pull).
+  // the full push/pull).
   const PEDAL_X_TICK_STEP = 1000;
   function renderPedalXTicks(group) {
     while (group.firstChild) group.removeChild(group.firstChild);
@@ -2585,10 +2640,6 @@
   let TABLE_MODE_PROP_INDEX = null;
   let currentTableMode = false; // matches table_mode's default_value
   let tableModeLive = false; // same as keyboardTuningLive, for table_mode
-
-  let BELLOW_SENS_PROP_INDEX = null;
-  let currentBellowSens = 0; // matches bellow_sens_level's default_value
-  let bellowSensLive = false; // same as keyboardTuningLive, for bellow_sens_level
 
   // No dedicated control for this one (it stays editable in the generic
   // Properties table) - just tracked so clicking a key on the diagram below
@@ -3005,13 +3056,11 @@
 
   const kbdTuningSelect = document.getElementById("kbdTuningSelect");
   const kbdTableModeToggle = document.getElementById("kbdTableModeToggle");
-  const bellowSensSelect = document.getElementById("bellowSensSelect");
 
   function syncTuningUi() { kbdTuningSelect.value = String(currentTuning); }
   function syncTableModeUi() { kbdTableModeToggle.checked = currentTableMode; }
-  function syncBellowSensUi() { bellowSensSelect.value = String(currentBellowSens); }
 
-  /* Reads keyboard_tuning/table_mode/bellow_sens_level from the initial
+  /* Reads keyboard_tuning/table_mode from the initial
    * property enumeration, resolving each one's index by name (byName, built
    * in enumerateProperties) the same way applyBellowGraphFromFetched/
    * applyPedalGraphFromFetched do - a firmware that doesn't have the
@@ -3042,18 +3091,6 @@
       log("table mode: property \"table_mode\" not found on this device - showing default.", "sysexGetPropertyDescription");
     }
     syncTableModeUi();
-  }
-
-  function applyBellowSensFromFetched(fetched, byName) {
-    const index = byName.get("bellow_sens_level");
-    if (index !== undefined) {
-      BELLOW_SENS_PROP_INDEX = index;
-      currentBellowSens = fetched.get(index).value;
-      bellowSensLive = true;
-    } else {
-      log("bellows sensitivity: property \"bellow_sens_level\" not found on this device - showing default.", "sysexGetPropertyDescription");
-    }
-    syncBellowSensUi();
   }
 
   function applyTablemodeVelocityFromFetched(fetched, byName) {
@@ -3091,11 +3128,13 @@
     } catch (err) {
       // Transient: retried next tick.
     }
-    if (bellowSensLive) try {
-      const value = await requestPropertyValue(BELLOW_SENS_PROP_INDEX);
-      if (value !== currentBellowSens && value >= 0 && value <= 2) {
-        currentBellowSens = value;
-        syncBellowSensUi();
+    // FN1 on the instrument (or a console edit) changed the program. Skipped
+    // while this page's own program write is still queued or in flight, so a
+    // read from just before it lands doesn't bounce the selection back.
+    if (bellowProgramLive && !writeInFlight && !writeQueue.has(BELLOW_PROGRAM_PROP_INDEX)) try {
+      const value = await requestPropertyValue(BELLOW_PROGRAM_PROP_INDEX);
+      if (value !== currentBellowProgram && value >= 0 && value < BELLOW_PROGRAM_COUNT) {
+        selectBellowProgram(value, { fromDevice: true });
       }
     } catch (err) {
       // Transient: retried next tick.
@@ -3127,10 +3166,6 @@
   kbdTableModeToggle.addEventListener("change", () => {
     currentTableMode = kbdTableModeToggle.checked;
     if (tableModeLive) queueSetProperty(TABLE_MODE_PROP_INDEX, currentTableMode ? 1 : 0);
-  });
-  bellowSensSelect.addEventListener("change", () => {
-    currentBellowSens = +bellowSensSelect.value;
-    if (bellowSensLive) queueSetProperty(BELLOW_SENS_PROP_INDEX, currentBellowSens);
   });
 
   const kbdNoteModeToggle = document.getElementById("kbdNoteModeToggle");
@@ -3422,11 +3457,11 @@
     pedalGraphLive = false;
     keyboardTuningLive = false;
     tableModeLive = false;
-    bellowSensLive = false;
+    bellowProgramLive = false;
     tablemodeVelocityLive = false;
     KEYBOARD_TUNING_PROP_INDEX = null;
     TABLE_MODE_PROP_INDEX = null;
-    BELLOW_SENS_PROP_INDEX = null;
+    BELLOW_PROGRAM_PROP_INDEX = null;
     TABLEMODE_VELOCITY_PROP_INDEX = null;
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");

@@ -67,23 +67,29 @@ Both take their value from `tablemode_velocity` (default 80).
 Toggling table mode off re-evaluates the keys currently held so sounding notes
 follow the real bellows again, and hands CC#11 back to it.
 
-## Bellows sensitivity
+## Bellows programs
 
-The **middle function button (FN1)** cycles bellows sensitivity through three
-levels, wrapping back to the first; the current level is reported on the
-console. Each level scales the bellows signal (the 0..16384 intensity that drives
-both note velocity and the expression CC), so a higher level reaches full
-velocity and full expression with less bellows travel — useful for quiet playing
-or a stiff bellows.
+The **middle function button (FN1)** cycles the `bellow_program` property
+through three bellows programs, wrapping back to the first; the current program
+is reported on the console. Each program is a full set of bellows settings:
+rest position (`bellow_p<n>_center`), dead zone (`bellow_p<n>_dead`), full push
+and full pull readings (`bellow_p<n>_full_push`, `bellow_p<n>_full_pull`) and
+the push and pull response curves (`bellow_p<n>_push_curve_*`,
+`bellow_p<n>_pull_curve_*`). The hysteresis, filter and rate settings are
+shared by all programs.
 
-Level 1 is unity (no scaling). Levels 2 and 3 multiply by `bellow_scale_mid`
-(default x1.5) and `bellow_scale_high` (default x2.0); both are stored as a /256
-fixed point value (256 = x1.0), so 384 and 512. The scaled intensity is clamped
-to its full range, so beyond the point that reaches maximum the signal simply
-saturates.
+By default the three programs differ only in their full push/pull readings:
+program 0 uses the nominal travel, programs 1 and 2 reach full velocity and
+full expression with 1/1.5 and 1/2 of it, useful for quiet playing or a stiff
+bellows.
 
-Table mode has no bellows signal to scale, so the sensitivity levels do not
-affect it; it plays at `tablemode_velocity` whatever the level.
+The configuration tool shows one button per program above the bellows graph.
+The active one is highlighted; clicking another switches the instrument to it
+and loads its settings into the graph, and an FN1 press on the instrument moves
+the highlight.
+
+Table mode does not use the bellows signal, so the program does not affect it;
+it plays at `tablemode_velocity` whatever the program.
 
 ## Pedals
 

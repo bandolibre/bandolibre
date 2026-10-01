@@ -88,14 +88,18 @@ volume.
 C'est pratique pour saisir une partition note par note dans un logiciel de
 notation. Appuyez à nouveau pour revenir au jeu normal.
 
-### Bouton du milieu : sensibilité du soufflet
+### Bouton du milieu : programme de soufflet
 
-Appuyez sur le **bouton du milieu** pour passer d'un niveau de sensibilité à
-l'autre : **faible → moyenne → forte**, puis retour à faible.
+Appuyez sur le **bouton du milieu** pour passer d'un programme de soufflet à
+l'autre : **1 → 2 → 3**, puis retour à 1.
 
-À un niveau plus élevé, vous atteignez le volume maximal avec moins d'effort
-sur le soufflet. Utile pour jouer doucement, ou si la lame-ressort vous semble
-trop raide. La sensibilité n'a pas d'effet en mode table.
+Chaque programme a ses propres réglages du soufflet : position de repos,
+course du soufflet avant qu'une note sonne, et façon dont votre effort se
+traduit en volume. Vous pouvez régler chacun d'eux dans l'outil de
+configuration. Par défaut, les programmes 2 et 3 atteignent le volume maximal
+avec moins d'effort sur le soufflet que le programme 1. Utiles pour jouer
+doucement, ou si la lame-ressort vous semble trop raide. Le programme de
+soufflet n'a pas d'effet en mode table.
 
 ### Bouton droit : système de clavier
 
@@ -144,7 +148,7 @@ Il vous permet de :
   volume ;
 - **calibrer la position de repos** du soufflet ;
 - **calibrer les pédales** ;
-- changer le système de clavier, la sensibilité et le mode table ;
+- changer le système de clavier, le programme de soufflet et le mode table ;
 - voir les deux claviers en direct pendant le jeu.
 
 Les changements s'appliquent immédiatement : vous pouvez ajuster le toucher
@@ -173,8 +177,8 @@ propre icône :
 ## Les réglages sont perdus au débranchement
 
 Le Bandolibre ne mémorise pas encore ses réglages. Quand vous le débranchez, il
-revient à ses valeurs par défaut : clavier Rheinische Tonlage, sensibilité
-faible, mode table désactivé, et réglages par défaut du soufflet et des
+revient à ses valeurs par défaut : clavier Rheinische Tonlage, programme de
+soufflet 1, mode table désactivé, et réglages par défaut du soufflet et des
 pédales.
 
 Si vous avez réglé le soufflet ou les pédales dans l'outil de configuration,

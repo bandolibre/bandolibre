@@ -13,9 +13,10 @@
  * property rather than latching state of its own, so read it from
  * g_properties->table_mode (or via buttons_table_mode()).
  *
- * FN1 (middle) cycles bellows sensitivity through three levels. It writes the
- * bellow_sens_level property rather than latching state of its own, so read
- * it from g_properties->bellow_sens_level (or via buttons_bellow_sens_level()).
+ * FN1 (middle) cycles the bellows program (BELLOW_PROGRAM_COUNT sets of
+ * center, deadzone, full travel and response curves, see bellow.h). It writes
+ * the bellow_program property rather than latching state of its own, so read
+ * it from g_properties->bellow_program.
  *
  * FN2 (right) cycles the keyboard tuning (Rheinische -> Peguri -> Manoury and
  * back). It writes the keyboard_tuning property rather than latching state of
@@ -29,10 +30,5 @@ void buttons_poll(void);
 
 /* True while table mode is engaged (toggled by each press of FN0). */
 bool buttons_table_mode(void);
-
-/* Bellows sensitivity level, 0..2, advanced by each press of FN1. Level 0 is
- * unity scale; levels 1 and 2 apply the bellow_scale_mid / bellow_scale_high
- * properties. */
-uint8_t buttons_bellow_sens_level(void);
 
 #endif /* APP_BUTTONS_H */

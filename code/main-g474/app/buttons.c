@@ -2,21 +2,14 @@
 
 #include <stdio.h>
 
+#include "bellow.h"
 #include "keyboard_layout.h"
 #include "main.h"
 #include "properties.h"
 
-/* Number of bellows sensitivity levels FN1 cycles through. */
-#define BELLOW_SENS_LEVELS 3
-
 bool buttons_table_mode(void)
 {
   return g_properties->table_mode;
-}
-
-uint8_t buttons_bellow_sens_level(void)
-{
-  return (uint8_t)g_properties->bellow_sens_level;
 }
 
 /* Advances keyboard_tuning to the next tuning, wrapping after the last. The
@@ -44,17 +37,17 @@ static void toggle_table_mode(void)
   property_set_bool(idx, !value);
 }
 
-/* Advances bellow_sens_level to the next level, wrapping after the last. Same
+/* Advances bellow_program to the next program, wrapping after the last. Same
  * reasoning as cycle_keyboard_tuning() above: the property is the single
- * source of truth, so the button and `set bellow_sens_level` over the
+ * source of truth, so the button and `set bellow_program` over the
  * console/sysex agree and neither can go stale behind the other. */
-static void cycle_bellow_sens_level(void)
+static void cycle_bellow_program(void)
 {
   size_t idx;
-  uint16_t level;
-  if (!property_by_name("bellow_sens_level", &idx)) return;
-  if (!property_get_u16(idx, &level)) return;
-  property_set_u16(idx, (uint16_t)((level + 1) % BELLOW_SENS_LEVELS));
+  uint16_t program;
+  if (!property_by_name("bellow_program", &idx)) return;
+  if (!property_get_u16(idx, &program)) return;
+  property_set_u16(idx, (uint16_t)((program + 1) % BELLOW_PROGRAM_COUNT));
 }
 
 void buttons_poll(void)
@@ -72,20 +65,20 @@ void buttons_poll(void)
   if (HAL_GPIO_ReadPin(SW_FN2_GPIO_Port,       SW_FN2_Pin)        == GPIO_PIN_RESET) fn |= 4;
 
   /* Act on rising edges (press, not release). FN0 toggles table mode; FN1
-   * advances the bellows sensitivity level, wrapping after the last; FN2
+   * advances the bellows program, wrapping after the last; FN2
    * advances the keyboard tuning, wrapping after the last. */
   if ((fn & 1) && !(fn_prev & 1)) toggle_table_mode();
-  if ((fn & 2) && !(fn_prev & 2)) cycle_bellow_sens_level();
+  if ((fn & 2) && !(fn_prev & 2)) cycle_bellow_program();
   if ((fn & 4) && !(fn_prev & 4)) cycle_keyboard_tuning();
 
   if (fn != fn_prev)
   {
     fn_prev = fn;
     const char *tname = tuning_name((uint8_t)g_properties->keyboard_tuning);
-    printf("FN: %c%c%c  table_mode=%u  bellow_sens_level=%u  keyboard_tuning=%s\r\n",
+    printf("FN: %c%c%c  table_mode=%u  bellow_program=%u  keyboard_tuning=%s\r\n",
            (fn & 1) ? '1' : '0',
            (fn & 2) ? '1' : '0',
            (fn & 4) ? '1' : '0',
-           g_properties->table_mode, g_properties->bellow_sens_level, tname ? tname : "?");
+           g_properties->table_mode, g_properties->bellow_program, tname ? tname : "?");
   }
 }

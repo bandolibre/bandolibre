@@ -31,15 +31,44 @@ static bellow_output_t g_bellow_out = {.direction = BELLOWS_NEUTRAL, .intensity 
 static uint16_t g_bellow_last_hall0; // raw hall reading.
 static uint16_t g_bellow_last_hall1; // raw hall reading.
 static float    g_bellow_1e_out;   /* filtered hall-total, raw hall-total units */
-static uint16_t g_bellow_cc_out;   /* CC value after backlash+scale, 0..16383 */
+static uint16_t g_bellow_cc_out;   /* CC value sent, 0..16383 */
 
 /* Combined-hall calibration: center is the at-rest reading, hard push/pull
  * the readings at full travel. The deadzone sets how far from center the
  * bellows must move to leave BELLOWS_NEUTRAL (no air moves there, so
  * note_table maps every key to NOTE_NONE). The hysteresis margin then has to
  * be given back before returning to NEUTRAL, so a bellows resting right at
- * the deadzone edge doesn't chatter between NEUTRAL and PUSH/PULL. These are
- * the bellow_* properties in g_properties (properties.h). */
+ * the deadzone edge doesn't chatter between NEUTRAL and PUSH/PULL. Center,
+ * deadzone, full travel and the response curves come from the active program
+ * (bellow_program, cycled by FN1); the hysteresis is shared by all programs. */
+
+/* One program's bellow_p<n>_* properties. property_table.def generates them as
+ * separate flat fields, so current_program() gathers the selected set. */
+typedef struct {
+  uint16_t center, dead, full_push, full_pull;
+  uint16_t push_x1, push_y1, push_x2, push_y2;
+  uint16_t pull_x1, pull_y1, pull_x2, pull_y2;
+} bellow_program_t;
+
+#define BELLOW_PROGRAM_FIELDS(n) (bellow_program_t){                                       \
+  g_properties->bellow_p##n##_center, g_properties->bellow_p##n##_dead,                     \
+  g_properties->bellow_p##n##_full_push, g_properties->bellow_p##n##_full_pull,             \
+  g_properties->bellow_p##n##_push_curve_x1, g_properties->bellow_p##n##_push_curve_y1,     \
+  g_properties->bellow_p##n##_push_curve_x2, g_properties->bellow_p##n##_push_curve_y2,     \
+  g_properties->bellow_p##n##_pull_curve_x1, g_properties->bellow_p##n##_pull_curve_y1,     \
+  g_properties->bellow_p##n##_pull_curve_x2, g_properties->bellow_p##n##_pull_curve_y2 }
+
+_Static_assert(BELLOW_PROGRAM_COUNT == 3, "current_program() lists every program");
+
+static bellow_program_t current_program(void)
+{
+  switch (g_properties->bellow_program)
+  {
+    case 1:  return BELLOW_PROGRAM_FIELDS(1);
+    case 2:  return BELLOW_PROGRAM_FIELDS(2);
+    default: return BELLOW_PROGRAM_FIELDS(0);
+  }
+}
 
 bellows_t bellow_direction(void)
 {
@@ -55,21 +84,6 @@ void bellow_get_raw(uint16_t *hall0, uint16_t *hall1)
 {
   *hall0 = g_bellow_last_hall0;
   *hall1 = g_bellow_last_hall1;
-}
-
-/* Bellows sensitivity multiplier (Q8, 256 = x1.0) for the level FN1 currently
- * selects: level 0 is unity, levels 1 and 2 use the bellow_scale_mid/high
- * properties. Applied to the intensity, so it scales both note velocity and
- * CC#11. Table mode takes neither from the bellows and so is unaffected by it. */
-uint16_t bellow_sens_scale_q8(void)
-{
-  switch (buttons_bellow_sens_level())
-  {
-    case 0:  return g_properties->bellow_scale_low;
-    case 1:  return g_properties->bellow_scale_mid;
-    case 2:  return g_properties->bellow_scale_high;
-    default: return 256;
-  }
 }
 
 /* Emits CC#11 (Expression, paired with CC#43 as the 14-bit LSB) from the
@@ -315,7 +329,6 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_o
  * which would leave that dashboard frame without its bellow rows. */
 void bellow_poll(void)
 {
-  static bellow_output_t raw = {.direction = BELLOWS_NEUTRAL, .intensity = 0};
   static bellow_sample_t s;
   static one_euro_state_t one_euro_st;
 
@@ -339,26 +352,19 @@ void bellow_poll(void)
     /* hall_total is the filtered combined reading, not the raw sample --
      * classification runs on a smoothed signal so sensor jitter near the
      * deadzone boundary doesn't flicker the direction. */
-    bellow_classify_result_t r = bellow_classify(raw.direction, hall_total, g_properties->bellow_center,
-                                                 g_properties->bellow_dead, g_properties->bellow_hyst,
-                                                 g_properties->bellow_full_push, g_properties->bellow_full_pull);
-    raw.direction = r.direction;
+    bellow_program_t p = current_program();
+    bellow_classify_result_t r = bellow_classify(g_bellow_out.direction, hall_total, p.center,
+                                                 p.dead, g_properties->bellow_hyst,
+                                                 p.full_push, p.full_pull);
+    g_bellow_out.direction = r.direction;
     if (r.direction == BELLOWS_PUSH)
-      raw.intensity = bellow_curve_apply(r.intensity,
-          g_properties->bellow_push_curve_x1, g_properties->bellow_push_curve_y1,
-          g_properties->bellow_push_curve_x2, g_properties->bellow_push_curve_y2);
+      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.push_x1, p.push_y1, p.push_x2, p.push_y2);
     else
-      raw.intensity = bellow_curve_apply(r.intensity,
-          g_properties->bellow_pull_curve_x1, g_properties->bellow_pull_curve_y1,
-          g_properties->bellow_pull_curve_x2, g_properties->bellow_pull_curve_y2);
-
-    g_bellow_out.direction = raw.direction;
-    float scaled = raw.intensity * (bellow_sens_scale_q8() / 256.0f);
-    g_bellow_out.intensity = scaled > 1.0f ? 1.0f : scaled;
+      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.pull_x1, p.pull_y1, p.pull_x2, p.pull_y2);
 
     bellow_send_cc();
   }
-  bellow_report(sampled, &s, &raw);
+  bellow_report(sampled, &s, &g_bellow_out);
 }
 
 /* Diagnostic sweep: for each bellow_settle_us value in a fixed range, take
