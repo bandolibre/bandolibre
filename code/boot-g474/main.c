@@ -24,7 +24,7 @@
 #include "stm32g4xx_hal.h"
 #include "tusb.h"
 
-/* SW_FN2, the rightmost function button. Active low. */
+/* SW_FN2, the leftmost function button. Active low. */
 #define DFU_BUTTON_PORT   GPIOB
 #define DFU_BUTTON_PIN    GPIO_PIN_4
 
