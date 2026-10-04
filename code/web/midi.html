@@ -446,6 +446,8 @@
   .bp-swatch.push { background: var(--push); }
   .bp-swatch.pull { background: var(--pull); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
+  /* P1 and P2 side by side, stacking when the group is too narrow. */
+  .bp-cp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
   /* stretch: the Calibrate button takes the center box's height. */
   .bp-center-row { display: flex; align-items: stretch; gap: 8px; }
   .bp-center-row .bp-x { flex: 1; max-width: 12em; }
@@ -478,16 +480,14 @@
   .bp-vline.ped-min { stroke: var(--push); }
   .bp-vline.ped-max { stroke: var(--pull); }
 
-  /* ---- Function buttons (mirrors the 3 physical FN buttons, left to
-     right: keyboard system, table mode) ---- */
-  .bp-programs { justify-content: flex-start; margin-top: 8px; }
-
-  .fnbtn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+  /* ---- Function buttons: keyboard system, bellows program, table mode ---- */
+  .fnbtn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  @media (max-width: 640px) { .fnbtn-grid { grid-template-columns: 1fr; } }
   .fnbtn-box {
     min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
     display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
   }
-  .fnbtn-title { font-size: 0.75rem; color: var(--muted); }
+  .fnbtn-title { font-size: 0.8rem; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
   .fnbtn-desc { font-size: 0.7rem; color: var(--muted); margin: 0; line-height: 1.35; }
 
   /* ---- Keyboard layout diagrams ---- */
@@ -728,6 +728,38 @@
   </div>
 
   <div class="card">
+    <label>Function buttons</label>
+    <div class="fnbtn-grid">
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Keyboard system</div>
+        <div class="choice-buttons" id="kbdTuningButtons" role="group" aria-label="Keyboard system">
+          <button type="button" data-tuning="0" aria-pressed="true">Rheinische Tonlage</button>
+          <button type="button" data-tuning="1" aria-pressed="false">Peguri</button>
+          <button type="button" data-tuning="2" aria-pressed="false">Manoury</button>
+        </div>
+        <p class="fnbtn-desc">Notes each key plays</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Bellows program</div>
+        <div class="choice-buttons" id="bpPrograms" role="group" aria-label="Bellows program">
+          <button type="button" data-program="0" aria-pressed="true">Program 1</button>
+          <button type="button" data-program="1" aria-pressed="false">Program 2</button>
+          <button type="button" data-program="2" aria-pressed="false">Program 3</button>
+        </div>
+        <p class="fnbtn-desc">Response curve edited in the graph below</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Table mode</div>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="kbdTableModeToggle">
+          <span class="kbd-toggle-track"></span>
+        </span>
+        <p class="fnbtn-desc">Bellows always pulling</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="bellow-header">
       <label>Bellow</label>
       <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
@@ -738,12 +770,6 @@
           <span class="kbd-toggle-track"></span>
         </span>
       </label>
-    </div>
-
-    <div class="choice-buttons bp-programs" id="bpPrograms" role="group" aria-label="Bellows program">
-      <button type="button" data-program="0" aria-pressed="true">Program 1</button>
-      <button type="button" data-program="1" aria-pressed="false">Program 2</button>
-      <button type="button" data-program="2" aria-pressed="false">Program 3</button>
     </div>
 
     <svg class="bellow-plot" viewBox="0 0 900 396" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
@@ -797,15 +823,15 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Each program has its own deadzone, push/pull travel and curves; the FN1 button cycles through them. The center is shared by all programs, and full push/pull follow it. Hold Shift while dragging for fine adjustment. Hysteresis not shown (deadzone lines use the program's deadzone only).</p>
+    <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold Shift while dragging for fine adjustment.</p>
 
     <div class="bp-group">
       <div class="bp-group-title">Presets</div>
       <div class="bp-presets" id="bpPresets">
         <button type="button" data-preset="linear">Linear</button>
-        <button type="button" data-preset="feather">Feather touch</button>
+        <button type="button" data-preset="normal">Normal</button>
+        <button type="button" data-preset="smooth">Smooth</button>
         <button type="button" data-preset="firm">Firm press</button>
-        <button type="button" data-preset="cliff">Hard landing</button>
       </div>
     </div>
 
@@ -813,7 +839,7 @@
       <div class="bp-group bp-group-full">
         <div class="bp-group-title">Bellow center</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Sensor value at rest</span>
+          <span class="bp-cp-row-label">Sensor value at rest (shared by all bellows programs)</span>
           <div class="bp-center-row">
             <div class="bp-x">
               <label><span>center</span><input type="number" id="num-center" min="17000" max="34000" value="27800"></label>
@@ -847,18 +873,20 @@
             <label><span>push travel</span><input type="number" id="num-push-travel" min="0" max="17000" value="3123"></label>
           </div>
         </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P1 — near center</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
-            <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+        <div class="bp-cp-pair">
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P1 — near center</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
+              <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+            </div>
           </div>
-        </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P2 — near full travel</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
-            <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P2 — near full travel</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
+              <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+            </div>
           </div>
         </div>
       </div>
@@ -870,18 +898,20 @@
             <label><span>pull travel</span><input type="number" id="num-pull-travel" min="0" max="17000" value="3028"></label>
           </div>
         </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P1 — near center</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
-            <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+        <div class="bp-cp-pair">
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P1 — near center</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
+              <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+            </div>
           </div>
-        </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P2 — near full travel</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
-            <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P2 — near full travel</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
+              <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+            </div>
           </div>
         </div>
       </div>
@@ -951,29 +981,6 @@
           <label><span>min</span><input type="number" id="num-p2-min" min="0" max="4095" value="920"></label>
           <label><span>max</span><input type="number" id="num-p2-max" min="0" max="4095" value="3100"></label>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <label>Function buttons</label>
-    <div class="fnbtn-grid">
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Keyboard system</div>
-        <div class="choice-buttons" id="kbdTuningButtons" role="group" aria-label="Keyboard system">
-          <button type="button" data-tuning="0" aria-pressed="true">Rheinische Tonlage</button>
-          <button type="button" data-tuning="1" aria-pressed="false">Peguri</button>
-          <button type="button" data-tuning="2" aria-pressed="false">Manoury</button>
-        </div>
-        <p class="fnbtn-desc">Which notes each key plays. Also cycled by the right button on the instrument.</p>
-      </div>
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Table mode</div>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="kbdTableModeToggle">
-          <span class="kbd-toggle-track"></span>
-        </span>
-        <p class="fnbtn-desc">Pins the bellows direction to PULL so keys sound with the instrument resting on a table.</p>
       </div>
     </div>
   </div>
@@ -2380,11 +2387,14 @@
   ];
   const copyBellowProgram = (p) => ({ ...p, push: { ...p.push }, pull: { ...p.pull } });
   const bg = { center: 28972, ...copyBellowProgram(bgPrograms[0]) };
+  // Cubic-Bezier control points /256, applied to both push and pull.
   const bgPresets = {
     linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
-    feather: { x1: 40, y1: 220, x2: 150, y2: 235 },
+    // The firmware's factory curve (BELLOW_PROGRAM in property_table.def).
+    normal: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    // Gentle at both ends, like CSS ease-in-out.
+    smooth: { x1: 108, y1: 0, x2: 148, y2: 256 },
     firm: { x1: 200, y1: 20, x2: 235, y2: 50 },
-    cliff: { x1: 245, y1: 8, x2: 250, y2: 25 },
   };
 
   const bp = (id) => document.getElementById(id);
