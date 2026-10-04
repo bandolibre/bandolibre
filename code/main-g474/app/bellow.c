@@ -8,6 +8,7 @@
 #include "bellow_curve.h"
 #include "buttons.h"
 #include "console.h"
+#include "fixed_format.h"
 #include "keyboard.h"   /* L_MIDI_CH / R_MIDI_CH */
 #include "main.h"
 #include "one_euro_filter.h"
@@ -287,29 +288,37 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_o
     float conv_us = (float)s->conv_cycles / (SystemCoreClock / 1000000.0f);
     float force = (state->direction == BELLOWS_PUSH) ? -state->intensity
                 : (state->direction == BELLOWS_PULL) ?  state->intensity : 0.0f;
-    console_dash_println("BELLOW  dir=%-7s int=%.3f  force=%+.3f keys=%u",
-                         bellows_dir_str(state->direction), (double)state->intensity,
-                         (double)force, keyboard_keys_pressed());
+    /* Floats go through format_fixed() and print as %s (fixed_format.h). */
+    char f[4][FORMAT_FIXED_BUF_SIZE];
+    console_dash_println("BELLOW  dir=%-7s int=%s  force=%s keys=%u",
+                         bellows_dir_str(state->direction),
+                         format_fixed(f[0], sizeof f[0], state->intensity, 3, false),
+                         format_fixed(f[1], sizeof f[1], force, 3, true), keyboard_keys_pressed());
     /* std0/std1/stdT line's "std0 =" / "std1 =" / "stdT =" labels are each
      * padded to the same width as "hall0=" / "hall1=" / "total=" above (and
      * the value fields use matching widths), so the two lines' columns
      * line up in the monospace console. */
-    console_dash_println("        hall0=%5u hall1=%5u total=%5u  (min %u max %u)  sample_count=%lu  conv=%.1fus",
+    console_dash_println("        hall0=%5u hall1=%5u total=%5u  (min %u max %u)  sample_count=%lu  conv=%sus",
                          (unsigned)s->hall0, (unsigned)s->hall1, (unsigned)s->hall0 + s->hall1,
-                         hall_min, hall_max, (unsigned long)n, (double)conv_us);
-    console_dash_println("        std0 =%5.2f std1 =%5.2f stdT =%5.2f",
-                         (double)std0, (double)std1, (double)stdT);
-    console_dash_println("        1euro=%8.1f std=%5.2f  (mincutoff=%.2fHz beta=%.4f)",
-                         (double)g_bellow_1e_out, (double)std1e,
-                         (double)g_properties->bellow_cc_1e_mincutoff / 256.0,
-                         (double)g_properties->bellow_cc_1e_beta / 65536.0);
+                         hall_min, hall_max, (unsigned long)n,
+                         format_fixed(f[0], sizeof f[0], conv_us, 1, false));
+    console_dash_println("        std0 =%5s std1 =%5s stdT =%5s",
+                         format_fixed(f[0], sizeof f[0], std0, 2, false),
+                         format_fixed(f[1], sizeof f[1], std1, 2, false),
+                         format_fixed(f[2], sizeof f[2], stdT, 2, false));
+    console_dash_println("        1euro=%8s std=%5s  (mincutoff=%sHz beta=%s)",
+                         format_fixed(f[0], sizeof f[0], g_bellow_1e_out, 1, false),
+                         format_fixed(f[1], sizeof f[1], std1e, 2, false),
+                         format_fixed(f[2], sizeof f[2], g_properties->bellow_cc_1e_mincutoff / 256.0f, 2, false),
+                         format_fixed(f[3], sizeof f[3], g_properties->bellow_cc_1e_beta / 65536.0f, 4, false));
     /* cc11's second form is the 14-bit value as MSB.LSB (CC#11.CC#43, each
      * 7-bit) rendered as one decimal -- value/128 puts the MSB in the integer
      * part and the LSB as a fraction of it, the same conversion midi.html's
      * live CC#11 readout uses (updateLiveDot() there). */
-    console_dash_println("        zone entries: push=%6lu pull=%6lu   cc11=%5u (%6.2f)",
+    console_dash_println("        zone entries: push=%6lu pull=%6lu   cc11=%5u (%6s)",
                          (unsigned long)push_entries, (unsigned long)pull_entries,
-                         (unsigned)g_bellow_cc_out, (double)g_bellow_cc_out / 128.0);
+                         (unsigned)g_bellow_cc_out,
+                         format_fixed(f[0], sizeof f[0], g_bellow_cc_out / 128.0f, 2, false));
 
     hall_min = 0xFFFF; hall_max = 0;
     n = 0; sum0 = sum1 = sumT = 0; sq0 = sq1 = sqT = 0;
@@ -421,8 +430,12 @@ void bellow_tune(void)
     float std0 = sqrtf((float)sq0 / BELLOW_TUNE_SAMPLES - mean0 * mean0);
     float std1 = sqrtf((float)sq1 / BELLOW_TUNE_SAMPLES - mean1 * mean1);
 
-    printf("%9u   %6.1f  %6.2f   %6.1f  %6.2f\r\n",
-           us, (double)mean0, (double)std0, (double)mean1, (double)std1);
+    char f[4][FORMAT_FIXED_BUF_SIZE];
+    printf("%9u   %6s  %6s   %6s  %6s\r\n", us,
+           format_fixed(f[0], sizeof f[0], mean0, 1, false),
+           format_fixed(f[1], sizeof f[1], std0, 2, false),
+           format_fixed(f[2], sizeof f[2], mean1, 1, false),
+           format_fixed(f[3], sizeof f[3], std1, 2, false));
     fflush(stdout);
   }
 

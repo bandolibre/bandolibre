@@ -72,6 +72,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/bellow_classify.c
     app/bellow_curve.c
     app/buttons.c
+    app/fixed_format.c
     app/cmd.cc
     app/keyboard.cpp
     app/app.cc
@@ -111,6 +112,18 @@ set_source_files_properties(
     ../common/console/console.c
     PROPERTIES
     COMPILE_FLAGS "-include${CMAKE_CURRENT_SOURCE_DIR}/../common/console/config.h"
+)
+
+# Keep the newlib syscall stubs out of LTO. With -flto the plugin decides what
+# survives before the linker has pulled newlib's stdio members out of libc, so
+# stubs only libc calls (_fstat and _isatty, from __smakebuf_r) are dropped as
+# unused and the Release link fails. -u _printf_float used to hide this by
+# pulling those members in early. As plain object code the stubs resolve libc's
+# references normally, and --gc-sections still removes the ones nothing uses.
+set_source_files_properties(
+    Core/Src/syscalls.c
+    PROPERTIES
+    COMPILE_OPTIONS "-fno-lto"
 )
 
 # Add include paths
