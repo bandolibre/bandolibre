@@ -52,7 +52,7 @@ static void test_lookup(void)
 {
   size_t i;
   CHECK(property_by_name("bellow_center", &i));
-  CHECK(property_at(i)->tag == 64);
+  CHECK(property_at(i)->tag == 3);
   CHECK(strcmp(property_at(i)->name, "bellow_center") == 0);
 
   CHECK(!property_by_name("does_not_exist", &i));
@@ -156,8 +156,6 @@ static void test_saved_value(void)
   CHECK(!property_get_saved(i, &v));
   CHECK(property_default(i) == 1900);
 
-  CHECK(property_set_saved(idx("log_bellow"), 1) == PROPERTY_SAVE_TRANSIENT);
-  CHECK(property_clear_saved(idx("log_bellow")) == PROPERTY_SAVE_TRANSIENT);
   CHECK(property_set_saved(property_count(), 1) == PROPERTY_SAVE_BAD_INDEX);
 }
 
@@ -167,12 +165,10 @@ static void test_saved_survives_reboot(void)
   CHECK(property_set_saved(idx("bellow_center"), 25000) == PROPERTY_SAVE_OK);
   CHECK(property_set_saved(idx("midi_active_sensing_enable"), 0) == PROPERTY_SAVE_OK);
   CHECK(property_set_u16(idx("bellow_center"), 100));
-  CHECK(property_set_bool(idx("log_bellow"), true));
 
   property_load_from_flash(); /* reboot */
   CHECK(g_properties->bellow_center == 25000);
   CHECK(g_properties->midi_active_sensing_enable == false);
-  CHECK(g_properties->log_bellow == false); /* transient: factory at boot */
   CHECK(g_properties->key_press == 1900);   /* not saved: factory */
 
   property_store_status_t st = property_store_status();
@@ -188,7 +184,6 @@ static void test_save_all(void)
   CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
   CHECK(property_set_u16(idx("key_press"), 1500));
   CHECK(property_set_u16(idx("bellow_center"), 20000));
-  CHECK(property_set_bool(idx("log_bellow"), true)); /* transient: never saved */
 
   size_t n = 99;
   CHECK(property_save_all(&n) == PROPERTY_SAVE_OK);
@@ -232,7 +227,7 @@ static void test_load_ignores_bad_records(void)
   CHECK(fake_flash_append(1, 1500));    /* key_press */
   CHECK(fake_flash_append(1, 9999));    /* key_press above its max: ignored */
   CHECK(fake_flash_append(1000, 1234)); /* a tag this firmware does not have */
-  CHECK(fake_flash_append(64, 25000));  /* bellow_center */
+  CHECK(fake_flash_append(3, 25000));   /* bellow_center */
 
   property_load_from_flash();
   CHECK(g_properties->key_press == 1500); /* the last in-range value */

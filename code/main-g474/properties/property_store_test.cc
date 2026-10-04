@@ -26,11 +26,11 @@ static int g_failures;
 using Saved = std::map<uint16_t, uint16_t>;  /* tag -> saved value */
 using Result = PropertyStore::Result;
 
-/* Tags 1..61, like the 61 persistent properties of the firmware. */
+/* Tags 1..71, like the 71 persistent properties of the firmware. */
 static std::vector<uint16_t> known_tags()
 {
   std::vector<uint16_t> t;
-  for (uint16_t i = 1; i <= 61; i++) t.push_back(i);
+  for (uint16_t i = 1; i <= 71; i++) t.push_back(i);
   return t;
 }
 static const std::vector<uint16_t> g_tags = known_tags();
@@ -369,7 +369,7 @@ static void test_power_loss()
       [](PropertyStore &s) {
         uint16_t v = 0;
         while (s.status().used < s.status().capacity) {
-          set(s, (uint16_t)(v % 61 + 1), v);
+          set(s, (uint16_t)(v % 71 + 1), v);
           v++;
         }
       },

@@ -32,168 +32,166 @@ PROPERTY(2, uint16_t, key_release,
 /* The rest position is a property of the hardware, not of the playing style,
  * so it is shared by all bellows programs. Factory value measured on hardware
  * at ADC oversampling RightBitShift_5. */
-PROPERTY(64, uint16_t, bellow_center,
+PROPERTY(3, uint16_t, bellow_center,
          .factory_value = 28972, .min = 17000, .max = 34000,
          .description = "Combined hall reading at rest")
 
 /* Bellows programs: FN1 cycles bellow_program through BELLOW_PROGRAM_COUNT
  * (bellow.h) sets of dead zone, travel and response curves, each
- * BELLOW_PROGRAM() owning 12 consecutive tags from tag0 plus 2 from travel_tag0:
- *   BELLOW_PROGRAM(n, tag0, travel_tag0, push_travel, (x1, y1), (x2, y2),
- *                                        pull_travel, (x1, y1), (x2, y2))
+ * BELLOW_PROGRAM() owning 11 consecutive tags from tag0:
+ *   BELLOW_PROGRAM(n, tag0, push_travel, (x1, y1), (x2, y2),
+ *                           pull_travel, (x1, y1), (x2, y2))
  * where each (x, y) is a cubic-Bezier control point default, /256. Travels are
- * offsets from bellow_center, so recalibrating the center keeps every program.
- * tag0 + 0 is retired (it was the per-program center, now bellow_center), and
- * tag0 + 2/3 too (absolute full push/pull readings, now the travels). */
+ * offsets from bellow_center, so recalibrating the center keeps every program. */
 #define BELLOW_CP_X(x, y) x
 #define BELLOW_CP_Y(x, y) y
-#define BELLOW_PROGRAM(n, tag0, travel_tag0, push_travel_default, push_p1, push_p2, \
+#define BELLOW_PROGRAM(n, tag0, push_travel_default, push_p1, push_p2, \
                        pull_travel_default, pull_p1, pull_p2) \
-PROPERTY(tag0 + 1, uint16_t, bellow_p##n##_dead, \
+PROPERTY(tag0 + 0, uint16_t, bellow_p##n##_dead, \
          .factory_value = 32, .min = 0, .max = 4095, \
          .description = "Dead zone width; direction registers at center +-(dead+hyst)/2") \
-PROPERTY(travel_tag0 + 0, uint16_t, bellow_p##n##_push_travel, \
+PROPERTY(tag0 + 1, uint16_t, bellow_p##n##_push_travel, \
          .factory_value = push_travel_default, .min = 0, .max = 17000, \
          .description = "Full push: drop below bellow_center") \
-PROPERTY(travel_tag0 + 1, uint16_t, bellow_p##n##_pull_travel, \
+PROPERTY(tag0 + 2, uint16_t, bellow_p##n##_pull_travel, \
          .factory_value = pull_travel_default, .min = 0, .max = 17000, \
          .description = "Full pull: rise above bellow_center") \
-PROPERTY(tag0 + 4, uint16_t, bellow_p##n##_push_curve_x1, \
+PROPERTY(tag0 + 3, uint16_t, bellow_p##n##_push_curve_x1, \
          .factory_value = BELLOW_CP_X push_p1, .min = 0, .max = 256, \
          .description = "Push curve P1.x, 1/256 (near center)") \
-PROPERTY(tag0 + 5, uint16_t, bellow_p##n##_push_curve_y1, \
+PROPERTY(tag0 + 4, uint16_t, bellow_p##n##_push_curve_y1, \
          .factory_value = BELLOW_CP_Y push_p1, .min = 0, .max = 256, \
          .description = "Push curve P1.y, 1/256 (near center)") \
-PROPERTY(tag0 + 6, uint16_t, bellow_p##n##_push_curve_x2, \
+PROPERTY(tag0 + 5, uint16_t, bellow_p##n##_push_curve_x2, \
          .factory_value = BELLOW_CP_X push_p2, .min = 0, .max = 256, \
          .description = "Push curve P2.x, 1/256 (near full travel)") \
-PROPERTY(tag0 + 7, uint16_t, bellow_p##n##_push_curve_y2, \
+PROPERTY(tag0 + 6, uint16_t, bellow_p##n##_push_curve_y2, \
          .factory_value = BELLOW_CP_Y push_p2, .min = 0, .max = 256, \
          .description = "Push curve P2.y, 1/256 (near full travel)") \
-PROPERTY(tag0 + 8, uint16_t, bellow_p##n##_pull_curve_x1, \
+PROPERTY(tag0 + 7, uint16_t, bellow_p##n##_pull_curve_x1, \
          .factory_value = BELLOW_CP_X pull_p1, .min = 0, .max = 256, \
          .description = "Pull curve P1.x, 1/256 (near center)") \
-PROPERTY(tag0 + 9, uint16_t, bellow_p##n##_pull_curve_y1, \
+PROPERTY(tag0 + 8, uint16_t, bellow_p##n##_pull_curve_y1, \
          .factory_value = BELLOW_CP_Y pull_p1, .min = 0, .max = 256, \
          .description = "Pull curve P1.y, 1/256 (near center)") \
-PROPERTY(tag0 + 10, uint16_t, bellow_p##n##_pull_curve_x2, \
+PROPERTY(tag0 + 9, uint16_t, bellow_p##n##_pull_curve_x2, \
          .factory_value = BELLOW_CP_X pull_p2, .min = 0, .max = 256, \
          .description = "Pull curve P2.x, 1/256 (near full travel)") \
-PROPERTY(tag0 + 11, uint16_t, bellow_p##n##_pull_curve_y2, \
+PROPERTY(tag0 + 10, uint16_t, bellow_p##n##_pull_curve_y2, \
          .factory_value = BELLOW_CP_Y pull_p2, .min = 0, .max = 256, \
          .description = "Pull curve P2.y, 1/256 (near full travel)")
 
 /* p0 is the nominal travel; p1 and p2 reach full expression with 1/1.5 and
  * 1/2 of it, like the former x1.5 and x2.0 sensitivity levels. */
-BELLOW_PROGRAM(0, 3,  65, 3123, (10, 0), (245, 256), 3028, (10, 0), (245, 256))
-BELLOW_PROGRAM(1, 15, 67, 2082, (10, 0), (245, 256), 2019, (10, 0), (245, 256))
-BELLOW_PROGRAM(2, 27, 69, 1562, (10, 0), (245, 256), 1514, (10, 0), (245, 256))
+BELLOW_PROGRAM(0, 4, 3123, (10, 0), (245, 256), 3028, (10, 0), (245, 256))
+BELLOW_PROGRAM(1, 15, 2082, (10, 0), (245, 256), 2019, (10, 0), (245, 256))
+BELLOW_PROGRAM(2, 26, 1562, (10, 0), (245, 256), 1514, (10, 0), (245, 256))
 #undef BELLOW_PROGRAM
 #undef BELLOW_CP_X
 #undef BELLOW_CP_Y
-PROPERTY(39, uint16_t, bellow_program,
+PROPERTY(37, uint16_t, bellow_program,
          .factory_value = 0, .min = 0, .max = 2,
          .description = "Active bellow_p<n>_* set; FN1 cycles it")
 
-PROPERTY(40, uint16_t, bellow_hyst,
+PROPERTY(38, uint16_t, bellow_hyst,
          .factory_value = 12, .min = 0, .max = 4095,
          .description = "Travel given back before returning to neutral")
-PROPERTY(41, uint16_t, bellow_cc_period_ms,
+PROPERTY(39, uint16_t, bellow_cc_period_ms,
          .factory_value = 5, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(42, uint16_t, bellow_settle_us,
+PROPERTY(40, uint16_t, bellow_settle_us,
          .factory_value = 2, .min = 0, .max = 1000,
          .description = "Hall supply settling time before sampling")
-PROPERTY(43, uint16_t, bellow_sample_period_us,
+PROPERTY(41, uint16_t, bellow_sample_period_us,
          .factory_value = 250, .min = 250, .max = 10000,
          .description = "Min interval between hall samples (250 = 4 kHz)")
-PROPERTY(44, uint16_t, bellow_cc_1e_mincutoff,
+PROPERTY(42, uint16_t, bellow_cc_1e_mincutoff,
          .factory_value = 16, .min = 2, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(45, uint16_t, bellow_cc_1e_beta,
+PROPERTY(43, uint16_t, bellow_cc_1e_beta,
          .factory_value = 20, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
-PROPERTY(46, uint16_t, midi_active_sensing_period,
+PROPERTY(44, uint16_t, midi_active_sensing_period,
          .factory_value = 200, .min = 10, .max = 300,
          .description = "Active Sensing interval, ms")
-PROPERTY(47, bool, midi_active_sensing_enable,
+PROPERTY(45, bool, midi_active_sensing_enable,
          .factory_value = 1,
          .description = "Send MIDI Active Sensing (0xFE)")
-PROPERTY(48, uint16_t, pedal1_min,
+PROPERTY(46, uint16_t, pedal1_min,
          .factory_value = 920, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 0")
-PROPERTY(49, uint16_t, pedal1_max,
+PROPERTY(47, uint16_t, pedal1_max,
          .factory_value = 3100, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 127")
-PROPERTY(50, uint16_t, pedal2_min,
+PROPERTY(48, uint16_t, pedal2_min,
          .factory_value = 920, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 0")
-PROPERTY(51, uint16_t, pedal2_max,
+PROPERTY(49, uint16_t, pedal2_max,
          .factory_value = 3100, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 127")
-PROPERTY(52, uint16_t, pedal1_hyst_fwd,
+PROPERTY(50, uint16_t, pedal1_hyst_fwd,
          .factory_value = 4, .min = 0, .max = 4095,
          .description = "Backlash moving the same way, ADC units; 0 with hyst_rev 0 disables")
-PROPERTY(53, uint16_t, pedal1_hyst_rev,
+PROPERTY(51, uint16_t, pedal1_hyst_rev,
          .factory_value = 16, .min = 0, .max = 4095,
          .description = "Backlash to reverse direction, ADC units")
-PROPERTY(54, uint16_t, pedal1_cc_period_ms,
+PROPERTY(52, uint16_t, pedal1_cc_period_ms,
          .factory_value = 10, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(55, uint16_t, pedal2_hyst_fwd,
+PROPERTY(53, uint16_t, pedal2_hyst_fwd,
          .factory_value = 4, .min = 0, .max = 4095,
          .description = "Backlash moving the same way, ADC units; 0 with hyst_rev 0 disables")
-PROPERTY(56, uint16_t, pedal2_hyst_rev,
+PROPERTY(54, uint16_t, pedal2_hyst_rev,
          .factory_value = 16, .min = 0, .max = 4095,
          .description = "Backlash to reverse direction, ADC units")
-PROPERTY(57, uint16_t, pedal2_cc_period_ms,
+PROPERTY(55, uint16_t, pedal2_cc_period_ms,
          .factory_value = 10, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(58, uint16_t, tablemode_velocity,
+PROPERTY(56, uint16_t, tablemode_velocity,
          .factory_value = 80, .min = 1, .max = 127,
          .description = "Note velocity and CC#11 in table mode")
-PROPERTY(59, uint16_t, keyboard_tuning,
+PROPERTY(57, uint16_t, keyboard_tuning,
          .factory_value = 0, .min = 0, .max = 2,
          .description = "Note layout: 0 Rheinische, 1 Peguri, 2 Manoury")
-PROPERTY(PROPERTY_TAG_NONE, bool, log_bellow,
+PROPERTY(58, bool, log_bellow,
          .factory_value = 0,
          .description = "Log hall readings and bellows direction")
-PROPERTY(PROPERTY_TAG_NONE, bool, log_spi_stat,
+PROPERTY(59, bool, log_spi_stat,
          .factory_value = 0,
          .description = "Log SPI link errors and reception rates")
-PROPERTY(PROPERTY_TAG_NONE, bool, log_pedals,
+PROPERTY(60, bool, log_pedals,
          .factory_value = 0,
          .description = "Log pedal wiper moves (plug/unplug always logged)")
-PROPERTY(PROPERTY_TAG_NONE, bool, log_midi_sysex,
+PROPERTY(61, bool, log_midi_sysex,
          .factory_value = 0,
          .description = "Log MIDI sysex in and out")
-PROPERTY(PROPERTY_TAG_NONE, uint16_t, report_hz,
+PROPERTY(62, uint16_t, report_hz,
          .factory_value = 4, .min = 1, .max = 30,
          .description = "Live-report refresh rate")
-PROPERTY(PROPERTY_TAG_NONE, bool, show_bellow,
+PROPERTY(63, bool, show_bellow,
          .factory_value = 0,
          .description = "Live-report bellows direction, intensity, hall readings")
-PROPERTY(PROPERTY_TAG_NONE, bool, show_spi,
+PROPERTY(64, bool, show_spi,
          .factory_value = 0,
          .description = "Live-report SPI link counters and rates")
-PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard,
+PROPERTY(65, uint16_t, show_keyboard,
          .factory_value = 0, .min = 0, .max = 3,
          .description = "Live-report key hall readings: 0 off, 1 left, 2 right, 3 both")
-PROPERTY(PROPERTY_TAG_NONE, uint16_t, show_keyboard_stats,
+PROPERTY(66, uint16_t, show_keyboard_stats,
          .factory_value = 0, .min = 0, .max = 3,
          .description = "Add min/max/diff/stddev tables, same 0..3 as show_keyboard")
-PROPERTY(PROPERTY_TAG_NONE, bool, table_mode,
+PROPERTY(67, bool, table_mode,
          .factory_value = 0,
          .description = "Bellows pinned to PULL so keys sound at rest; FN0 toggles it")
-PROPERTY(60, uint16_t, pedal1_1e_mincutoff,
+PROPERTY(68, uint16_t, pedal1_1e_mincutoff,
          .factory_value = 256, .min = 26, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(61, uint16_t, pedal1_1e_beta,
+PROPERTY(69, uint16_t, pedal1_1e_beta,
          .factory_value = 459, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
-PROPERTY(62, uint16_t, pedal2_1e_mincutoff,
+PROPERTY(70, uint16_t, pedal2_1e_mincutoff,
          .factory_value = 256, .min = 26, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(63, uint16_t, pedal2_1e_beta,
+PROPERTY(71, uint16_t, pedal2_1e_beta,
          .factory_value = 459, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
