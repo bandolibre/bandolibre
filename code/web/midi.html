@@ -82,6 +82,17 @@
     gap: 10px;
     flex-wrap: wrap;
   }
+  /* Device picker and connection status share a row; the status wraps under
+   * the picker on narrow screens. The status has a fixed width so the picker
+   * doesn't resize as the message changes (long error messages wrap). */
+  .device-row {
+    display: flex;
+    align-items: center;
+    gap: 8px 16px;
+    flex-wrap: wrap;
+  }
+  .device-row select { flex: 1 1 240px; width: auto; min-width: 0; }
+  .device-row .status-row { flex: 0 0 15em; max-width: 100%; flex-wrap: nowrap; }
   .dot {
     width: 10px;
     height: 10px;
@@ -618,15 +629,14 @@
   </div>
 
   <div class="card">
-    <div class="status-row">
-      <span class="dot" id="statusDot"></span>
-      <span id="statusText">Starting…</span>
-    </div>
-  </div>
-
-  <div class="card">
     <label for="deviceSelect">MIDI device</label>
-    <select id="deviceSelect"></select>
+    <div class="device-row">
+      <select id="deviceSelect"></select>
+      <div class="status-row">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Starting…</span>
+      </div>
+    </div>
     <p class="hint">Bandolibre boards are picked automatically. Pick another device here to override; it stays selected until it disconnects.</p>
   </div>
 
@@ -3407,7 +3417,7 @@
   function updateStatus() {
     if (!midiAccess) return;
     if (activeName) {
-      setStatus("ok", "Connected: " + activeName);
+      setStatus("ok", "Connected");
     } else {
       const hasAnyDevice = collectDevices().length > 0;
       setStatus(hasAnyDevice ? "warn" : "", hasAnyDevice ? "Waiting for Bandolibre…" : "No MIDI devices found");
