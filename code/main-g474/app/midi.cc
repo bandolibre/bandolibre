@@ -2,6 +2,7 @@
 #include "main.h"        /* HAL_GetTick */
 #include "properties.h"
 #include "usb_app.h"
+#include "version.h"     /* FIRMWARE_VERSION_STRING, generated from the git tag */
 
 extern "C" {
 #include "bellow.h"
@@ -17,9 +18,6 @@ extern "C" {
 #include <gsl/span>
 
 namespace {
-
-/* Placeholder until firmware builds carry a real version string. */
-constexpr const char *FIRMWARE_VERSION_STRING = "Bandolibre v0.0.1";
 
 enum sysex_message_id : uint8_t {
   SYSEX_MSG_HELLO                    = 0x00,
