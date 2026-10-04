@@ -110,6 +110,15 @@
   #statusText {
     font-weight: 600;
   }
+  .update-notice {
+    margin: 12px 0 0;
+    padding: 8px 12px;
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    background: var(--saved-bg);
+    font-size: 0.9rem;
+  }
+  .update-notice a { color: inherit; font-weight: 600; }
   select {
     width: 100%;
     padding: 8px 10px;
@@ -733,6 +742,11 @@
         <span id="statusText">Starting…</span>
       </div>
     </div>
+    <p class="update-notice" id="firmwareUpdateNotice" hidden>
+      <span id="firmwareUpdateText"></span>
+      <a id="firmwareUpdateLink" href="https://github.com/bandolibre/bandolibre/releases/latest" target="_blank" rel="noopener">Download</a> ·
+      <a href="https://github.com/bandolibre/bandolibre/blob/main/documentation/user_manual.md#updating-the-firmware" target="_blank" rel="noopener">How to update</a>
+    </p>
     <p class="hint">Bandolibre boards are picked automatically. Pick another device here to override; it stays selected until it disconnects.</p>
   </div>
 
@@ -1112,23 +1126,23 @@
     </summary>
     <div class="log-filters" id="logFilters">
       <div class="log-filter-row">
-        <label><input type="checkbox" data-kind="note" checked> Notes</label>
-        <label><input type="checkbox" data-kind="cc" checked> CC</label>
-        <label><input type="checkbox" data-kind="activeSensing"> Active Sensing</label>
-        <label><input type="checkbox" data-kind="other" checked> Other</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="note" checked> Notes</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="cc" checked> CC</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="activeSensing"> Active Sensing</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="other" checked> Other</label>
       </div>
       <div class="log-filter-row">
-        <label class="log-filter-master"><input type="checkbox" id="logFilterSysexAll" checked> Sysex</label>
-        <label><input type="checkbox" data-kind="sysexHello" data-group="sysex" checked> Hello</label>
-        <label><input type="checkbox" data-kind="sysexGetProperty" data-group="sysex" checked> Get Property</label>
-        <label><input type="checkbox" data-kind="sysexGetPropertyDescription" data-group="sysex" checked> Get Property Description</label>
-        <label><input type="checkbox" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
-        <label><input type="checkbox" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
-        <label><input type="checkbox" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
-        <label><input type="checkbox" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
-        <label><input type="checkbox" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
-        <label><input type="checkbox" data-kind="sysexPropertyChanged" data-group="sysex" checked> Property Changed</label>
-        <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
+        <label class="log-filter-master"><input type="checkbox" autocomplete="off" id="logFilterSysexAll" checked> Sysex</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexHello" data-group="sysex" checked> Hello</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexGetProperty" data-group="sysex" checked> Get Property</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexGetPropertyDescription" data-group="sysex" checked> Get Property Description</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexPropertyChanged" data-group="sysex" checked> Property Changed</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
       </div>
     </div>
     <div id="log"></div>
@@ -2279,6 +2293,7 @@
       if (generation === enumGeneration) setLinkState("ok");
       log("hello: " + hello.version + ", " + hello.count + " properties" +
           (hello.storeGeneration !== null ? ", store generation " + hello.storeGeneration : ""), "sysexHello");
+      checkFirmwareVersion(hello.version, generation); // not awaited: the network must not hold up the properties
       // A firmware that reports a store generation answers GET_SAVED_VALUE.
       savedValuesSupported = hello.storeGeneration !== null;
       if (hello.bellows !== null) {
@@ -4011,20 +4026,98 @@
     return !!name && BANDOLIBRE_RE.test(name);
   }
 
+  // Firmware update notice. HELLO's version string is "Bandolibre " + the
+  // git tag (code/main-g474/cmake/version.cmake): "v1.2-alpha" on a release,
+  // "v1.2-alpha-3-g9f91cb8[-dirty]" past one, "unknown" without git. Firmware
+  // older than that sends the placeholder "v0.0.1". It is compared with the
+  // latest GitHub release (pre-releases excluded), cached in localStorage for
+  // an hour - the API allows 60 unauthenticated requests an hour - and kept
+  // as a fallback when offline. Only the numbers are compared, so a
+  // development build past a release counts as that release. No answer from
+  // GitHub, or a version that doesn't parse, means no notice.
+  const RELEASES_API = "https://api.github.com/repos/bandolibre/bandolibre/releases/latest";
+  const LATEST_RELEASE_KEY = "latestRelease";
+  const LATEST_RELEASE_MAX_AGE_MS = 60 * 60 * 1000;
+  const firmwareUpdateNotice = document.getElementById("firmwareUpdateNotice");
+  const firmwareUpdateText = document.getElementById("firmwareUpdateText");
+  const firmwareUpdateLink = document.getElementById("firmwareUpdateLink");
+
+  /* [major, minor, patch] from "...v1.2-alpha..." or "bandolibre-v1.2.1", or
+   * null. */
+  function parseFirmwareVersion(text) {
+    const m = /\bv(\d+)\.(\d+)(?:\.(\d+))?/.exec(text || "");
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3] || 0)] : null;
+  }
+
+  function compareVersions(a, b) {
+    for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
+    return 0;
+  }
+
+  /* { tag, url, fetchedAt } of the latest release, or null. */
+  async function fetchLatestRelease() {
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(LATEST_RELEASE_KEY)); } catch (_) {}
+    if (cached && Date.now() - cached.fetchedAt < LATEST_RELEASE_MAX_AGE_MS) return cached;
+    try {
+      const response = await fetch(RELEASES_API, { headers: { Accept: "application/vnd.github+json" } });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const release = await response.json();
+      const latest = { tag: release.tag_name, url: release.html_url, fetchedAt: Date.now() };
+      try { localStorage.setItem(LATEST_RELEASE_KEY, JSON.stringify(latest)); } catch (_) {}
+      return latest;
+    } catch (err) {
+      console.log("[release check]", err.message);
+      return cached; // offline or rate-limited: a stale answer beats none
+    }
+  }
+
+  async function checkFirmwareVersion(deviceVersion, generation) {
+    const latest = await fetchLatestRelease();
+    if (generation !== enumGeneration) return; // another device, or disconnected, meanwhile
+    firmwareUpdateNotice.hidden = true;
+    const device = parseFirmwareVersion(deviceVersion);
+    const releaseTag = latest && /^bandolibre-v/.test(latest.tag) ? latest.tag : null;
+    const release = parseFirmwareVersion(releaseTag);
+    if (!device || !release) return;
+    const releaseName = releaseTag.replace(/^bandolibre-/, "");
+    const outdated = compareVersions(device, release) < 0;
+    log("firmware " + deviceVersion + ", latest release " + releaseName +
+        (outdated ? ": update available" : ": up to date"), "sysexHello");
+    if (!outdated) return;
+    firmwareUpdateText.textContent = "Firmware " + releaseName + " is available; this instrument has " +
+        deviceVersion.replace(/^Bandolibre /, "") + ".";
+    if (latest.url) firmwareUpdateLink.href = latest.url;
+    firmwareUpdateNotice.hidden = false;
+  }
+
   // Activity log filters: one checkbox per message kind (see messageKind()
   // above for how incoming MIDI is classified; sysex/other log calls pass
-  // their kind explicitly at the call site). Read from the checkboxes'
-  // markup-defined `checked` state, so that state lives in one place. The
-  // "Sysex" checkbox is a master for the sysexHello/.../sysexOther group -
-  // it has no data-kind of its own (nothing is ever logged under it).
+  // their kind explicitly at the call site). The markup's `checked` state is
+  // the default; the viewer's choices are kept in localStorage per kind, so a
+  // kind added later starts at its markup default. The checkboxes carry
+  // autocomplete="off": the browser's own form restore on reload would
+  // otherwise tick boxes behind this code's back, showing a filter that
+  // logFilters doesn't apply. The "Sysex" checkbox is a master for the
+  // sysexHello/.../sysexOther group - it has no data-kind of its own
+  // (nothing is ever logged under it).
+  const LOG_FILTERS_KEY = "logFilters";
   const logFilters = {};
+  let savedLogFilters = {};
+  try { savedLogFilters = JSON.parse(localStorage.getItem(LOG_FILTERS_KEY)) || {}; } catch (_) {}
+  function saveLogFilters() {
+    try { localStorage.setItem(LOG_FILTERS_KEY, JSON.stringify(logFilters)); } catch (_) {}
+  }
   function applyLogFilters() {
     for (const line of logEl.children) line.hidden = logFilters[line.dataset.kind] === false;
   }
   document.querySelectorAll("#logFilters input[data-kind]").forEach((cb) => {
+    const saved = savedLogFilters[cb.dataset.kind];
+    if (typeof saved === "boolean") cb.checked = saved;
     logFilters[cb.dataset.kind] = cb.checked;
     cb.addEventListener("change", () => {
       logFilters[cb.dataset.kind] = cb.checked;
+      saveLogFilters();
       applyLogFilters();
       if (cb.dataset.group === "sysex") updateSysexMasterCheckbox();
     });
@@ -4043,6 +4136,7 @@
       cb.checked = sysexMasterCheckbox.checked;
       logFilters[cb.dataset.kind] = cb.checked;
     });
+    saveLogFilters();
     applyLogFilters();
   });
   updateSysexMasterCheckbox();
@@ -4229,6 +4323,7 @@
     activeInput = null;
     activeOutput = null;
     linkState = null;
+    firmwareUpdateNotice.hidden = true;
     enumGeneration++; // the rejected HELLO below must not set linkState back
     // A sysex round-trip (eg. a GET_PERIPHERALS poll) can still be in flight
     // when the device drops off the bus - a fast device reset re-enumerates
