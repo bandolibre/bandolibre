@@ -435,6 +435,14 @@
   .kbd-toggle-switch input:checked + .kbd-toggle-track { background: var(--ok); }
   .kbd-toggle-switch input:checked + .kbd-toggle-track::before { transform: translateX(15px); }
   .kbd-toggle-switch input:focus-visible + .kbd-toggle-track { outline: 2px solid var(--muted); outline-offset: 2px; }
+  /* Three-position variant (bellows zoom): a hidden range input over a wider
+   * track, so clicking a spot, dragging and arrow keys all pick a stop. */
+  .zoom-switch { width: 51px; }
+  .zoom-switch input { -webkit-appearance: none; appearance: none; }
+  .zoom-switch[data-level="1"] .kbd-toggle-track,
+  .zoom-switch[data-level="2"] .kbd-toggle-track { background: var(--ok); }
+  .zoom-switch[data-level="1"] .kbd-toggle-track::before { transform: translateX(15px); }
+  .zoom-switch[data-level="2"] .kbd-toggle-track::before { transform: translateX(30px); }
 
   /* ---- Sound (soundfont playback) ---- */
   .sound-toggle {
@@ -597,10 +605,10 @@
     <div class="bellow-header">
       <label>Bellow</label>
       <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
-      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on the bellows center">
-        <span>🔍 ×4</span>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="zoomCenterToggle">
+      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×1, ×4 or ×8, centered on the bellows center">
+        <span>🔍 <span id="zoomLevelLabel">×1</span></span>
+        <span class="kbd-toggle-switch zoom-switch" id="zoomSwitch" data-level="0">
+          <input type="range" id="zoomCenterSlider" min="0" max="2" step="1" value="0" aria-label="Bellows graph zoom">
           <span class="kbd-toggle-track"></span>
         </span>
       </label>
@@ -1825,14 +1833,15 @@
   const PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_TOP = 30, PLOT_BOTTOM = 340;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-  // Zoom toggle (top-right of the Bellow card): quarters BOTH the visible
+  // Zoom switch (top-right of the Bellow card): divides BOTH the visible
   // sensor span (re-centered on bg.center) and the CC axis (re-based at 0,
   // the value the deadzone always maps to), for a close look at the curve's
   // "knee" right where it leaves the deadzone - everything downstream
   // (ticks, curve paths, vlines, drag sensitivity) already derives from
   // axisRange()/yAxisRange(), so these are the only two places the zoom
   // state needs to plug in.
-  let zoomCenterActive = false;
+  const ZOOM_LEVELS = [1, 4, 8];
+  let zoomFactor = 1;
   // Held while a vertical line is dragged: full push/pull follow the center,
   // so without it dragging the center would scroll the axis under the line.
   let frozenAxisRange = null;
@@ -1843,12 +1852,12 @@
     const lo = Math.min(fullPush(), fullPull()), hi = Math.max(fullPush(), fullPull());
     const margin = Math.max(1, (hi - lo) * 0.1);
     const fullMin = lo - margin, fullMax = hi + margin;
-    if (!zoomCenterActive) return { xMin: fullMin, xMax: fullMax };
-    const zoomSpan = (fullMax - fullMin) / 4;
+    if (zoomFactor === 1) return { xMin: fullMin, xMax: fullMax };
+    const zoomSpan = (fullMax - fullMin) / zoomFactor;
     return { xMin: bg.center - zoomSpan / 2, xMax: bg.center + zoomSpan / 2 };
   }
   function yAxisRange() {
-    return { yMin: 0, yMax: zoomCenterActive ? 127 / 4 : 127 };
+    return { yMin: 0, yMax: 127 / zoomFactor };
   }
   function adcToPx(adc) {
     const { xMin, xMax } = axisRange();
@@ -2200,9 +2209,12 @@
    * current by startPeripheralPolling() at 10 Hz) for one second and sets
    * the active program's center to the average - an easy way to (re-)zero the rest
    * position without reading the raw ADC value off the graph by eye. */
-  const zoomCenterToggle = document.getElementById("zoomCenterToggle");
-  zoomCenterToggle.addEventListener("change", () => {
-    zoomCenterActive = zoomCenterToggle.checked;
+  const zoomCenterSlider = document.getElementById("zoomCenterSlider");
+  zoomCenterSlider.addEventListener("input", () => {
+    const level = +zoomCenterSlider.value;
+    zoomFactor = ZOOM_LEVELS[level];
+    document.getElementById("zoomSwitch").dataset.level = level;
+    document.getElementById("zoomLevelLabel").textContent = "×" + zoomFactor;
     redrawGraph();
     updateLiveDot();
   });
