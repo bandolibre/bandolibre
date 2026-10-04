@@ -25,28 +25,34 @@ PROPERTY(2, uint16_t, key_release,
          .default_value = 2100, .min = 0, .max = 4095,
          .description = "ADC above this -> key released")
 
+/* The rest position is a property of the hardware, not of the playing style,
+ * so it is shared by all bellows programs. */
+PROPERTY(64, uint16_t, bellow_center,
+         .default_value = 28972, .min = 17000, .max = 34000,
+         .description = "Combined hall reading at rest, shared by all bellows programs (measured on hardware at ADC oversampling RightBitShift_5)")
+
 /* Bellows programs: FN1 cycles bellow_program through BELLOW_PROGRAM_COUNT
- * (bellow.h) sets of center, dead zone, full travel and response curves, each
- * BELLOW_PROGRAM() being 12 consecutive tags from tag0:
- *   BELLOW_PROGRAM(n, tag0, full_push, (x1, y1), (x2, y2),
- *                           full_pull, (x1, y1), (x2, y2))
- * where each (x, y) is a cubic-Bezier control point default, /256. */
+ * (bellow.h) sets of dead zone, travel and response curves, each
+ * BELLOW_PROGRAM() owning 12 consecutive tags from tag0 plus 2 from travel_tag0:
+ *   BELLOW_PROGRAM(n, tag0, travel_tag0, push_travel, (x1, y1), (x2, y2),
+ *                                        pull_travel, (x1, y1), (x2, y2))
+ * where each (x, y) is a cubic-Bezier control point default, /256. Travels are
+ * offsets from bellow_center, so recalibrating the center keeps every program.
+ * tag0 + 0 is retired (it was the per-program center, now bellow_center), and
+ * tag0 + 2/3 too (absolute full push/pull readings, now the travels). */
 #define BELLOW_CP_X(x, y) x
 #define BELLOW_CP_Y(x, y) y
-#define BELLOW_PROGRAM(n, tag0, full_push_default, push_p1, push_p2, \
-                       full_pull_default, pull_p1, pull_p2) \
-PROPERTY(tag0 + 0, uint16_t, bellow_p##n##_center, \
-         .default_value = 28972, .min = 17000, .max = 34000, \
-         .description = "Program " #n ": combined hall reading at rest (measured on hardware at ADC oversampling RightBitShift_5)") \
+#define BELLOW_PROGRAM(n, tag0, travel_tag0, push_travel_default, push_p1, push_p2, \
+                       pull_travel_default, pull_p1, pull_p2) \
 PROPERTY(tag0 + 1, uint16_t, bellow_p##n##_dead, \
          .default_value = 64, .min = 0, .max = 4095, \
          .description = "Program " #n ": travel each way before registering direction; entry threshold is dead/2 + hyst/2 from center") \
-PROPERTY(tag0 + 2, uint16_t, bellow_p##n##_full_push, \
-         .default_value = full_push_default, .min = 0, .max = 50000, \
-         .description = "Program " #n ": combined hall reading at full push") \
-PROPERTY(tag0 + 3, uint16_t, bellow_p##n##_full_pull, \
-         .default_value = full_pull_default, .min = 0, .max = 50000, \
-         .description = "Program " #n ": combined hall reading at full pull") \
+PROPERTY(travel_tag0 + 0, uint16_t, bellow_p##n##_push_travel, \
+         .default_value = push_travel_default, .min = 0, .max = 17000, \
+         .description = "Program " #n ": full push, as the hall reading's drop below bellow_center") \
+PROPERTY(travel_tag0 + 1, uint16_t, bellow_p##n##_pull_travel, \
+         .default_value = pull_travel_default, .min = 0, .max = 17000, \
+         .description = "Program " #n ": full pull, as the hall reading's rise above bellow_center") \
 PROPERTY(tag0 + 4, uint16_t, bellow_p##n##_push_curve_x1, \
          .default_value = BELLOW_CP_X push_p1, .min = 0, .max = 256, \
          .description = "Program " #n ": push curve, control point 1 X (near center), cubic Bezier /256") \
@@ -74,9 +80,9 @@ PROPERTY(tag0 + 11, uint16_t, bellow_p##n##_pull_curve_y2, \
 
 /* p0 is the nominal travel; p1 and p2 reach full expression with 1/1.5 and
  * 1/2 of it, like the former x1.5 and x2.0 sensitivity levels. */
-BELLOW_PROGRAM(0, 3,  25849, (10, 0), (245, 256), 32000, (10, 0), (245, 256))
-BELLOW_PROGRAM(1, 15, 26890, (10, 0), (245, 256), 30991, (10, 0), (245, 256))
-BELLOW_PROGRAM(2, 27, 27410, (10, 0), (245, 256), 30486, (10, 0), (245, 256))
+BELLOW_PROGRAM(0, 3,  65, 3123, (10, 0), (245, 256), 3028, (10, 0), (245, 256))
+BELLOW_PROGRAM(1, 15, 67, 2082, (10, 0), (245, 256), 2019, (10, 0), (245, 256))
+BELLOW_PROGRAM(2, 27, 69, 1562, (10, 0), (245, 256), 1514, (10, 0), (245, 256))
 #undef BELLOW_PROGRAM
 #undef BELLOW_CP_X
 #undef BELLOW_CP_Y

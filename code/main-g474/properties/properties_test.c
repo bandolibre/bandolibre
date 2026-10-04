@@ -35,12 +35,12 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 73);
+  CHECK(property_count() == 71);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);
   CHECK(g_properties->key_release == 2100);
-  CHECK(g_properties->bellow_p0_center == 28972);
+  CHECK(g_properties->bellow_center == 28972);
   CHECK(g_properties->bellow_cc_period_ms == 5);
 
   /* Same value via the index API. */
@@ -51,9 +51,9 @@ static void test_defaults(void)
 static void test_lookup(void)
 {
   size_t i;
-  CHECK(property_by_name("bellow_p0_center", &i));
-  CHECK(property_at(i)->tag == 3);
-  CHECK(strcmp(property_at(i)->name, "bellow_p0_center") == 0);
+  CHECK(property_by_name("bellow_center", &i));
+  CHECK(property_at(i)->tag == 64);
+  CHECK(strcmp(property_at(i)->name, "bellow_center") == 0);
 
   CHECK(!property_by_name("does_not_exist", &i));
   CHECK(property_at(property_count()) == NULL);
@@ -120,16 +120,16 @@ static void test_reset(void)
   CHECK(property_reset(i));
   CHECK(g_properties->key_press == 1900);
 
-  CHECK(property_set_u16(idx("bellow_p0_center"), 100));
+  CHECK(property_set_u16(idx("bellow_center"), 100));
   property_reset_all();
-  CHECK(g_properties->bellow_p0_center == 28972);
+  CHECK(g_properties->bellow_center == 28972);
 }
 
 static void test_pack_unpack_roundtrip(void)
 {
   property_reset_all();
   property_set_u16(idx("key_press"), 1500);
-  property_set_u16(idx("bellow_p0_center"), 20000);
+  property_set_u16(idx("bellow_center"), 20000);
   property_set_u16(idx("bellow_cc_period_ms"), 20);
 
   uint8_t buf[512];
@@ -142,7 +142,7 @@ static void test_pack_unpack_roundtrip(void)
 
   CHECK(property_unpack(buf, n));
   CHECK(g_properties->key_press == 1500);
-  CHECK(g_properties->bellow_p0_center == 20000);
+  CHECK(g_properties->bellow_center == 20000);
   CHECK(g_properties->bellow_cc_period_ms == 20);
   CHECK(g_properties->key_release == 2100); /* untouched -> default */
 
@@ -192,7 +192,7 @@ static void test_out_of_range_loads_default(void)
 
 static void test_forward_compat_unknown_tag(void)
 {
-  /* Blob with an unknown tag (1000) plus a known one (tag 3 = bellow_p0_center). */
+  /* Blob with an unknown tag (1000) plus a known one (tag 64 = bellow_center). */
   uint8_t buf[64];
   size_t off = 0;
   put16(buf, off, 0x4e44); off += 2;
@@ -201,7 +201,7 @@ static void test_forward_compat_unknown_tag(void)
   put16(buf, off, 2);      off += 2; /* count = 2 */
   put16(buf, off, 1000);   off += 2; /* unknown tag */
   put16(buf, off, 1234);   off += 2;
-  put16(buf, off, 3);      off += 2; /* bellow_p0_center */
+  put16(buf, off, 64);     off += 2; /* bellow_center */
   put16(buf, off, 25000);  off += 2;
   uint16_t cs = 0;
   for (size_t o = 0; o < off; o += 2) cs ^= (uint16_t)(buf[o] | (buf[o + 1] << 8));
@@ -209,7 +209,7 @@ static void test_forward_compat_unknown_tag(void)
 
   property_reset_all();
   CHECK(property_unpack(buf, off));
-  CHECK(g_properties->bellow_p0_center == 25000); /* known tag applied */
+  CHECK(g_properties->bellow_center == 25000); /* known tag applied */
   CHECK(g_properties->key_press == 1900);   /* absent -> default */
 }
 
@@ -222,9 +222,10 @@ static void test_flash_stubs(void)
 static void test_complete(void)
 {
   const char *out[128];
-  /* "bellow_" matches the bellow_* properties (3 programs of 12, the program
-   * selector, hysteresis, CC, settle, sample rate, 1-euro filter) */
-  CHECK(properties_complete("bellow_", out, 128) == 43);
+  /* "bellow_" matches the bellow_* properties (shared center, 3 programs of
+   * 11, the program selector, hysteresis, CC, settle, sample rate, 1-euro
+   * filter) */
+  CHECK(properties_complete("bellow_", out, 128) == 41);
   /* "key_" matches the two key_* properties, not keyboard_tuning */
   CHECK(properties_complete("key_", out, 128) == 2);
   /* empty prefix matches all (buffer is sized above property_count()) */

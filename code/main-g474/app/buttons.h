@@ -14,7 +14,7 @@
  * g_properties->table_mode (or via buttons_table_mode()).
  *
  * FN1 (middle) cycles the bellows program (BELLOW_PROGRAM_COUNT sets of
- * center, deadzone, full travel and response curves, see bellow.h). It writes
+ * deadzone, full travel and response curves, see bellow.h). It writes
  * the bellow_program property rather than latching state of its own, so read
  * it from g_properties->bellow_program.
  *

@@ -23,11 +23,13 @@ typedef struct {
  * thresholds, and "hyst" is the extra travel required to leave NEUTRAL in the
  * first place (entry threshold = dead/2 + hyst/2 from center).
  *
- * Intensity is 0.0 at the entry edge (push_edge) and 1.0 at full_push/full_pull.
- * Pass full_push = full_pull = 0 to skip intensity (direction-only use).
+ * Intensity is 0.0 at the entry edge (push_edge) and 1.0 at full travel:
+ * center - push_travel / center + pull_travel. Travels are distances from
+ * center, so a recalibrated center keeps the same travel.
+ * Pass push_travel = pull_travel = 0 to skip intensity (direction-only use).
  */
 bellow_classify_result_t bellow_classify(bellows_t prev, float value_f,
                                          int32_t center, int32_t dead, int32_t hyst,
-                                         int32_t full_push, int32_t full_pull);
+                                         int32_t push_travel, int32_t pull_travel);
 
 #endif /* APP_BELLOW_CLASSIFY_H */

@@ -71,14 +71,16 @@ follow the real bellows again, and hands CC#11 back to it.
 
 The **middle function button (FN1)** cycles the `bellow_program` property
 through three bellows programs, wrapping back to the first; the current program
-is reported on the console. Each program is a full set of bellows settings:
-rest position (`bellow_p<n>_center`), dead zone (`bellow_p<n>_dead`), full push
-and full pull readings (`bellow_p<n>_full_push`, `bellow_p<n>_full_pull`) and
-the push and pull response curves (`bellow_p<n>_push_curve_*`,
-`bellow_p<n>_pull_curve_*`). The hysteresis, filter and rate settings are
-shared by all programs.
+is reported on the console. Each program has its own dead zone
+(`bellow_p<n>_dead`), push and pull travel (`bellow_p<n>_push_travel`,
+`bellow_p<n>_pull_travel`: how far the reading moves from the rest position at
+full push and full pull) and push and pull response curves
+(`bellow_p<n>_push_curve_*`, `bellow_p<n>_pull_curve_*`). The rest position
+(`bellow_center`), hysteresis, filter and rate settings are shared by all
+programs. Because the travels are offsets from the rest position,
+recalibrating it moves full push and full pull along with it in every program.
 
-By default the three programs differ only in their full push/pull readings:
+By default the three programs differ only in their push/pull travel:
 program 0 uses the nominal travel, programs 1 and 2 reach full velocity and
 full expression with 1/1.5 and 1/2 of it, useful for quiet playing or a stiff
 bellows.

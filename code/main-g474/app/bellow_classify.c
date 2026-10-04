@@ -1,6 +1,6 @@
 #include "bellow_classify.h"
 
-/* center/dead/hyst/full_push/full_pull are all uint16_t properties (<= 65535),
+/* center/dead/hyst/push_travel/pull_travel are all uint16_t properties (<= 65535),
  * so every int32_t derived from them below (push_edge, pull_edge, span) is
  * comfortably inside float32's 24-bit exact-integer range: comparing or
  * subtracting them against value_f never rounds. The one division (d/span)
@@ -8,7 +8,7 @@
  * 0..1 output. */
 bellow_classify_result_t bellow_classify(bellows_t prev, float value_f,
                                          int32_t center, int32_t dead, int32_t hyst,
-                                         int32_t full_push, int32_t full_pull)
+                                         int32_t push_travel, int32_t pull_travel)
 {
   int32_t push_edge = center - dead/2 - hyst/2;
   int32_t pull_edge = center + dead/2 + hyst/2;
@@ -36,13 +36,13 @@ bellow_classify_result_t bellow_classify(bellows_t prev, float value_f,
 
   if (result.direction == BELLOWS_PUSH)
   {
-    int32_t span = push_edge - full_push;
+    int32_t span = push_edge - (center - push_travel);
     float d = value_f < push_edge ? (float)push_edge - value_f : 0.0f;
     result.intensity = (span > 0) ? (d >= span ? 1.0f : d / span) : 0.0f;
   }
   else if (result.direction == BELLOWS_PULL)
   {
-    int32_t span = full_pull - pull_edge;
+    int32_t span = (center + pull_travel) - pull_edge;
     float d = value_f > pull_edge ? value_f - pull_edge : 0.0f;
     result.intensity = (span > 0) ? (d >= span ? 1.0f : d / span) : 0.0f;
   }

@@ -597,7 +597,7 @@
     <div class="bellow-header">
       <label>Bellow</label>
       <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
-      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on the program's center">
+      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on the bellows center">
         <span>🔍 ×4</span>
         <span class="kbd-toggle-switch">
           <input type="checkbox" id="zoomCenterToggle">
@@ -663,7 +663,7 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Each program has its own center, deadzone, full push/pull and curves; the FN1 button cycles through them. Hold Shift while dragging for fine adjustment. Hysteresis not shown (deadzone lines use the program's deadzone only).</p>
+    <p class="bp-caption">Each program has its own deadzone, push/pull travel and curves; the FN1 button cycles through them. The center is shared by all programs, and full push/pull follow it. Hold Shift while dragging for fine adjustment. Hysteresis not shown (deadzone lines use the program's deadzone only).</p>
 
     <div class="bp-group">
       <div class="bp-group-title">Presets</div>
@@ -698,9 +698,9 @@
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch push"></span>Push curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Bellow sensor reading at full push</span>
+          <span class="bp-cp-row-label">Full push: how far the sensor reading drops below the center</span>
           <div class="bp-x">
-            <label><span>full push</span><input type="number" id="num-full-push" min="0" max="50000" value="23400"></label>
+            <label><span>push travel</span><input type="number" id="num-push-travel" min="0" max="17000" value="3123"></label>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -721,9 +721,9 @@
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch pull"></span>Pull curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Bellow sensor reading at full pull</span>
+          <span class="bp-cp-row-label">Full pull: how far the sensor reading rises above the center</span>
           <div class="bp-x">
-            <label><span>full pull</span><input type="number" id="num-full-pull" min="0" max="50000" value="32000"></label>
+            <label><span>pull travel</span><input type="number" id="num-pull-travel" min="0" max="17000" value="3028"></label>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -1638,7 +1638,7 @@
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
   // GET_PROPERTY_DESCRIPTION now returns a property's symbolic name (see
-  // midi.cc), so which index is "bellow_p0_center" etc. is resolved by looking
+  // midi.cc), so which index is "bellow_p0_dead" etc. is resolved by looking
   // it up by name among the just-fetched properties (byName, built in
   // enumerateProperties) rather than assumed from property_table.def's
   // declaration order. PROP_INDEX starts empty and is filled in by
@@ -1650,23 +1650,28 @@
   // The firmware has BELLOW_PROGRAM_COUNT programs (bellow.h), each a full
   // set of bellow_p<n>_* properties; bellow_program selects the active one
   // (also cycled by FN1). The graph always shows and edits the active
-  // program, so PROP_INDEX is per program: PROP_INDEX[n][key].
+  // program, so PROP_INDEX is per program: PROP_INDEX[n][key]. The center
+  // (bellow_center) is shared by all programs and has its own index.
   const BELLOW_PROGRAM_COUNT = 3;
+  const BELLOW_CENTER_PROP_NAME = "bellow_center";
   const BELLOW_PROP_SUFFIX = {
-    center: "center", dead: "dead", fullPush: "full_push", fullPull: "full_pull",
+    dead: "dead", pushTravel: "push_travel", pullTravel: "pull_travel",
     pushX1: "push_curve_x1", pushY1: "push_curve_y1", pushX2: "push_curve_x2", pushY2: "push_curve_y2",
     pullX1: "pull_curve_x1", pullY1: "pull_curve_y1", pullX2: "pull_curve_x2", pullY2: "pull_curve_y2",
   };
   const bellowPropName = (n, key) => "bellow_p" + n + "_" + BELLOW_PROP_SUFFIX[key];
   const PROP_INDEX = [];
+  let BELLOW_CENTER_PROP_INDEX = null;
   let bellowGraphLive = false;
   let BELLOW_PROGRAM_PROP_INDEX = null;
   let currentBellowProgram = 0; // matches bellow_program's default_value
   let bellowProgramLive = false; // true once bellow_program resolved on a connected device
 
-  // Writes one field of the active program (key as in BELLOW_PROP_SUFFIX).
+  // Writes one field of the active program (key as in BELLOW_PROP_SUFFIX),
+  // or the shared center for key "center".
   function writeBellowProp(key, value) {
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX[currentBellowProgram][key], value);
+    if (!bellowGraphLive) return;
+    queueSetProperty(key === "center" ? BELLOW_CENTER_PROP_INDEX : PROP_INDEX[currentBellowProgram][key], value);
   }
   let liveAdcTotal = null;
 
@@ -1697,6 +1702,7 @@
   const PROPS_EDITED_ELSEWHERE = new Set([
     ...Array.from({ length: BELLOW_PROGRAM_COUNT }, (_, n) =>
       Object.keys(BELLOW_PROP_SUFFIX).map((key) => bellowPropName(n, key))).flat(),
+    BELLOW_CENTER_PROP_NAME,
     ...Object.values(PEDAL_PROP_NAMES),
     "keyboard_tuning", "table_mode", "bellow_program",
   ]);
@@ -1738,19 +1744,22 @@
 
   // Per-program values, mirroring property_table.def's defaults until a
   // device is read. bg is the program being shown and edited; it is copied
-  // back into bgPrograms when another program is selected.
-  const bgProgramDefault = (fullPush, fullPull) => ({
-    center: 28972, dead: 64, fullPush, fullPull,
+  // back into bgPrograms when another program is selected. bg.center is
+  // shared by all programs, so it is kept across program switches.
+  // Travels are offsets from the center, as in the firmware: full push is at
+  // center - pushTravel, full pull at center + pullTravel.
+  const bgProgramDefault = (pushTravel, pullTravel) => ({
+    dead: 64, pushTravel, pullTravel,
     push: { x1: 10, y1: 0, x2: 245, y2: 256 },
     pull: { x1: 10, y1: 0, x2: 245, y2: 256 },
   });
   const bgPrograms = [
-    bgProgramDefault(25849, 32000),
-    bgProgramDefault(26890, 30991),
-    bgProgramDefault(27410, 30486),
+    bgProgramDefault(3123, 3028),
+    bgProgramDefault(2082, 2019),
+    bgProgramDefault(1562, 1514),
   ];
   const copyBellowProgram = (p) => ({ ...p, push: { ...p.push }, pull: { ...p.pull } });
-  const bg = copyBellowProgram(bgPrograms[0]);
+  const bg = { center: 28972, ...copyBellowProgram(bgPrograms[0]) };
   const bgPresets = {
     linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
     feather: { x1: 40, y1: 220, x2: 150, y2: 235 },
@@ -1824,8 +1833,14 @@
   // axisRange()/yAxisRange(), so these are the only two places the zoom
   // state needs to plug in.
   let zoomCenterActive = false;
+  // Held while a vertical line is dragged: full push/pull follow the center,
+  // so without it dragging the center would scroll the axis under the line.
+  let frozenAxisRange = null;
+  const fullPush = () => bg.center - bg.pushTravel;
+  const fullPull = () => bg.center + bg.pullTravel;
   function axisRange() {
-    const lo = Math.min(bg.fullPush, bg.fullPull), hi = Math.max(bg.fullPush, bg.fullPull);
+    if (frozenAxisRange) return frozenAxisRange;
+    const lo = Math.min(fullPush(), fullPull()), hi = Math.max(fullPush(), fullPull());
     const margin = Math.max(1, (hi - lo) * 0.1);
     const fullMin = lo - margin, fullMax = hi + margin;
     if (!zoomCenterActive) return { xMin: fullMin, xMax: fullMax };
@@ -1856,12 +1871,12 @@
     const { pushEdge, pullEdge } = edges();
     if (adc >= Math.min(pushEdge, pullEdge) && adc <= Math.max(pushEdge, pullEdge)) return 0;
     if (adc < pushEdge) {
-      const span = pushEdge - bg.fullPush;
+      const span = pushEdge - fullPush();
       const d = pushEdge - adc;
       const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
       return curveApply(u, bg.push.x1, bg.push.y1, bg.push.x2, bg.push.y2) / 1024 * 127;
     } else {
-      const span = bg.fullPull - pullEdge;
+      const span = fullPull() - pullEdge;
       const d = adc - pullEdge;
       const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
       return curveApply(u, bg.pull.x1, bg.pull.y1, bg.pull.x2, bg.pull.y2) / 1024 * 127;
@@ -1869,11 +1884,11 @@
   }
   function pushRampPoint(xfrac, yfrac) {
     const { pushEdge } = edges();
-    return { adc: pushEdge + xfrac * (bg.fullPush - pushEdge), cc: yfrac * 127 };
+    return { adc: pushEdge + xfrac * (fullPush() - pushEdge), cc: yfrac * 127 };
   }
   function pullRampPoint(xfrac, yfrac) {
     const { pullEdge } = edges();
-    return { adc: pullEdge + xfrac * (bg.fullPull - pullEdge), cc: yfrac * 127 };
+    return { adc: pullEdge + xfrac * (fullPull() - pullEdge), cc: yfrac * 127 };
   }
   function toPx(pt) { return { x: adcToPx(pt.adc), y: ccToPx(pt.cc) }; }
   function setLine(el, x1, y1, x2, y2) {
@@ -1883,8 +1898,8 @@
   function placeCircle(el, x, y) { el.setAttribute("cx", x); el.setAttribute("cy", y); }
 
   function syncParamInputs() {
-    bp("num-full-push").value = bg.fullPush; bp("num-center").value = bg.center;
-    bp("num-full-pull").value = bg.fullPull;
+    bp("num-push-travel").value = bg.pushTravel; bp("num-center").value = bg.center;
+    bp("num-pull-travel").value = bg.pullTravel;
     bp("num-push-x1").value = bg.push.x1; bp("num-push-y1").value = bg.push.y1;
     bp("num-push-x2").value = bg.push.x2; bp("num-push-y2").value = bg.push.y2;
     bp("num-pull-x1").value = bg.pull.x1; bp("num-pull-y1").value = bg.pull.y1;
@@ -1977,7 +1992,7 @@
 
     const { pushEdge, pullEdge } = edges();
     const centerPx = adcToPx(bg.center);
-    const fullPushPx = adcToPx(bg.fullPush), fullPullPx = adcToPx(bg.fullPull);
+    const fullPushPx = adcToPx(fullPush()), fullPullPx = adcToPx(fullPull());
     const deadPushPx = adcToPx(pushEdge), deadPullPx = adcToPx(pullEdge);
 
     setLine(bpEls.vlineCenter, centerPx, PLOT_TOP, centerPx, PLOT_BOTTOM);
@@ -1989,9 +2004,9 @@
     setLine(bpEls.vlineDeadPush, deadPushPx, PLOT_TOP, deadPushPx, PLOT_BOTTOM);
     setLine(bpEls.vlineDeadPull, deadPullPx, PLOT_TOP, deadPullPx, PLOT_BOTTOM);
 
-    bpEls.lblFullPush.textContent = "full push " + Math.round(bg.fullPush);
+    bpEls.lblFullPush.textContent = "full push −" + Math.round(bg.pushTravel);
     bpEls.lblFullPush.setAttribute("x", fullPushPx);
-    bpEls.lblFullPull.textContent = "full pull " + Math.round(bg.fullPull);
+    bpEls.lblFullPull.textContent = "full pull +" + Math.round(bg.pullTravel);
     bpEls.lblFullPull.setAttribute("x", fullPullPx);
     bpEls.lblCenter.textContent = "center " + Math.round(bg.center) + "  ·  dead " + Math.round(bg.dead);
     bpEls.lblCenter.setAttribute("x", centerPx);
@@ -2054,6 +2069,7 @@
     hitEl.addEventListener("pointerdown", (e) => {
       dragging = true; hitEl.setPointerCapture(e.pointerId);
       lastClientX = e.clientX; value = getValue();
+      frozenAxisRange = axisRange();
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
@@ -2066,8 +2082,9 @@
       setValue(Math.round(value));
       redrawGraph();
     });
-    hitEl.addEventListener("pointerup", () => { dragging = false; });
-    hitEl.addEventListener("pointercancel", () => { dragging = false; });
+    const endDrag = () => { dragging = false; frozenAxisRange = null; redrawGraph(); };
+    hitEl.addEventListener("pointerup", endDrag);
+    hitEl.addEventListener("pointercancel", endDrag);
     hitEl.addEventListener("keydown", (e) => {
       let d = 0;
       if (e.key === "ArrowRight") d = step; else if (e.key === "ArrowLeft") d = -step;
@@ -2082,13 +2099,15 @@
     bg.center = v;
     writeBellowProp("center", v);
   }, 17000, 34000, 20);
-  makeDraggableVLine(bpEls.hitFullPush, () => bg.fullPush, (v) => {
-    bg.fullPush = v;
-    writeBellowProp("fullPush", v);
+  // The full push/pull lines are dragged in sensor units like the center,
+  // then stored as the travel from it.
+  makeDraggableVLine(bpEls.hitFullPush, fullPush, (v) => {
+    bg.pushTravel = clamp(bg.center - v, 0, 17000);
+    writeBellowProp("pushTravel", bg.pushTravel);
   }, 0, 50000, 20);
-  makeDraggableVLine(bpEls.hitFullPull, () => bg.fullPull, (v) => {
-    bg.fullPull = v;
-    writeBellowProp("fullPull", v);
+  makeDraggableVLine(bpEls.hitFullPull, fullPull, (v) => {
+    bg.pullTravel = clamp(v - bg.center, 0, 17000);
+    writeBellowProp("pullTravel", bg.pullTravel);
   }, 0, 50000, 20);
 
   /* Draggable Bezier control point: full 2D, within its own ramp's box.
@@ -2173,9 +2192,9 @@
       redrawGraph();
     });
   }
-  bindRangeNum("num-full-push", "fullPush");
+  bindRangeNum("num-push-travel", "pushTravel");
   bindRangeNum("num-center", "center");
-  bindRangeNum("num-full-pull", "fullPull");
+  bindRangeNum("num-pull-travel", "pullTravel");
 
   /* Samples the live combined hall reading (liveAdcTotal, already kept
    * current by startPeripheralPolling() at 10 Hz) for one second and sets
@@ -2238,7 +2257,8 @@
   const bellowProgramButtons = document.querySelectorAll("#bpPrograms button");
   function selectBellowProgram(n, { fromDevice = false } = {}) {
     if (n !== currentBellowProgram) {
-      bgPrograms[currentBellowProgram] = copyBellowProgram(bg);
+      const { center, ...program } = copyBellowProgram(bg);
+      bgPrograms[currentBellowProgram] = program;
       Object.assign(bg, copyBellowProgram(bgPrograms[n]));
       currentBellowProgram = n;
     }
@@ -2252,7 +2272,9 @@
     btn.addEventListener("click", () => selectBellowProgram(+btn.dataset.program)));
 
   function applyBellowGraphFromFetched(fetched, byName) {
-    let ok = true;
+    BELLOW_CENTER_PROP_INDEX = byName.get(BELLOW_CENTER_PROP_NAME) ?? null;
+    let ok = BELLOW_CENTER_PROP_INDEX !== null;
+    if (!ok) log("bellows graph: property \"" + BELLOW_CENTER_PROP_NAME + "\" not found on this device - live tuning disabled, showing defaults.", "sysexGetPropertyDescription");
     for (let n = 0; n < BELLOW_PROGRAM_COUNT && ok; n++) {
       PROP_INDEX[n] = {};
       for (const key of Object.keys(BELLOW_PROP_SUFFIX)) {
@@ -2268,10 +2290,11 @@
     }
     bellowGraphLive = ok;
     if (ok) {
+      bg.center = fetched.get(BELLOW_CENTER_PROP_INDEX).value;
       for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
         const v = (key) => fetched.get(PROP_INDEX[n][key]).value;
         bgPrograms[n] = {
-          center: v("center"), dead: v("dead"), fullPush: v("fullPush"), fullPull: v("fullPull"),
+          dead: v("dead"), pushTravel: v("pushTravel"), pullTravel: v("pullTravel"),
           push: { x1: v("pushX1"), y1: v("pushY1"), x2: v("pushX2"), y2: v("pushY2") },
           pull: { x1: v("pullX1"), y1: v("pullY1"), x2: v("pullX2"), y2: v("pullY2") },
         };
@@ -3473,6 +3496,7 @@
     KEYBOARD_TUNING_PROP_INDEX = null;
     TABLE_MODE_PROP_INDEX = null;
     BELLOW_PROGRAM_PROP_INDEX = null;
+    BELLOW_CENTER_PROP_INDEX = null;
     TABLEMODE_VELOCITY_PROP_INDEX = null;
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");

@@ -31,8 +31,10 @@ static float fabs_f(float v)
 #define CENTER     3760
 #define DEAD       40
 #define HYST       20
-#define FULL_PUSH  3400
-#define FULL_PULL  4200
+#define PUSH_TRAVEL 360
+#define PULL_TRAVEL 440
+#define FULL_PUSH  (CENTER - PUSH_TRAVEL) /* 3400 */
+#define FULL_PULL  (CENTER + PULL_TRAVEL) /* 4200 */
 
 /* Derived thresholds:
  *   push_edge = CENTER - DEAD/2 - HYST/2 = 3760 - 20 - 10 = 3730
@@ -46,7 +48,7 @@ static float fabs_f(float v)
 
 static bellow_classify_result_t classify(bellows_t prev, int32_t value)
 {
-  return bellow_classify(prev, value, CENTER, DEAD, HYST, FULL_PUSH, FULL_PULL);
+  return bellow_classify(prev, value, CENTER, DEAD, HYST, PUSH_TRAVEL, PULL_TRAVEL);
 }
 
 /* At-rest reading: center maps to NEUTRAL with zero intensity. */
@@ -154,22 +156,22 @@ static void test_direct_push_to_pull(void)
   CHECK(r.direction == BELLOWS_PULL);
 }
 
-/* Miscalibration: full_push == center (span = 0) -> intensity 0, no crash. */
+/* Miscalibration: push_travel = 0 (span < 0) -> intensity 0, no crash. */
 static void test_miscalibration_zero_span(void)
 {
   bellow_classify_result_t r = bellow_classify(BELLOWS_NEUTRAL,
                                                CENTER - 50, CENTER,
                                                DEAD, HYST,
-                                               CENTER,   /* full_push == center -> span=0 */
-                                               FULL_PULL);
-  /* Direction may be PUSH (past push_edge), but intensity must be 0 (span=0). */
+                                               0,   /* push_travel = 0 -> span<0 */
+                                               PULL_TRAVEL);
+  /* Direction may be PUSH (past push_edge), but intensity must be 0. */
   CHECK(r.intensity == 0.0f);
 }
 
-/* Direction-only call (full_push=full_pull=0): intensity is always 0, no crash. */
+/* Direction-only call (push_travel=pull_travel=0): intensity is always 0, no crash. */
 static void test_direction_only_call(void)
 {
-  /* center=0, dead=64, hyst=32, full=0 */
+  /* center=0, dead=64, hyst=32, travel=0 */
   bellow_classify_result_t r = bellow_classify(BELLOWS_NEUTRAL,
                                                -50, 0, 64, 32, 0, 0);
   /* push_edge = 0 - 32 - 16 = -48; value=-50 < -48 -> PUSH */

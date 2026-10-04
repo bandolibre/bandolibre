@@ -33,26 +33,27 @@ static uint16_t g_bellow_last_hall1; // raw hall reading.
 static float    g_bellow_1e_out;   /* filtered hall-total, raw hall-total units */
 static uint16_t g_bellow_cc_out;   /* CC value sent, 0..16383 */
 
-/* Combined-hall calibration: center is the at-rest reading, hard push/pull
- * the readings at full travel. The deadzone sets how far from center the
+/* Combined-hall calibration: center is the at-rest reading, push/pull travel
+ * how far the reading moves from it at full push/pull. The deadzone sets how far from center the
  * bellows must move to leave BELLOWS_NEUTRAL (no air moves there, so
  * note_table maps every key to NOTE_NONE). The hysteresis margin then has to
  * be given back before returning to NEUTRAL, so a bellows resting right at
- * the deadzone edge doesn't chatter between NEUTRAL and PUSH/PULL. Center,
- * deadzone, full travel and the response curves come from the active program
- * (bellow_program, cycled by FN1); the hysteresis is shared by all programs. */
+ * the deadzone edge doesn't chatter between NEUTRAL and PUSH/PULL. Deadzone,
+ * travel and the response curves come from the active program
+ * (bellow_program, cycled by FN1); the center and the hysteresis are shared by
+ * all programs. */
 
 /* One program's bellow_p<n>_* properties. property_table.def generates them as
  * separate flat fields, so current_program() gathers the selected set. */
 typedef struct {
-  uint16_t center, dead, full_push, full_pull;
+  uint16_t dead, push_travel, pull_travel;
   uint16_t push_x1, push_y1, push_x2, push_y2;
   uint16_t pull_x1, pull_y1, pull_x2, pull_y2;
 } bellow_program_t;
 
 #define BELLOW_PROGRAM_FIELDS(n) (bellow_program_t){                                       \
-  g_properties->bellow_p##n##_center, g_properties->bellow_p##n##_dead,                     \
-  g_properties->bellow_p##n##_full_push, g_properties->bellow_p##n##_full_pull,             \
+  g_properties->bellow_p##n##_dead,                                                         \
+  g_properties->bellow_p##n##_push_travel, g_properties->bellow_p##n##_pull_travel,         \
   g_properties->bellow_p##n##_push_curve_x1, g_properties->bellow_p##n##_push_curve_y1,     \
   g_properties->bellow_p##n##_push_curve_x2, g_properties->bellow_p##n##_push_curve_y2,     \
   g_properties->bellow_p##n##_pull_curve_x1, g_properties->bellow_p##n##_pull_curve_y1,     \
@@ -353,9 +354,9 @@ void bellow_poll(void)
      * classification runs on a smoothed signal so sensor jitter near the
      * deadzone boundary doesn't flicker the direction. */
     bellow_program_t p = current_program();
-    bellow_classify_result_t r = bellow_classify(g_bellow_out.direction, hall_total, p.center,
+    bellow_classify_result_t r = bellow_classify(g_bellow_out.direction, hall_total, g_properties->bellow_center,
                                                  p.dead, g_properties->bellow_hyst,
-                                                 p.full_push, p.full_pull);
+                                                 p.push_travel, p.pull_travel);
     g_bellow_out.direction = r.direction;
     if (r.direction == BELLOWS_PUSH)
       g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.push_x1, p.push_y1, p.push_x2, p.push_y2);
