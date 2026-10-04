@@ -144,11 +144,40 @@
   }
   .activity-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
   }
-  .activity-header label { margin-bottom: 0; }
+  /* Collapsible cards (<details>): the summary reads like the other cards'
+   * <label> headings, with a chevron that turns when the card is open. */
+  .collapsible > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .collapsible > summary::-webkit-details-marker { display: none; }
+  .collapsible[open] > summary { margin-bottom: 6px; }
+  .summary-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .summary-title::before {
+    content: "";
+    width: 0.45em;
+    height: 0.45em;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+  }
+  .collapsible[open] .summary-title::before { transform: rotate(45deg); }
+  .collapsible > summary:hover .summary-title { color: var(--fg); }
   .bw-wrap {
     display: flex;
     align-items: center;
@@ -906,8 +935,8 @@
     </div>
   </div>
 
-  <div class="card">
-    <label>Properties</label>
+  <details class="card collapsible" id="propertiesCard" open>
+    <summary><span class="summary-title">Properties</span></summary>
     <div class="status-row">
       <p class="hint" id="propertiesStatus">Not connected.</p>
       <button type="button" class="retry-btn" id="propertiesRetryBtn" hidden>Retry</button>
@@ -917,11 +946,11 @@
       <thead><tr><th>#</th><th>Name</th><th>Value</th><th>Default</th><th>Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
-  </div>
+  </details>
 
-  <div class="card">
-    <div class="activity-header">
-      <label>Activity</label>
+  <details class="card collapsible" id="activityCard" open>
+    <summary class="activity-header">
+      <span class="summary-title">Activity</span>
       <span class="bw-wrap">
         <span id="bwIndicator" title="MIDI traffic, both directions, updated every second">0.0 kb/s</span>
         <button type="button" class="info-btn info-btn-sm" id="bwInfoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="Bandwidth budget reference">
@@ -932,7 +961,7 @@
           </svg>
         </button>
       </span>
-    </div>
+    </summary>
     <div class="log-filters" id="logFilters">
       <div class="log-filter-row">
         <label><input type="checkbox" data-kind="note" checked> Notes</label>
@@ -952,7 +981,7 @@
       </div>
     </div>
     <div id="log"></div>
-  </div>
+  </details>
 </main>
 
 <!-- Soundfont playback engine (lazy-loaded only once sound is enabled - see
@@ -3643,6 +3672,18 @@
 
   wireModal("infoBtn", "infoOverlay", "infoModalClose");
   wireModal("bwInfoBtn", "bwInfoOverlay", "bwInfoModalClose");
+  // The bandwidth info button lives inside the Activity <summary>: without
+  // this, opening the modal would also collapse the card.
+  document.getElementById("bwInfoBtn").addEventListener("click", (e) => e.preventDefault());
+
+  // Collapsible cards remember their open/closed state per browser.
+  for (const card of document.querySelectorAll("details.collapsible[id]")) {
+    const key = "collapsed:" + card.id;
+    try { if (localStorage.getItem(key) === "1") card.open = false; } catch (_) {}
+    card.addEventListener("toggle", () => {
+      try { localStorage.setItem(key, card.open ? "0" : "1"); } catch (_) {}
+    });
+  }
 })();
 </script>
 </body>
