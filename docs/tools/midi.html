@@ -1127,6 +1127,7 @@
         <label><input type="checkbox" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
         <label><input type="checkbox" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
         <label><input type="checkbox" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
+        <label><input type="checkbox" data-kind="sysexPropertyChanged" data-group="sysex" checked> Property Changed</label>
         <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
       </div>
     </div>
@@ -1219,6 +1220,9 @@
   const SYSEX_MSG_GET_SAVED_VALUE = 0x06;
   const SYSEX_MSG_SET_SAVED_VALUE = 0x07;
   const SYSEX_MSG_FACTORY_RESET = 0x08;
+  // Device -> host push notification: a property the device changed and saved
+  // on its own (the bellows center, by a long press of the middle button).
+  const SYSEX_MSG_PROPERTY_CHANGED = 0x09;
   const PROPERTY_TYPE_BOOL = 0;
 
   // GET/SET_SAVED_VALUE response status (saved_value_status in midi.cc) and
@@ -1425,6 +1429,7 @@
       case SYSEX_MSG_GET_SAVED_VALUE: return "GET_SAVED_VALUE";
       case SYSEX_MSG_SET_SAVED_VALUE: return "SET_SAVED_VALUE";
       case SYSEX_MSG_FACTORY_RESET: return "FACTORY_RESET";
+      case SYSEX_MSG_PROPERTY_CHANGED: return "PROPERTY_CHANGED";
       default: return "0x" + id.toString(16).padStart(2, "0");
     }
   }
@@ -1444,6 +1449,7 @@
       case SYSEX_MSG_GET_SAVED_VALUE:
       case SYSEX_MSG_SET_SAVED_VALUE: return "sysexSavedValue";
       case SYSEX_MSG_FACTORY_RESET: return "sysexFactoryReset";
+      case SYSEX_MSG_PROPERTY_CHANGED: return "sysexPropertyChanged";
       default: return "sysexOther";
     }
   }
@@ -1535,6 +1541,14 @@
       case SYSEX_MSG_FACTORY_RESET: {
         const status = reader.readUint8();
         return status === null ? name + " (request, no body)" : name + " status=" + status;
+      }
+      case SYSEX_MSG_PROPERTY_CHANGED: {
+        const index = reader.readUInt16();
+        const value = reader.readUInt16();
+        const status = reader.readUint8();
+        const saved = reader.readUInt16();
+        return saved === null ? name : name + " index=" + index + " value=" + value +
+                                       " saved_status=" + status + " saved_value=" + saved;
       }
       default:
         return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
@@ -1984,6 +1998,26 @@
     if (status === SAVED_STATUS_SAVED) info.savedValue = value;
     else if (status === SAVED_STATUS_NONE) info.savedValue = null;
     renderDefaultCell(index);
+  }
+
+  /* SYSEX_MSG_PROPERTY_CHANGED: the device changed a property and saved it on
+   * its own - a long press of the middle button calibrates the bellows center.
+   * Shown like a table edit, plus the new saved value in the Default column. */
+  function applyPropertyChanged(payload) {
+    const reader = new DataReader(payload.slice(1));
+    const index = reader.readUInt16();
+    const value = reader.readUInt16();
+    const status = reader.readUint8();
+    const saved = reader.readUInt16();
+    const info = savedInfo.get(index);
+    if (saved === null || !info) return; // malformed, or the properties aren't loaded yet
+    syncTableValue(index, value);
+    syncControlsFromTable(index, value);
+    if (savedValuesSupported) applySavedResponse(index, { status, value: saved });
+    if (index !== BELLOW_CENTER_PROP_INDEX) return;
+    if (status === SAVED_STATUS_ERROR) showToast("Bellows center calibrated to " + value + ", but the device could not save it.", { error: true });
+    else showToast("Bellows center calibrated on the instrument: " + value + ", saved as default.");
+    log("bellows center calibrated on the device: " + value, "sysexPropertyChanged");
   }
 
   /* The link carries one request at a time and the live polls grab it every
@@ -4164,15 +4198,20 @@
             if (!silentSysex) {
               log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
             }
-            // Device-initiated push, not a request/response - never has a
-            // pending request to resolve (resolvePendingRequest below is a
-            // no-op for it regardless, since nothing was ever sent).
-            if (payload[0] === SYSEX_MSG_BELLOWS_DIRECTION && payload.length >= 2) {
-              currentBellowsDirection = payload[1];
-              updateKeyboardLighting("left");
-              updateKeyboardLighting("right");
+            // Device-initiated pushes, not responses: they must not resolve
+            // a request in flight, which would get their payload instead of
+            // its own response.
+            if (payload[0] === SYSEX_MSG_BELLOWS_DIRECTION) {
+              if (payload.length >= 2) {
+                currentBellowsDirection = payload[1];
+                updateKeyboardLighting("left");
+                updateKeyboardLighting("right");
+              }
+            } else if (payload[0] === SYSEX_MSG_PROPERTY_CHANGED) {
+              applyPropertyChanged(payload);
+            } else {
+              resolvePendingRequest(payload);
             }
-            resolvePendingRequest(payload);
           } else {
             log("sysex: malformed frame or checksum mismatch", "sysexOther");
             console.log("[sysex error]", { frameLen: sysexBuf.length, error: "parse failed" });
