@@ -66,7 +66,7 @@ static void test_lookup(void)
  * terminating NUL, which then reads back as null on the client and crashes
  * (property enumeration failed: Cannot read properties of null). Mirrors the
  * exact byte layout that handler builds: msg_type(1) + index(2) + type(1) +
- * default_value(2) + name + NUL + description + NUL. */
+ * factory_value(2) + name + NUL + description + NUL. */
 static void test_description_payload_fits(void)
 {
   enum { SYSEX_PAYLOAD_MAX = 200 };
@@ -125,98 +125,119 @@ static void test_reset(void)
   CHECK(g_properties->bellow_center == 28972);
 }
 
-static void test_pack_unpack_roundtrip(void)
+/* Host builds link property_flash_fake.cc: the store runs on RAM, and a
+ * "reboot" is property_load_from_flash() again over the same fake flash. */
+bool fake_flash_append(uint16_t tag, uint16_t value);
+
+static void test_saved_value(void)
 {
-  property_reset_all();
-  property_set_u16(idx("key_press"), 1500);
-  property_set_u16(idx("bellow_center"), 20000);
-  property_set_u16(idx("bellow_cc_period_ms"), 20);
+  /* Boot: until the store has been loaded it reports saving as disabled. */
+  CHECK(property_set_saved(idx("key_press"), 1) == PROPERTY_SAVE_DISABLED);
+  property_load_from_flash();
+  CHECK(property_store_status().enabled);
+  CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
+  size_t i = idx("key_press"); /* factory 1900, range [0,4095] */
+  uint16_t v = 0;
+  CHECK(!property_get_saved(i, &v));
+  CHECK(property_default(i) == 1900);
 
-  uint8_t buf[512];
-  size_t n = property_pack(buf, sizeof(buf));
-  CHECK(n == property_blob_size());
-  CHECK(n > 0);
+  CHECK(property_set_saved(i, 1500) == PROPERTY_SAVE_OK);
+  CHECK(property_get_saved(i, &v) && v == 1500);
+  CHECK(property_default(i) == 1500);
+  CHECK(g_properties->key_press == 1900); /* the live value is not touched */
+  CHECK(property_reset(i));
+  CHECK(g_properties->key_press == 1500); /* reset restores the saved value */
 
-  property_reset_all(); /* wipe back to defaults */
+  CHECK(property_set_saved(i, 60000) == PROPERTY_SAVE_OK); /* clamped */
+  CHECK(property_get_saved(i, &v) && v == 4095);
+
+  /* Saving the factory value clears the saved value. */
+  CHECK(property_set_saved(i, 1900) == PROPERTY_SAVE_OK);
+  CHECK(!property_get_saved(i, &v));
+  CHECK(property_default(i) == 1900);
+
+  CHECK(property_set_saved(idx("log_bellow"), 1) == PROPERTY_SAVE_TRANSIENT);
+  CHECK(property_clear_saved(idx("log_bellow")) == PROPERTY_SAVE_TRANSIENT);
+  CHECK(property_set_saved(property_count(), 1) == PROPERTY_SAVE_BAD_INDEX);
+}
+
+static void test_saved_survives_reboot(void)
+{
+  CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
+  CHECK(property_set_saved(idx("bellow_center"), 25000) == PROPERTY_SAVE_OK);
+  CHECK(property_set_saved(idx("midi_active_sensing_enable"), 0) == PROPERTY_SAVE_OK);
+  CHECK(property_set_u16(idx("bellow_center"), 100));
+  CHECK(property_set_bool(idx("log_bellow"), true));
+
+  property_load_from_flash(); /* reboot */
+  CHECK(g_properties->bellow_center == 25000);
+  CHECK(g_properties->midi_active_sensing_enable == false);
+  CHECK(g_properties->log_bellow == false); /* transient: factory at boot */
+  CHECK(g_properties->key_press == 1900);   /* not saved: factory */
+
+  property_store_status_t st = property_store_status();
+  CHECK(st.enabled);
+  CHECK(st.partition == 0);
+  CHECK(st.generation == 1);
+  CHECK(st.used == 2);
+  CHECK(st.saved_count == 2);
+}
+
+static void test_save_all(void)
+{
+  CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
+  CHECK(property_set_u16(idx("key_press"), 1500));
+  CHECK(property_set_u16(idx("bellow_center"), 20000));
+  CHECK(property_set_bool(idx("log_bellow"), true)); /* transient: never saved */
+
+  size_t n = 99;
+  CHECK(property_save_all(&n) == PROPERTY_SAVE_OK);
+  CHECK(n == 2);
+  CHECK(property_save_all(&n) == PROPERTY_SAVE_OK);
+  CHECK(n == 0); /* nothing differs from the defaults any more */
+  CHECK(property_store_status().used == 2);
+
+  /* Back to the factory value: saving clears it. */
+  CHECK(property_set_u16(idx("key_press"), 1900));
+  CHECK(property_save_all(&n) == PROPERTY_SAVE_OK);
+  CHECK(n == 1);
+  uint16_t v;
+  CHECK(!property_get_saved(idx("key_press"), &v));
+
+  property_load_from_flash();
   CHECK(g_properties->key_press == 1900);
-
-  CHECK(property_unpack(buf, n));
-  CHECK(g_properties->key_press == 1500);
   CHECK(g_properties->bellow_center == 20000);
-  CHECK(g_properties->bellow_cc_period_ms == 20);
-  CHECK(g_properties->key_release == 2100); /* untouched -> default */
-
-  /* Too-small buffer yields 0 bytes and writes nothing. */
-  CHECK(property_pack(buf, 4) == 0);
+  CHECK(property_store_status().saved_count == 1);
 }
 
-static void test_corruption_rejected(void)
+static void test_factory_reset(void)
 {
-  property_reset_all();
-  property_set_u16(idx("key_press"), 1500);
-  uint8_t buf[512];
-  size_t n = property_pack(buf, sizeof(buf));
+  CHECK(property_set_saved(idx("key_release"), 2500) == PROPERTY_SAVE_OK);
+  CHECK(property_set_u16(idx("key_release"), 2500));
+  CHECK(property_set_bool(idx("log_bellow"), true));
 
-  property_reset_all();
-  buf[10] ^= 0xff; /* flip a payload byte; checksum no longer matches */
-  CHECK(!property_unpack(buf, n));
-  CHECK(g_properties->key_press == 1900); /* state untouched on rejection */
+  CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
+  CHECK(g_properties->key_release == 2100);
+  CHECK(g_properties->log_bellow == false);
+  CHECK(property_store_status().partition == -1);
+  CHECK(property_store_status().saved_count == 0);
 
-  /* Truncated blob is rejected too. */
-  CHECK(!property_unpack(buf, 3));
+  property_load_from_flash();
+  CHECK(g_properties->key_release == 2100);
 }
 
-/* Little-endian helpers mirroring the blob format, for hand-crafting blobs. */
-static void put16(uint8_t *b, size_t off, uint16_t v) { b[off] = v & 0xff; b[off + 1] = v >> 8; }
-
-static void test_out_of_range_loads_default(void)
+static void test_load_ignores_bad_records(void)
 {
-  /* Hand-build a valid-checksum blob: header + one pair (tag 1 = key_press,
-   * value 9999 which is above its max 4095) + checksum. */
-  uint8_t buf[64];
-  size_t off = 0;
-  put16(buf, off, 0x4e44); off += 2; /* magic low  */
-  put16(buf, off, 0x4241); off += 2; /* magic high */
-  put16(buf, off, 1);      off += 2; /* version    */
-  put16(buf, off, 1);      off += 2; /* count = 1  */
-  put16(buf, off, 1);      off += 2; /* tag = 1 (key_press) */
-  put16(buf, off, 9999);   off += 2; /* value (out of range) */
-  uint16_t cs = 0;
-  for (size_t o = 0; o < off; o += 2) cs ^= (uint16_t)(buf[o] | (buf[o + 1] << 8));
-  put16(buf, off, cs); off += 2;
+  CHECK(property_factory_reset() == PROPERTY_SAVE_OK);
+  CHECK(fake_flash_append(1, 1500));    /* key_press */
+  CHECK(fake_flash_append(1, 9999));    /* key_press above its max: ignored */
+  CHECK(fake_flash_append(1000, 1234)); /* a tag this firmware does not have */
+  CHECK(fake_flash_append(64, 25000));  /* bellow_center */
 
-  property_reset_all();
-  CHECK(property_unpack(buf, off));
-  CHECK(g_properties->key_press == 1900); /* out-of-range -> default, not 9999/4095 */
-}
-
-static void test_forward_compat_unknown_tag(void)
-{
-  /* Blob with an unknown tag (1000) plus a known one (tag 64 = bellow_center). */
-  uint8_t buf[64];
-  size_t off = 0;
-  put16(buf, off, 0x4e44); off += 2;
-  put16(buf, off, 0x4241); off += 2;
-  put16(buf, off, 1);      off += 2; /* version */
-  put16(buf, off, 2);      off += 2; /* count = 2 */
-  put16(buf, off, 1000);   off += 2; /* unknown tag */
-  put16(buf, off, 1234);   off += 2;
-  put16(buf, off, 64);     off += 2; /* bellow_center */
-  put16(buf, off, 25000);  off += 2;
-  uint16_t cs = 0;
-  for (size_t o = 0; o < off; o += 2) cs ^= (uint16_t)(buf[o] | (buf[o + 1] << 8));
-  put16(buf, off, cs); off += 2;
-
-  property_reset_all();
-  CHECK(property_unpack(buf, off));
-  CHECK(g_properties->bellow_center == 25000); /* known tag applied */
-  CHECK(g_properties->key_press == 1900);   /* absent -> default */
-}
-
-static void test_flash_stubs(void)
-{
-  CHECK(!property_load_from_flash());
-  CHECK(!property_save_to_flash());
+  property_load_from_flash();
+  CHECK(g_properties->key_press == 1500); /* the last in-range value */
+  CHECK(g_properties->bellow_center == 25000);
+  CHECK(property_store_status().saved_count == 2);
 }
 
 static void test_complete(void)
@@ -244,11 +265,11 @@ int main(void)
   test_set_clamp();
   test_type_guards();
   test_reset();
-  test_pack_unpack_roundtrip();
-  test_corruption_rejected();
-  test_out_of_range_loads_default();
-  test_forward_compat_unknown_tag();
-  test_flash_stubs();
+  test_saved_value();
+  test_saved_survives_reboot();
+  test_save_all();
+  test_factory_reset();
+  test_load_ignores_bad_records();
   test_complete();
 
   printf("%d checks, %d failures\n", g_checks, g_failures);

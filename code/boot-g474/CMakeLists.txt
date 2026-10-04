@@ -39,6 +39,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     main.c
     msc_disk.c
     flash_write.c
+    ../common/flash/flash_page.c
     usb_descriptors.c
     debug.c
 
@@ -73,6 +74,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     .
+    ../common/flash
     ${MAIN_DIR}/Core/Inc
     ${HAL_DIR}/Inc
     ${MAIN_DIR}/Drivers/CMSIS/Device/ST/STM32G4xx/Include

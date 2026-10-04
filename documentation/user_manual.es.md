@@ -144,7 +144,9 @@ Con ella puedes:
 - **calibrar la posición de reposo** del fuelle;
 - **calibrar los pedales**;
 - cambiar el sistema de teclado, el programa de fuelle y el modo mesa;
-- ver ambos teclados en vivo mientras tocas.
+- ver ambos teclados en vivo mientras tocas;
+- **guardar tus ajustes**, para que el instrumento los conserve al
+  desconectarlo.
 
 Los cambios se aplican al instante, así que puedes ajustar el tacto mientras
 tocas.
@@ -169,17 +171,20 @@ icono:
 
 ---
 
-## Los ajustes se pierden al desconectar
+## Guardar tus ajustes
 
-El Bandolibre aún no recuerda sus ajustes. Al desconectarlo, vuelve a sus
-valores por defecto: teclado Rheinische Tonlage, programa de fuelle 1, modo
-mesa desactivado, y los ajustes por defecto del fuelle y los pedales.
+Los cambios hechos en la herramienta de configuración se aplican al instante,
+pero el Bandolibre los olvida al desconectarlo, salvo que los guardes. Ajusta
+el instrumento a tu gusto y pulsa **Save as default**: el Bandolibre arranca
+con esos ajustes cada vez que lo conectas. Esto incluye los ajustes del fuelle
+y los pedales, y el sistema de teclado y el programa de fuelle elegidos con los
+botones. El modo mesa siempre arranca desactivado.
 
-Si ajustaste el fuelle o los pedales en la herramienta de configuración,
-tendrás que hacerlo de nuevo al reconectar.
+En la lista de ajustes de la herramienta, los valores guardados aparecen
+resaltados; pasa el cursor sobre uno para ver el valor de fábrica. Actualizar
+el firmware conserva tus ajustes guardados.
 
-Una próxima actualización del firmware permitirá al Bandolibre recordar sus
-ajustes. ¡Permanece atento!
+Para volver a los ajustes de fábrica del instrumento, pulsa **Factory reset**.
 
 ---
 

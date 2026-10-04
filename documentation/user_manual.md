@@ -139,7 +139,8 @@ With it you can:
 - **calibrate the rest position** of the bellows;
 - **calibrate the pedals**;
 - switch keyboard system, bellows program and table mode;
-- see both keyboards live as you play.
+- see both keyboards live as you play;
+- **save your settings**, so the instrument keeps them when unplugged.
 
 Changes apply immediately, so you can adjust the feel while playing.
 
@@ -160,17 +161,19 @@ You can also install it as an app, so it opens from its own icon:
 
 ---
 
-## Settings are reset when you unplug
+## Saving your settings
 
-The Bandolibre does not yet remember its settings. When you unplug it, it goes
-back to its defaults: Rheinische Tonlage keyboard, bellows program 1, table
-mode off, and the default bellows and pedal settings.
+Changes made in the configuration tool apply immediately, but the Bandolibre
+forgets them when you unplug it, unless you save them. Set the instrument the
+way you like, then click **Save as default**: the Bandolibre starts with these
+settings every time you plug it in. This includes the bellows and pedal
+settings, and the keyboard system and bellows program chosen with the buttons.
+Table mode always starts off.
 
-If you have tuned the bellows or pedals in the configuration tool, you need to
-set them again after reconnecting.
+In the tool's list of settings, saved values are highlighted; hover over one to
+see the factory value. Updating the firmware keeps your saved settings.
 
-A future firmware update will let the Bandolibre remember its settings. Stay
-tuned!
+To go back to the settings the instrument came with, click **Factory reset**.
 
 ---
 

@@ -18,8 +18,9 @@
 **                sits above the bootloader; `just flash_release` installs
 **                that one together with it.
 **
-**                The last 2 KB page is held back from both maps for the
-**                properties store. See boot-g474/memmap.h for the full split.
+**                The last two 2 KB pages are held back from both maps for
+**                the saved properties: an image that would reach them fails
+**                to link. See boot-g474/memmap.h for the full split.
 **
 **                Set heap size, stack size and stack location according
 **                to application requirements.
@@ -69,7 +70,7 @@ MEMORY
 {
 RAM      (xrw) : ORIGIN = 0x20000000, LENGTH = 128K - 32
 BOOTFLAG (rw)  : ORIGIN = 0x2001FFE0, LENGTH = 32
-FLASH    (rx)  : ORIGIN = 0x08000000, LENGTH = 126K
+FLASH    (rx)  : ORIGIN = 0x08000000, LENGTH = 124K
 }
 
 /* Highest address of the user mode stack */

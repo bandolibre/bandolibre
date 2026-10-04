@@ -18,6 +18,9 @@ import struct
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from memmap import props_base
+
 # Must match APP_BASE and UF2_FAMILY_ID in code/boot-g474/memmap.h.
 # code/tests/test_dfu_config.py fails if they drift apart.
 DEFAULT_BASE = 0x08008000
@@ -97,6 +100,13 @@ def main() -> None:
         print("Error: --base 0x08000000 is the bootloader's own region. "
               "Package the Release build, which links at "
               f"0x{DEFAULT_BASE:08X}.", file=sys.stderr)
+        sys.exit(1)
+
+    # The bootloader refuses such an image too, but older bootloaders allowed
+    # a larger application region; stop it here before it reaches a board.
+    if args.base + len(data) > props_base():
+        print(f"Error: {len(data)} bytes at 0x{args.base:08X} would run into the "
+              f"saved properties at 0x{props_base():08X}.", file=sys.stderr)
         sys.exit(1)
 
     uf2 = to_uf2(data, args.base, args.family)

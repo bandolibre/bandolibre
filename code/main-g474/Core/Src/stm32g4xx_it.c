@@ -22,6 +22,7 @@
 #include "stm32g4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,6 +32,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/* property_store.cc: see the NMI handler below. */
+extern volatile bool property_store_ecc_armed;
+extern volatile bool property_store_ecc_fault;
 
 /* USER CODE END PD */
 
@@ -73,7 +77,15 @@ extern UART_HandleTypeDef huart1;
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
+  /* A double ECC error while the property store reads its own flash: a slot
+   * torn by power loss. Clear it (ECCD is write-1-to-clear), tell the store,
+   * and resume; the store treats the slot as corrupt. See property_store.h. */
+  if ((FLASH->ECCR & FLASH_ECCR_ECCD) != 0U && property_store_ecc_armed)
+  {
+    FLASH->ECCR |= FLASH_ECCR_ECCD;
+    property_store_ecc_fault = true;
+    return;
+  }
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
    while (1)

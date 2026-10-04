@@ -10,8 +10,8 @@
 **                128Kbytes FLASH and 128Kbytes RAM
 **
 **                RELEASE map: the application is relocated to 0x08008000,
-**                above the 32 KB UF2 bootloader, and gets the 94 KB up to the
-**                reserved properties page. This is the image `just dfu`
+**                above the 32 KB UF2 bootloader, and gets the 92 KB up to the
+**                two saved-properties pages. This is the image `just dfu`
 **                packages and the bootloader writes.
 **
 **                The vector table moves with it: main-g474/CMakeLists.txt
@@ -69,7 +69,7 @@ MEMORY
 {
 RAM      (xrw) : ORIGIN = 0x20000000, LENGTH = 128K - 32
 BOOTFLAG (rw)  : ORIGIN = 0x2001FFE0, LENGTH = 32
-FLASH    (rx)  : ORIGIN = 0x08008000, LENGTH = 94K
+FLASH    (rx)  : ORIGIN = 0x08008000, LENGTH = 92K
 }
 
 /* Highest address of the user mode stack */

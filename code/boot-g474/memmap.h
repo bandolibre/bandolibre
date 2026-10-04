@@ -16,20 +16,24 @@
  * The STM32G474CBT6 has 128 KB of flash in 2 KB pages:
  *
  *   0x08000000  bootloader          32 KB   this project
- *   0x08008000  application         94 KB   main-g474, Release build
- *   0x0801F800  properties           2 KB   reserved, see below
+ *   0x08008000  application         92 KB   main-g474, Release build
+ *   0x0801F000  properties A         2 KB   saved property values, see below
+ *   0x0801F800  properties B         2 KB
  *   0x08020000  end
  *
  * The Debug build of main-g474 is a different image entirely: it links at
- * 0x08000000 over the bootloader and uses the whole 126 KB, because at -O0 it
- * is ~116 KB and cannot fit above any bootloader large enough to hold TinyUSB
- * and the MSC class. `just flash` installs that one; `just flash_release`
- * reinstalls the bootloader plus the relocated Release image.
+ * 0x08000000 over the bootloader and uses the whole 124 KB below the
+ * properties, because at -O0 it is ~116 KB and cannot fit above any bootloader
+ * large enough to hold TinyUSB and the MSC class. `just flash` installs that
+ * one; `just flash_release` reinstalls the bootloader plus the relocated
+ * Release image.
  *
- * The last page is held back from both maps for
- * property_save_to_flash()/property_load_from_flash(), which are stubbed today
- * (see main-g474/properties/properties.c). Reserving it now costs one page and
- * avoids re-cutting the map — and re-flashing every board over SWD — later.
+ * The last two pages hold the saved property values, an append-only log over
+ * two one-page partitions (main-g474/properties/property_store.h explains the
+ * format and why one page each). Neither linker map reaches them, the
+ * bootloader refuses images larger than APP_SIZE, and tool/flash.py and
+ * tool/uf2.py refuse binaries that would run into PROPS_BASE, so flashing a
+ * new firmware never erases the user's settings.
  */
 
 #define FLASH_ORIGIN      0x08000000UL
@@ -41,11 +45,13 @@
 
 /* Application, as linked for the Release/bootloader configuration. */
 #define APP_BASE          (BOOT_BASE + BOOT_SIZE)
-#define APP_SIZE          (94UL * 1024UL)
+#define APP_SIZE          (92UL * 1024UL)
 
-/* Reserved trailing page, not writable through DFU. */
-#define PROPS_BASE        (APP_BASE + APP_SIZE)
-#define PROPS_SIZE        (2UL * 1024UL)
+/* Saved properties: two partitions of one page each, not writable through DFU.
+ * Partition p starts at PROPS_BASE + p * PROPS_PARTITION_SIZE. */
+#define PROPS_BASE            (APP_BASE + APP_SIZE)
+#define PROPS_PARTITION_SIZE  (2UL * 1024UL)
+#define PROPS_SIZE            (2UL * PROPS_PARTITION_SIZE)
 
 /* Erase granularity is not a constant here: it depends on the DBANK option
  * bit, so flash_write.c reads it at run time. The HAL defines its own

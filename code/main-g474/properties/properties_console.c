@@ -26,12 +26,18 @@ static uint16_t current_value(size_t index)
   return v;
 }
 
-/* "name = value  (min M, max X, default D)" */
+/* "name = value  (min M, max X, default D)", the default being the saved
+ * value if there is one: "(..., saved S, factory F)". */
 static void print_one(size_t index)
 {
   const property_desc_t *d = property_at(index);
-  printf("%s = %u  (min %u, max %u, default %u)\r\n",
-         d->name, current_value(index), d->min, d->max, d->default_value);
+  uint16_t saved;
+  if (property_get_saved(index, &saved))
+    printf("%s = %u  (min %u, max %u, saved %u, factory %u)\r\n",
+           d->name, current_value(index), d->min, d->max, saved, d->factory_value);
+  else
+    printf("%s = %u  (min %u, max %u, default %u)\r\n",
+           d->name, current_value(index), d->min, d->max, d->factory_value);
 }
 
 /* Shell-style glob match supporting '*' (any run) and '?' (one char). Used so
@@ -130,14 +136,56 @@ static bool property_cmd_reset(int argc, const char *const *argv)
   return true;
 }
 
+/* The default column is the saved value, starred, if there is one. */
 static void property_cmd_show(void)
 {
-  printf("%-18s %6s %6s %6s %8s\r\n", "name", "value", "min", "max", "default");
+  printf("%-18s %6s %6s %6s %8s %8s\r\n", "name", "value", "min", "max", "default", "factory");
   for (size_t i = 0; i < property_count(); i++)
   {
     const property_desc_t *d = property_at(i);
-    printf("%-18s %6u %6u %6u %8u\r\n", d->name, current_value(i), d->min, d->max, d->default_value);
+    uint16_t saved;
+    bool has = property_get_saved(i, &saved);
+    printf("%-18s %6u %6u %6u %7u%c %8u\r\n", d->name, current_value(i), d->min, d->max,
+           has ? saved : d->factory_value, has ? '*' : ' ', d->factory_value);
   }
+}
+
+static const char *save_error(property_save_result_t r)
+{
+  switch (r)
+  {
+    case PROPERTY_SAVE_OK:          return "ok";
+    case PROPERTY_SAVE_BAD_INDEX:   return "bad index";
+    case PROPERTY_SAVE_TRANSIENT:   return "not a saved property";
+    case PROPERTY_SAVE_FLASH_ERROR: return "flash write failed";
+    case PROPERTY_SAVE_DISABLED:    return "saving disabled (flash not in 2 KB pages)";
+  }
+  return "?";
+}
+
+static void property_cmd_save(void)
+{
+  size_t n = 0;
+  property_save_result_t r = property_save_all(&n);
+  if (r != PROPERTY_SAVE_OK) printf("save: %s after %u changes\r\n", save_error(r), (unsigned)n);
+  else printf("saved %u change%s\r\n", (unsigned)n, n == 1 ? "" : "s");
+}
+
+static void property_cmd_factory_reset(void)
+{
+  property_save_result_t r = property_factory_reset();
+  if (r != PROPERTY_SAVE_OK) printf("factory_reset: %s\r\n", save_error(r));
+  else printf("saved values erased, every property back to its factory value\r\n");
+}
+
+static void property_cmd_store(void)
+{
+  property_store_status_t st = property_store_status();
+  if (!st.enabled) { printf("store: %s\r\n", save_error(PROPERTY_SAVE_DISABLED)); return; }
+  if (st.partition < 0) { printf("store: nothing saved\r\n"); return; }
+  printf("store: partition %c, generation %u, %u/%u slots used, %u saved value%s\r\n",
+         'A' + st.partition, st.generation, st.used, st.capacity, st.saved_count,
+         st.saved_count == 1 ? "" : "s");
 }
 
 bool properties_execute(int argc, const char *const *argv)
@@ -147,6 +195,9 @@ bool properties_execute(int argc, const char *const *argv)
   if (strcmp(argv[0], "get") == 0)   { property_cmd_get(argc, argv);   return true; }
   if (strcmp(argv[0], "set") == 0)   { property_cmd_set(argc, argv);   return true; }
   if (strcmp(argv[0], "reset") == 0) { property_cmd_reset(argc, argv); return true; }
+  if (strcmp(argv[0], "save") == 0)  { property_cmd_save();         return true; }
+  if (strcmp(argv[0], "factory_reset") == 0) { property_cmd_factory_reset(); return true; }
+  if (strcmp(argv[0], "store") == 0) { property_cmd_store();        return true; }
   return false;
 }
 
@@ -155,10 +206,13 @@ void properties_help(const char *pattern)
   if (!pattern)
   {
     printf("Property commands:\r\n");
-    printf("  show                 list all properties with current value\r\n");
+    printf("  show                 list all properties with current value (* = saved default)\r\n");
     printf("  get <name>           show value, min, max and default (name may glob, e.g. log_*)\r\n");
     printf("  set <name> <value>   set a property, clamped to [min,max] (name may glob, e.g. log_*)\r\n");
-    printf("  reset <name>         restore default(s) (name may glob, e.g. reset *)\r\n");
+    printf("  reset <name>         restore default(s): saved value, else factory (name may glob)\r\n");
+    printf("  save                 save current values as defaults, in flash\r\n");
+    printf("  factory_reset        erase saved values, restore every factory value\r\n");
+    printf("  store                state of the saved-values flash store\r\n");
     printf("  help [name]          this help, or details of matching properties (name may glob)\r\n");
     return;
   }

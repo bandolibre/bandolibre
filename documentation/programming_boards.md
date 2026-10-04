@@ -102,7 +102,7 @@ copying a file onto a USB drive — see
 [firmware_update.md](firmware_update.md) and
 [code/boot-g474/README.md](../code/boot-g474/README.md). That splits its 128 KB
 of flash, and the Debug build does not fit in the application's share of it:
-at `-O0` it is ~116 KB against the 94 KB available above the bootloader. So the
+at `-O0` it is ~116 KB against the 92 KB available above the bootloader. So the
 two configurations link differently, and the recipes differ accordingly:
 
 | Recipe | Builds | Links at | Bootloader after |

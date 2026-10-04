@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from memmap import props_base
 from registry import BOARDS, UID_ADDR, UID_LEN, load_registry, read_uid
 
 
@@ -47,6 +48,16 @@ def main() -> None:
     parser.add_argument("--address", type=lambda v: int(v, 0), default=0x08000000,
                         help="Flash address to write at (default 0x08000000)")
     args = parser.parse_args()
+
+    # st-flash erases only the pages it writes, so an image that stops below
+    # PROPS_BASE leaves the main board's saved properties intact.
+    if args.board == "main-g474":
+        end = args.address + args.binary.stat().st_size
+        if end > props_base():
+            print(f"Error: {args.binary} would end at 0x{end:08x}, past the saved "
+                  f"properties at 0x{props_base():08x}; flashing it would erase them.",
+                  file=sys.stderr)
+            sys.exit(1)
 
     serials = probe_serials()
     if not serials:

@@ -16,22 +16,26 @@ The STM32G474CBT6 has 128 KB of flash, shared:
 | Address | Size | Contents |
 |---|---|---|
 | `0x08000000` | 32 KB | this bootloader (currently ~14 KB used) |
-| `0x08008000` | 94 KB | application, Release build (currently ~69 KB used) |
-| `0x0801F800` | 2 KB | reserved for the properties store, not yet used |
+| `0x08008000` | 92 KB | application, Release build (currently ~78 KB used) |
+| `0x0801F000` | 2 KB | saved properties, partition A |
+| `0x0801F800` | 2 KB | saved properties, partition B |
+
+The bootloader refuses images larger than the application region, so a
+firmware update never erases the saved properties.
 
 [`memmap.h`](memmap.h) is the single source of truth for these numbers; four
 other files repeat them and [`code/tests/test_dfu_config.py`](../tests/test_dfu_config.py)
 fails if any of them drifts.
 
 **The Debug build of the application does not fit in this layout.** At `-O0` it
-is ~116 KB, more than the 94 KB above the bootloader and more than what is left
+is ~116 KB, more than the 92 KB above the bootloader and more than what is left
 above any bootloader large enough to hold TinyUSB and the MSC class. So there
 are two application memory maps:
 
 | | Linker script | Links at | Installed by |
 |---|---|---|---|
-| Debug | `STM32G474XX_FLASH.ld` | `0x08000000`, 126 KB | `just flash` — **replaces the bootloader** |
-| Release | `STM32G474XX_FLASH_APP.ld` | `0x08008000`, 94 KB | `just flash_release`, or a `.uf2` over USB |
+| Debug | `STM32G474XX_FLASH.ld` | `0x08000000`, 124 KB | `just flash` — **replaces the bootloader** |
+| Release | `STM32G474XX_FLASH_APP.ld` | `0x08008000`, 92 KB | `just flash_release`, or a `.uf2` over USB |
 
 `just flash` therefore leaves a board with no DFU support; `just flash_release`
 in `../main-g474` puts the bootloader and a Release image back.

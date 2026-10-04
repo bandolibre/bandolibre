@@ -80,7 +80,8 @@ int console_execute(int argc, const char *const *argv)
 
 char **console_complete(int argc, const char *const *argv)
 {
-  static const char *commands[] = { "help", "show", "get", "set", "reset", "hello", "midi", "bellow_tune", "dfu" };
+  static const char *commands[] = { "help", "show", "get", "set", "reset", "save", "factory_reset", "store",
+                                    "hello", "midi", "bellow_tune", "dfu" };
   static char *out[CONSOLE_COMPL_MAX + 1];
   const char *partial = (argc > 0) ? argv[argc - 1] : "";
   size_t n = 0;

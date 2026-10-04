@@ -14,6 +14,7 @@ extern UART_HandleTypeDef huart1;
 }
 
 #include "app/midi.h"
+#include "properties.h"
 #include "usb_app.h"
 
 static void print_startup_info(void)
@@ -76,4 +77,6 @@ void main_init(void)
   usb_app_init();
   keyboard_init();
   print_startup_info();
+  /* Saved values take effect before the first main_task() runs. */
+  property_load_from_flash();
 }

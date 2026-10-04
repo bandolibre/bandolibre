@@ -149,7 +149,9 @@ Il vous permet de :
 - **calibrer la position de repos** du soufflet ;
 - **calibrer les pédales** ;
 - changer le système de clavier, le programme de soufflet et le mode table ;
-- voir les deux claviers en direct pendant le jeu.
+- voir les deux claviers en direct pendant le jeu ;
+- **enregistrer vos réglages**, pour que l'instrument les garde une fois
+  débranché.
 
 Les changements s'appliquent immédiatement : vous pouvez ajuster le toucher
 tout en jouant.
@@ -174,18 +176,22 @@ propre icône :
 
 ---
 
-## Les réglages sont perdus au débranchement
+## Enregistrer vos réglages
 
-Le Bandolibre ne mémorise pas encore ses réglages. Quand vous le débranchez, il
-revient à ses valeurs par défaut : clavier Rheinische Tonlage, programme de
-soufflet 1, mode table désactivé, et réglages par défaut du soufflet et des
-pédales.
+Les changements faits dans l'outil de configuration s'appliquent tout de suite,
+mais le Bandolibre les oublie quand vous le débranchez, sauf si vous les
+enregistrez. Réglez l'instrument comme vous le souhaitez, puis cliquez sur
+**Save as default** : le Bandolibre démarre avec ces réglages à chaque
+branchement. Cela comprend les réglages du soufflet et des pédales, ainsi que le
+système de clavier et le programme de soufflet choisis avec les boutons. Le
+mode table est toujours désactivé au démarrage.
 
-Si vous avez réglé le soufflet ou les pédales dans l'outil de configuration,
-vous devrez recommencer après l'avoir rebranché.
+Dans la liste des réglages de l'outil, les valeurs enregistrées sont mises en
+évidence ; survolez-en une pour voir la valeur d'usine. Mettre à jour le
+firmware conserve vos réglages enregistrés.
 
-Une prochaine mise à jour du firmware permettra au Bandolibre de mémoriser ses
-réglages. Restez à l'écoute !
+Pour revenir aux réglages d'origine de l'instrument, cliquez sur
+**Factory reset**.
 
 ---
 

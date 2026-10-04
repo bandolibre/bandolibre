@@ -8,14 +8,10 @@
 /* Erase and program the application region of internal flash.
  *
  * Only the region described by APP_BASE / APP_SIZE in memmap.h is ever
- * touched; the bootloader below it and the reserved properties page above it
- * are out of reach by construction.
+ * touched; the bootloader below it and the saved properties above it are out
+ * of reach by construction. Page erase and programming are in
+ * common/flash/flash_page.c, shared with the main firmware.
  */
-
-/* Size of one erasable page, read from the DBANK option bit at run time:
- * 2 KB when the flash is in its (factory default) dual-bank configuration,
- * 4 KB in single-bank. */
-uint32_t flash_page_size(void);
 
 /* Write `len` bytes to APP_BASE, erasing every page it covers first.
  *

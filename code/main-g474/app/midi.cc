@@ -31,6 +31,25 @@ enum sysex_message_id : uint8_t {
    * the effective bellows direction changes (see midi_send_bellows_direction
    * below and its call site in keyboard.cpp). */
   SYSEX_MSG_BELLOWS_DIRECTION        = 0x05,
+  /* Saved values (flash, property_persist.cc): read or write the value a
+   * property boots with, and forget them all. */
+  SYSEX_MSG_GET_SAVED_VALUE          = 0x06,
+  SYSEX_MSG_SET_SAVED_VALUE          = 0x07,
+  SYSEX_MSG_FACTORY_RESET            = 0x08,
+};
+
+/* Status byte of the GET/SET_SAVED_VALUE response. */
+enum saved_value_status : uint8_t {
+  SAVED_STATUS_NONE      = 0,  /* no saved value; the value field is the factory value */
+  SAVED_STATUS_SAVED     = 1,  /* the value field is the saved value */
+  SAVED_STATUS_TRANSIENT = 2,  /* this property is never saved */
+  SAVED_STATUS_ERROR     = 3,  /* flash write failed, or saving is disabled */
+};
+
+/* Operation byte of SET_SAVED_VALUE. */
+enum saved_value_op : uint8_t {
+  SAVED_OP_CLEAR = 0,
+  SAVED_OP_SET   = 1,
 };
 
 /* Reads sysex message fields off the front of a span, advancing an internal
@@ -127,6 +146,9 @@ void send_hello_response()
    * so a client that just connected knows the initial state without waiting
    * for the next midi_send_bellows_direction() change notification. */
   writer.write((uint8_t)keyboard_bellows_direction());
+  /* Generation of the saved-values store (property_store.h), 0 if nothing is
+   * saved. Last, so a client that stops reading early is unaffected. */
+  writer.write(property_store_status().generation);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -243,7 +265,7 @@ void handle_get_property_description(gsl::span<const uint8_t> body)
   writer.write((uint8_t)SYSEX_MSG_GET_PROPERTY_DESCRIPTION);
   writer.write(index);
   writer.write((uint8_t)d->type);
-  writer.write(d->default_value);
+  writer.write(d->factory_value);
   writer.write(gsl::span<const char>(d->name, strlen(d->name)));
   writer.write(gsl::span<const char>(d->description, strlen(d->description)));
 
@@ -270,6 +292,79 @@ void handle_set_property(gsl::span<const uint8_t> body)
   uint16_t new_value;
   get_property_raw(index, &new_value);
   send_index_value_response(SYSEX_MSG_SET_PROPERTY, index, new_value);
+}
+
+/* [id, u16 index, u8 status, u16 value]: the saved state of one property. A
+ * failed write reports SAVED_STATUS_ERROR with the property's current default;
+ * the client re-reads to learn what the flash still holds. */
+void send_saved_value_response(sysex_message_id message_id, uint16_t index, bool failed)
+{
+  const property_desc_t *d = property_at(index);
+  uint8_t status;
+  uint16_t value = property_default(index);
+  if (failed) status = SAVED_STATUS_ERROR;
+  else if (d->tag == PROPERTY_TAG_NONE) status = SAVED_STATUS_TRANSIENT;
+  else if (property_get_saved(index, &value)) status = SAVED_STATUS_SAVED;
+  else status = SAVED_STATUS_NONE;
+
+  std::array<uint8_t, 8> payload;
+  DataWriter writer(payload);
+  writer.write((uint8_t)message_id);
+  writer.write(index);
+  writer.write(status);
+  writer.write(value);
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
+}
+
+void handle_get_saved_value(gsl::span<const uint8_t> body)
+{
+  DataReader reader(body);
+  uint16_t index;
+  if (!reader.readUInt16(&index)) {
+    printf("sysex: get_saved_value: malformed request\r\n");
+    return;
+  }
+  if (!property_at(index)) {
+    printf("sysex: get_saved_value: bad index %u\r\n", index);
+    return;
+  }
+  send_saved_value_response(SYSEX_MSG_GET_SAVED_VALUE, index, false);
+}
+
+/* Writes flash: an append is ~85 us, but a compaction erases a page and
+ * stalls the CPU for ~22 ms. Runs from midi_poll(), in the main loop. */
+void handle_set_saved_value(gsl::span<const uint8_t> body)
+{
+  DataReader reader(body);
+  uint16_t index, value;
+  uint8_t op;
+  if (!reader.readUInt16(&index) || !reader.readUInt8(&op) || !reader.readUInt16(&value)) {
+    printf("sysex: set_saved_value: malformed request\r\n");
+    return;
+  }
+  const property_desc_t *d = property_at(index);
+  if (!d) {
+    printf("sysex: set_saved_value: bad index %u\r\n", index);
+    return;
+  }
+
+  property_save_result_t const r =
+      op == SAVED_OP_SET ? property_set_saved(index, value) : property_clear_saved(index);
+  bool const failed = r == PROPERTY_SAVE_FLASH_ERROR || r == PROPERTY_SAVE_DISABLED;
+  if (failed) printf("sysex: set_saved_value: %s failed (%d)\r\n", d->name, (int)r);
+  send_saved_value_response(SYSEX_MSG_SET_SAVED_VALUE, index, failed);
+}
+
+/* [id, u8 status]: 0 if every saved value is gone, else the
+ * property_save_result_t error. Live values return to factory either way. */
+void handle_factory_reset()
+{
+  property_save_result_t const r = property_factory_reset();
+  printf("sysex: factory reset%s\r\n", r == PROPERTY_SAVE_OK ? "" : " FAILED");
+  uint8_t payload[2] = { (uint8_t)SYSEX_MSG_FACTORY_RESET, (uint8_t)r };
+  usb_app_midi_send_sysex(payload, sizeof(payload));
 }
 
 }  /* namespace */
@@ -301,6 +396,15 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
       break;
     case SYSEX_MSG_GET_PERIPHERALS:
       send_peripherals_response();
+      break;
+    case SYSEX_MSG_GET_SAVED_VALUE:
+      handle_get_saved_value(body);
+      break;
+    case SYSEX_MSG_SET_SAVED_VALUE:
+      handle_set_saved_value(body);
+      break;
+    case SYSEX_MSG_FACTORY_RESET:
+      handle_factory_reset();
       break;
     default:
       printf("sysex: unknown message id %u\r\n", message_id);

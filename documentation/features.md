@@ -29,8 +29,9 @@ chromatically complete from E4 upward.
 Changing the tuning while keys are held is safe: a sounding note keeps its
 original pitch until released, and the next press uses the new tuning.
 
-Note that property storage is still RAM-only, so the tuning returns to
-Rheinische after a power cycle.
+The tuning is kept across a power cycle only once saved ("Save as default" in
+the configuration tool, or `save` on the console); otherwise it returns to
+Rheinische.
 
 ## MIDI Active Sensing
 

@@ -11,8 +11,9 @@ tests are the thing that catches it.
 Layout under test (see code/boot-g474/memmap.h):
 
     0x08000000  bootloader          32 KB
-    0x08008000  application         94 KB   Release build
-    0x0801F800  properties           2 KB   reserved
+    0x08008000  application         92 KB   Release build
+    0x0801F000  properties A         2 KB   saved property values
+    0x0801F800  properties B         2 KB
     0x08020000  end
 
 The Debug build of main-g474 is deliberately outside that split: it links at
@@ -98,6 +99,16 @@ class TestMemmapHeader(unittest.TestCase):
         self.assertEqual(m["PROPS_BASE"] + m["PROPS_SIZE"], FLASH_ORIGIN + FLASH_TOTAL,
                          "the three regions must exactly fill the 128 KB of flash")
 
+    def test_properties_are_two_one_page_partitions(self):
+        """The saved-properties log alternates between two partitions of one
+        2 KB erase page each (main-g474/properties/property_store.h). Both
+        must be page aligned, or erasing one would take part of the other or
+        of the application with it."""
+        m = memmap_defines()
+        self.assertEqual(m["PROPS_PARTITION_SIZE"], 2 * 1024)
+        self.assertEqual(m["PROPS_SIZE"], 2 * m["PROPS_PARTITION_SIZE"])
+        self.assertEqual(m["PROPS_BASE"] % m["PROPS_PARTITION_SIZE"], 0)
+
     def test_app_base_is_vector_table_aligned(self):
         """SCB->VTOR ignores the low 7 bits, and the table must be aligned to a
         power of two at least its own size (~0x1D8 here), so 0x200."""
@@ -138,9 +149,9 @@ class TestLinkerScripts(unittest.TestCase):
                              "the bootloader region runs into the application region")
         self.assertLessEqual(app[0] + app[1], FLASH_ORIGIN + FLASH_TOTAL)
 
-    def test_debug_map_spans_flash_below_the_properties_page(self):
+    def test_debug_map_spans_flash_below_the_properties_pages(self):
         """The Debug image intentionally replaces the bootloader, but must still
-        leave the reserved trailing page alone."""
+        leave the saved-properties pages alone."""
         m = memmap_defines()
         flash = parse_memory_regions(MAIN_DIR / "STM32G474XX_FLASH.ld")["FLASH"]
         self.assertEqual(flash[0], FLASH_ORIGIN)
@@ -236,6 +247,15 @@ class TestBuildConfiguration(unittest.TestCase):
         family = re.search(r"^STM32G4_FAMILY_ID\s*=\s*(0[xX][0-9a-fA-F]+)", text, re.MULTILINE)
         self.assertIsNotNone(family)
         self.assertEqual(int(family.group(1), 16), m["UF2_FAMILY_ID"])
+
+    def test_flash_tools_guard_the_properties(self):
+        """flash.py and uf2.py refuse a binary that would run into the saved
+        properties; both read PROPS_BASE from memmap.h rather than repeating it."""
+        for tool in ("flash.py", "uf2.py"):
+            with self.subTest(tool=tool):
+                text = (REPO_ROOT / "code" / "tool" / tool).read_text()
+                self.assertIn("props_base()", text,
+                              f"{tool} does not check the image against PROPS_BASE")
 
     def test_flash_release_recipe_writes_at_the_application_base(self):
         m = memmap_defines()

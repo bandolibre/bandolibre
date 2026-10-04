@@ -13,8 +13,13 @@ test:
     ./build/one_euro_filter_test
     cc -std=c11 -Wall -Wextra -Iapp app/hysteresis_test.c -o build/hysteresis_test
     ./build/hysteresis_test
-    cc -std=c11 -Wall -Wextra -I../common/console properties/properties_test.c properties/properties.c properties/properties_console.c -o build/properties_test
+    cc -std=c11 -Wall -Wextra -I../common/console -c properties/properties_test.c -o build/properties_test.o
+    cc -std=c11 -Wall -Wextra -I../common/console -c properties/properties.c -o build/properties.o
+    cc -std=c11 -Wall -Wextra -I../common/console -c properties/properties_console.c -o build/properties_console.o
+    c++ -std=c++17 -Wall -Wextra -Iproperties -I../third_party/gsl/include build/properties_test.o build/properties.o build/properties_console.o properties/property_persist.cc properties/property_store.cc properties/property_flash_fake.cc -o build/properties_test
     ./build/properties_test
+    c++ -std=c++17 -Wall -Wextra -Iproperties -I../third_party/gsl/include properties/property_store.cc properties/property_store_test.cc -o build/property_store_test
+    ./build/property_store_test
     cc -std=c11 -Wall -Wextra -Iapp app/bellow_classify.c app/bellow_classify_test.c -o build/bellow_classify_test
     ./build/bellow_classify_test
     cc -std=c11 -Wall -Wextra -Iapp app/bellow_curve.c app/bellow_curve_test.c -o build/bellow_curve_test

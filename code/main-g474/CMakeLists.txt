@@ -82,6 +82,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/swo.c
     properties/properties.c
     properties/properties_console.c
+    properties/property_flash.cc
+    properties/property_persist.cc
+    properties/property_store.cc
+    ../common/flash/flash_page.c
     ../third_party/microrl/src/microrl.c
     ../common/console/console.c
     ../common/hall_report/hall_report.c
@@ -119,6 +123,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/console
     ../common/spi_link
     ../common/hall_report
+    ../common/flash
     usb
     ../third_party/tinyusb/src
     # memmap.h: the flash split and the DFU hand-off flag, shared with the

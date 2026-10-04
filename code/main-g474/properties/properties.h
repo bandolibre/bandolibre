@@ -11,10 +11,13 @@
  * Reads: g_properties->kb_press        (direct, no function call, read-only)
  * Writes / introspection: the index-keyed API below.
  *
- * The live values are loaded from their defaults by a constructor before main()
- * runs, so they are valid with no explicit init call. Storage is RAM only (lost
- * on power-off). The persistence serialization (pack/unpack with a checksum) is
- * implemented and tested, but the flash I/O that would back it is stubbed. */
+ * The live values are loaded from their factory values by a constructor before
+ * main() runs, so they are valid with no explicit init call. Live values are
+ * RAM only. A persistent property (nonzero tag) can also have a saved value in
+ * flash, set from the web tool; property_load_from_flash() applies the saved
+ * values at boot. A property's default is its saved value if it has one, else
+ * its factory value: that is what reset restores. The flash format is in
+ * property_store.h; the saved-value API is implemented in property_persist.cc. */
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -58,8 +61,8 @@ typedef struct {
   property_type_t  type;
   const char      *name;          /* == field name (stringized) */
   const char      *description;
-  uint16_t         tag;           /* 0 = transient; else unique permanent blob id */
-  uint16_t         default_value;
+  uint16_t         tag;           /* 0 = transient; else unique permanent flash id */
+  uint16_t         factory_value; /* the firmware's value, before any saved value */
   uint16_t         min;           /* inclusive */
   uint16_t         max;           /* inclusive */
   uint16_t         offset;        /* offsetof(properties_t, field) */
@@ -69,7 +72,7 @@ typedef struct {
  * assigning through it does not. Writes go through the API below. */
 extern const properties_t *const g_properties;
 
-void property_reset_all(void);  /* restore every property to its default */
+void property_reset_all(void);  /* restore every property to its default (saved ?? factory) */
 
 /* Reflexive / editor API, addressed by a dense index in [0, property_count()).
  * The index is NOT stable across software versions (removing a property
@@ -84,19 +87,50 @@ bool property_set_u16(size_t index, uint16_t value);       /* clamps to [min,max
 bool property_get_bool(size_t index, bool *out);
 bool property_set_bool(size_t index, bool value);
 bool property_reset(size_t index);                         /* one -> default */
+uint16_t property_value(size_t index);                     /* live value of any type (bool 0/1);
+                                                            * 0 on bad index */
 
-/* Persistence serialization (pure, no flash). The blob is a small header
- * followed by tag-value pairs for persistent properties and a trailing
- * checksum. Identity is carried by the tag, not byte position. */
-size_t property_blob_size(void);                           /* bytes a full blob needs */
-size_t property_pack(uint8_t *buf, size_t cap);            /* bytes written; 0 if cap too small */
-bool   property_unpack(const uint8_t *buf, size_t len);    /* verify + apply; false on bad
-                                                            * magic/version/checksum. A value
-                                                            * outside [min,max] loads as default. */
+/* ---- saved values (property_persist.cc) ---------------------------------- */
 
-/* Flash I/O: thin stubs for now; will wrap property_pack/unpack + HAL flash. */
-bool property_load_from_flash(void);   /* returns false (not implemented) */
-bool property_save_to_flash(void);     /* returns false (not implemented) */
+typedef enum {
+  PROPERTY_SAVE_OK = 0,
+  PROPERTY_SAVE_BAD_INDEX,
+  PROPERTY_SAVE_TRANSIENT,     /* tag 0: this property is never saved */
+  PROPERTY_SAVE_FLASH_ERROR,
+  PROPERTY_SAVE_DISABLED,      /* flash not in 2 KB pages (DBANK=0): saving is off */
+} property_save_result_t;
+
+typedef struct {
+  bool     enabled;
+  int8_t   partition;          /* active partition 0 (A) or 1 (B), -1 if nothing saved */
+  uint16_t generation;         /* 0 if nothing saved */
+  uint16_t used;               /* record slots used in the active partition */
+  uint16_t capacity;           /* record slots per partition */
+  uint16_t saved_count;        /* properties that have a saved value */
+} property_store_status_t;
+
+/* Apply the saved values at boot (once, from main_init) and print one console
+ * line with the store's state. */
+void property_load_from_flash(void);
+
+bool     property_get_saved(size_t index, uint16_t *out);  /* false if none (or bad index) */
+uint16_t property_default(size_t index);                   /* saved ?? factory; 0 on bad index */
+
+/* Write the saved value, clamped to [min,max]. A value equal to the factory
+ * value clears the saved value instead; an unchanged value writes nothing.
+ * The live value is not touched. */
+property_save_result_t property_set_saved(size_t index, uint16_t value);
+property_save_result_t property_clear_saved(size_t index);
+
+/* Save the live value of every persistent property whose live value differs
+ * from its default. *changed (may be NULL) counts the properties written. */
+property_save_result_t property_save_all(size_t *changed);
+
+/* Forget every saved value (erase the store) and restore every property,
+ * transient ones included, to its factory value. */
+property_save_result_t property_factory_reset(void);
+
+property_store_status_t property_store_status(void);
 
 #ifdef __cplusplus
 }
