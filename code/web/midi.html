@@ -37,6 +37,8 @@
     --bad: #c0392b;
     --push: #2f7d78;
     --pull: #b3591a;
+    --saved-bg: #fdf0cf;
+    --modified-bg: #dbe8fb;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -48,6 +50,8 @@
       --border: #333436;
       --push: #6cb3ad;
       --pull: #d99a52;
+      --saved-bg: #43381c;
+      --modified-bg: #1f3350;
     }
   }
   * { box-sizing: border-box; }
@@ -206,6 +210,10 @@
   }
   .info-btn-sm svg { width: 12px; height: 12px; }
   table.properties-table {
+    /* Shared by the header labels and the row contents, so the ↺ arrows line
+     * up down each column. rem, not em: header and rows differ in font size. */
+    --prop-value-w: 5.2rem;
+    --prop-default-w: 4.4rem;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
@@ -216,7 +224,9 @@
     text-align: left;
     padding: 6px 8px;
     border-bottom: 1px solid var(--border);
-    vertical-align: top;
+    /* Centred, like the Value/Default controls, so # and Name stay level with
+     * them when a long description wraps onto a second line. */
+    vertical-align: middle;
   }
   table.properties-table th {
     color: var(--muted);
@@ -224,6 +234,9 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    /* Keeps the Value/Default header arrows on the label's line. */
+    white-space: nowrap;
+    vertical-align: middle;
   }
   table.properties-table td.index {
     color: var(--muted);
@@ -251,13 +264,33 @@
     height: 22px;
     vertical-align: middle;
   }
+  /* The value input, the checkbox pill and the default pill share one 22px,
+   * vertically centred box, so the Value and Default columns line up. */
   .default-value {
-    display: inline-block;
-    width: 3.5em;
-    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    width: var(--prop-default-w);
+    height: 22px;
+    vertical-align: middle;
+    border-radius: 4px;
+    padding: 0 3px;
+    font-variant-numeric: tabular-nums;
   }
+  /* A saved value overrides the factory value: the factory value is in the
+   * tooltip. Transient properties are never saved. */
+  .default-value.saved { background: var(--saved-bg); color: var(--fg); font-weight: 600; cursor: help; }
+  .default-value.transient { opacity: 0.55; cursor: help; }
+  /* The live value differs from the default (saved, else factory): the same
+   * pill as a saved default, on the input itself or around a checkbox. */
+  .prop-check-wrap {
+    display: inline-flex; align-items: center; box-sizing: border-box;
+    width: var(--prop-value-w); height: 22px; padding: 0 4px; border-radius: 4px; vertical-align: middle;
+  }
+  .prop-value-input.modified, .prop-check-wrap.modified { background: var(--modified-bg); cursor: help; }
   .prop-value-input {
-    width: 6em; border: 1px solid var(--border); border-radius: 6px;
+    width: var(--prop-value-w); border: 1px solid var(--border); border-radius: 6px;
     background: var(--bg); color: var(--fg); font-family: var(--mono);
     font-size: 0.85rem; padding: 2px 6px; font-variant-numeric: tabular-nums;
     box-sizing: border-box; height: 22px; vertical-align: middle;
@@ -279,7 +312,14 @@
     cursor: pointer;
     vertical-align: middle;
   }
-  .prop-reset-btn:hover { border-color: var(--muted); }
+  .prop-reset-btn:hover:not(:disabled) { border-color: var(--muted); }
+  .prop-reset-btn:disabled { opacity: 0.3; cursor: default; }
+  /* author display:inline-flex/flex would otherwise beat the UA [hidden] rule */
+  .prop-reset-btn[hidden], .kbd-toggle[hidden] { display: none; }
+  table.properties-table th .prop-reset-btn { font-weight: normal; }
+  .th-label { display: inline-block; box-sizing: border-box; vertical-align: middle; }
+  .th-label.value { width: var(--prop-value-w); }
+  .th-label.default { width: var(--prop-default-w); text-align: right; padding-right: 3px; }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -310,6 +350,9 @@
   .icon-btn:active:not(:disabled) { box-shadow: none; transform: translateY(1px); }
   .icon-btn:disabled { cursor: progress; opacity: 0.7; }
   .icon-btn svg { width: 14px; height: 14px; flex: none; }
+  .icon-btn[hidden] { display: none; }
+  /* Nothing to save, rather than busy: greyed, not the progress cursor. */
+  #propertiesSaveBtn:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
   /* ---- Bellows curve graph ---- */
   .bellow-header {
@@ -515,9 +558,6 @@
   .sound-toggle[aria-pressed="true"] { color: var(--ok); border-color: var(--ok); }
   .sound-toggle[aria-pressed="true"] .icon-on { display: block; }
   .sound-toggle[aria-pressed="true"] .icon-muted { display: none; }
-  .sound-status {
-    font-size: 0.78rem; color: var(--muted); margin-left: 8px; flex-basis: 100%;
-  }
   /* min-height reserves the space the instrument select/knob need whether
    * or not sound is currently enabled, so toggling it on/off never reflows
    * the keyboard diagram below. */
@@ -576,6 +616,35 @@
     padding: 16px;
   }
   .info-overlay[hidden] { display: none; }
+
+  /* Toasts: the outcome of an action (saved, factory reset, a failure),
+   * bottom-centre, one at a time. Success leaves after 5 s, paused while
+   * hovered; an error stays until dismissed. */
+  .toast-host {
+    position: fixed; left: 0; right: 0; bottom: 16px; z-index: 1000;
+    display: flex; justify-content: center; padding: 0 16px; pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 12px;
+    max-width: 560px; padding: 10px 10px 10px 16px;
+    border-radius: 8px; font-size: 0.85rem;
+    background: var(--fg); color: var(--bg);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .toast.shown { opacity: 1; transform: none; }
+  .toast.error { background: var(--bad); color: #fff; }
+  .toast-close {
+    flex: none; width: 24px; height: 24px; padding: 0;
+    border: none; border-radius: 6px; background: transparent; color: inherit;
+    font-size: 0.9rem; cursor: pointer; opacity: 0.75;
+  }
+  .toast-close:hover { opacity: 1; background: rgba(127, 127, 127, 0.25); }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; transform: none; }
+  }
   .info-modal {
     position: relative;
     background: var(--card);
@@ -909,9 +978,9 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="status-row">
-      <label>Keyboards</label>
+  <details class="card collapsible" id="keyboardCard" open>
+    <summary id="keyboardSummary">
+      <span class="summary-title">Keyboards</span>
       <label class="kbd-toggle">
         <span>Solfège</span>
         <span class="kbd-toggle-switch">
@@ -931,8 +1000,7 @@
           <line x1="22" y1="9" x2="16" y2="15"></line>
         </svg>
       </button>
-      <span class="sound-status" id="soundStatus" hidden></span>
-    </div>
+    </summary>
     <div class="kbd-grid">
       <div class="kbd-panel">
         <div class="kbd-panel-header">
@@ -971,19 +1039,37 @@
         <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
       </div>
     </div>
-  </div>
+  </details>
 
   <details class="card collapsible" id="propertiesCard" open>
     <summary><span class="summary-title">Properties</span></summary>
     <div class="status-row">
       <p class="hint" id="propertiesStatus">Not connected.</p>
       <button type="button" class="retry-btn" id="propertiesRetryBtn" hidden>Retry</button>
-      <button type="button" class="retry-btn" id="propertiesResetAllBtn" hidden>Reset all to default</button>
+      <button type="button" class="retry-btn icon-btn" id="propertiesSaveBtn" hidden title="Save every current value as the value the device starts with">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"></path>
+          <path d="M8 3v5h7V3"></path>
+          <rect x="8" y="13" width="8" height="6" rx="1"></rect>
+        </svg>
+        Save as default
+      </button>
+      <label class="kbd-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
+        <span>show all</span>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="propertiesShowAll">
+          <span class="kbd-toggle-track"></span>
+        </span>
+      </label>
     </div>
     <table class="properties-table" id="propertiesTable" hidden>
-      <thead><tr><th>#</th><th>Name</th><th>Value</th><th>Default</th><th>Description</th></tr></thead>
+      <thead><tr><th>#</th><th>Name</th>
+        <th><span class="th-label value">Value</span><button type="button" class="prop-reset-btn" id="propertiesResetAllBtn" hidden title="Reset every value to its default">↺</button></th>
+        <th><span class="th-label default">Default</span><button type="button" class="prop-reset-btn" id="propertiesFactoryResetBtn" hidden title="Factory reset: erase every saved value and return every setting to its factory value">↺</button></th>
+        <th>Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
+    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>show all</em> to see them.</p>
   </details>
 
   <details class="card collapsible" id="activityCard" open>
@@ -1015,6 +1101,8 @@
         <label><input type="checkbox" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
         <label><input type="checkbox" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
         <label><input type="checkbox" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
+        <label><input type="checkbox" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
+        <label><input type="checkbox" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
         <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
       </div>
     </div>
@@ -1053,6 +1141,11 @@
   const propertiesBody = document.getElementById("propertiesBody");
   const propertiesRetryBtn = document.getElementById("propertiesRetryBtn");
   const propertiesResetAllBtn = document.getElementById("propertiesResetAllBtn");
+  const propertiesSaveBtn = document.getElementById("propertiesSaveBtn");
+  const propertiesFactoryResetBtn = document.getElementById("propertiesFactoryResetBtn");
+  const propertiesShowAllLabel = document.getElementById("propertiesShowAllLabel");
+  const propertiesShowAll = document.getElementById("propertiesShowAll");
+  const propertiesAllFactory = document.getElementById("propertiesAllFactory");
   const bwIndicatorEl = document.getElementById("bwIndicator");
 
   // ---- Bandwidth indicator (Activity card): raw MIDI byte throughput, both
@@ -1098,7 +1191,16 @@
   // Device -> host push notification, not a request/response: sent whenever
   // the effective bellows direction changes (see keyboard.cpp/midi.cc).
   const SYSEX_MSG_BELLOWS_DIRECTION = 0x05;
+  // Saved values: what a property boots with, stored in the device's flash.
+  const SYSEX_MSG_GET_SAVED_VALUE = 0x06;
+  const SYSEX_MSG_SET_SAVED_VALUE = 0x07;
+  const SYSEX_MSG_FACTORY_RESET = 0x08;
   const PROPERTY_TYPE_BOOL = 0;
+
+  // GET/SET_SAVED_VALUE response status (saved_value_status in midi.cc) and
+  // SET_SAVED_VALUE operation (saved_value_op).
+  const SAVED_STATUS_NONE = 0, SAVED_STATUS_SAVED = 1, SAVED_STATUS_TRANSIENT = 2, SAVED_STATUS_ERROR = 3;
+  const SAVED_OP_CLEAR = 0, SAVED_OP_SET = 1;
 
   // bellows_t's raw wire encoding (keyboard_layout.h): matches the byte sent
   // in HELLO's trailing field and every BELLOWS_DIRECTION message.
@@ -1296,6 +1398,9 @@
       case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
       case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "BELLOWS_DIRECTION";
+      case SYSEX_MSG_GET_SAVED_VALUE: return "GET_SAVED_VALUE";
+      case SYSEX_MSG_SET_SAVED_VALUE: return "SET_SAVED_VALUE";
+      case SYSEX_MSG_FACTORY_RESET: return "FACTORY_RESET";
       default: return "0x" + id.toString(16).padStart(2, "0");
     }
   }
@@ -1312,6 +1417,9 @@
       case SYSEX_MSG_SET_PROPERTY: return "sysexSetProperty";
       case SYSEX_MSG_GET_PERIPHERALS: return "sysexGetPeripherals";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "sysexBellowsDirection";
+      case SYSEX_MSG_GET_SAVED_VALUE:
+      case SYSEX_MSG_SET_SAVED_VALUE: return "sysexSavedValue";
+      case SYSEX_MSG_FACTORY_RESET: return "sysexFactoryReset";
       default: return "sysexOther";
     }
   }
@@ -1343,8 +1451,10 @@
         reader.readUint8(); // wing id left
         reader.readUint8(); // wing id right
         const bellows = reader.readUint8();
+        const generation = reader.readUInt16();
         return name + " version=\"" + version + "\" properties=" + count +
-               (bellows !== null ? " bellows=" + bellowsDirectionName(bellows) : "");
+               (bellows !== null ? " bellows=" + bellowsDirectionName(bellows) : "") +
+               (generation !== null ? " store_generation=" + generation : "");
       }
       case SYSEX_MSG_GET_PROPERTY:
       case SYSEX_MSG_SET_PROPERTY: {
@@ -1359,11 +1469,11 @@
         if (index === null) return name;
         const type = reader.readUint8();
         if (type === null) return name + " index=" + index;
-        const defaultValue = reader.readUInt16();
+        const factoryValue = reader.readUInt16();
         const propName = reader.readString();
         const description = reader.readString();
         return name + " index=" + index + " type=" + type +
-               (defaultValue !== null ? " default=" + defaultValue : "") +
+               (factoryValue !== null ? " factory=" + factoryValue : "") +
                (propName !== null ? " name=\"" + propName + "\"" : "") +
                (description !== null ? " desc=\"" + description + "\"" : "");
       }
@@ -1387,6 +1497,20 @@
       case SYSEX_MSG_BELLOWS_DIRECTION: {
         const dir = reader.readUint8();
         return dir === null ? name : name + " " + bellowsDirectionName(dir);
+      }
+      // GET request: index. SET request: index, op, value. Both responses:
+      // index, status, value - so the middle byte reads as op or status.
+      case SYSEX_MSG_GET_SAVED_VALUE:
+      case SYSEX_MSG_SET_SAVED_VALUE: {
+        const index = reader.readUInt16();
+        if (index === null) return name;
+        const code = reader.readUint8();
+        const value = reader.readUInt16();
+        return name + " index=" + index + (code !== null ? " op/status=" + code + " value=" + value : "");
+      }
+      case SYSEX_MSG_FACTORY_RESET: {
+        const status = reader.readUint8();
+        return status === null ? name + " (request, no body)" : name + " status=" + status;
       }
       default:
         return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
@@ -1416,7 +1540,6 @@
       const sentAt = Date.now();
       if (!silent) {
         log("» " + hex + "  (" + desc + ")", kind);
-        console.log("[sysex send]", { desc, frameLen: frame.length, payloadLen: payload.length, timeoutMs, sentAt });
       }
       const timeoutId = setTimeout(() => {
         const elapsed = Date.now() - sentAt;
@@ -1432,7 +1555,6 @@
       try {
         activeOutput.send(frame);
         bwBytesSinceTick += frame.length;
-        if (!silent) console.log("[sysex sent]", { desc, elapsed: Date.now() - sentAt });
       } catch (e) {
         console.log("[sysex send error]", e.message);
         clearTimeout(timeoutId);
@@ -1453,7 +1575,6 @@
     pending = null;
     if (!silent) {
       log("« response (" + desc + ")", kind);
-      console.log("[sysex response]", { desc, elapsed, payloadLen: payload.length });
     }
     resolve(payload);
     pumpWriteQueue();
@@ -1468,7 +1589,8 @@
     reader.readUint8(); // wing id left
     reader.readUint8(); // wing id right
     const bellows = reader.readUint8(); // initial bellows direction, null on an older firmware
-    return { version, count, bellows };
+    const storeGeneration = reader.readUInt16(); // saved-values store generation, null on an older firmware
+    return { version, count, bellows, storeGeneration };
   }
 
   async function requestPropertyDescription(index) {
@@ -1478,10 +1600,10 @@
     reader.readUint8(); // message id
     reader.readUInt16(); // echoed index
     const type = reader.readUint8();
-    const defaultValue = reader.readUInt16();
+    const factoryValue = reader.readUInt16();
     const name = reader.readString();
     const description = reader.readString();
-    return { type, name, description, defaultValue };
+    return { type, name, description, factoryValue };
   }
 
   async function requestPropertyValue(index) {
@@ -1524,6 +1646,38 @@
     return reader.readUInt16(); // value actually in effect (may be clamped)
   }
 
+  /* A property's saved value: { status, value }, status one of SAVED_STATUS_*.
+   * With SAVED_STATUS_NONE the value is the factory value. */
+  async function requestSavedValue(index) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_GET_SAVED_VALUE).writeUInt16(index).toBytes());
+    return readSavedValueResponse(payload);
+  }
+
+  async function requestSetSavedValue(index, op, value) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_SET_SAVED_VALUE).writeUInt16(index).writeUint8(op)
+        .writeUInt16(value).toBytes());
+    return readSavedValueResponse(payload);
+  }
+
+  function readSavedValueResponse(payload) {
+    const reader = new DataReader(payload);
+    reader.readUint8();   // message id
+    reader.readUInt16();  // echoed index
+    const status = reader.readUint8();
+    const value = reader.readUInt16();
+    return { status, value };
+  }
+
+  /* Erases the device's saved values; its live values return to factory.
+   * Resolves to the status byte: 0 on success. Erasing flash pages takes
+   * tens of milliseconds, hence the longer timeout. */
+  async function requestFactoryReset() {
+    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_FACTORY_RESET).toBytes(), 3000);
+    return new DataReader(payload.slice(1)).readUint8();
+  }
+
   /* Writes to the live device are queued rather than sent immediately: the
    * sysex link allows only one request in flight at a time (see
    * sendSysexRequest above), and a drag gesture can produce many updates per
@@ -1534,6 +1688,7 @@
   let writeInFlight = false;
   function queueSetProperty(index, value) {
     writeQueue.set(index, value);
+    syncTableValue(index, value);
     pumpWriteQueue();
   }
   function pumpWriteQueue() {
@@ -1546,6 +1701,47 @@
       .finally(() => { writeInFlight = false; pumpWriteQueue(); });
   }
 
+  /* Shows a toast (see .toast) and returns a function that dismisses it.
+   * Errors are announced as alerts and stay until dismissed, as do sticky
+   * toasts (progress, dismissed by the caller when done); anything else
+   * leaves after 5 s unless hovered. A new toast replaces the current one. */
+  function showToast(text, { error = false, sticky = false } = {}) {
+    const host = document.getElementById("toastHost");
+    let timer = null;
+    host.replaceChildren();
+    const toast = document.createElement("div");
+    toast.className = "toast" + (error ? " error" : "");
+    if (error) toast.setAttribute("role", "alert");
+    const msg = document.createElement("span");
+    msg.textContent = text;
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "toast-close";
+    close.setAttribute("aria-label", "Dismiss");
+    close.textContent = "✕";
+    toast.append(msg, close);
+    host.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("shown"));
+
+    const dismiss = () => {
+      clearTimeout(timer);
+      toast.classList.remove("shown");
+      setTimeout(() => toast.remove(), 250);
+    };
+    close.addEventListener("click", dismiss);
+    if (!error && !sticky) {
+      const arm = () => { timer = setTimeout(dismiss, 5000); };
+      toast.addEventListener("pointerenter", () => clearTimeout(timer));
+      toast.addEventListener("pointerleave", arm);
+      arm();
+    }
+    return dismiss;
+  }
+
+  // The status line's resting text ("71 properties"), restored after an
+  // action that showed its progress there.
+  let propertiesSummary = "";
+
   function setPropertiesStatus(text) {
     propertiesStatus.textContent = text;
   }
@@ -1553,10 +1749,315 @@
   function clearProperties() {
     propertiesBody.innerHTML = "";
     propertyResetRows.length = 0;
+    savedInfo.clear();
     propertiesTable.hidden = true;
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
+    propertiesSaveBtn.hidden = true;
+    propertiesFactoryResetBtn.hidden = true;
+    propertiesShowAllLabel.hidden = true;
+    propertiesAllFactory.hidden = true;
     setPropertiesStatus("Not connected.");
+  }
+
+  /* Saved values. Every property has a factory value (from the firmware) and
+   * a persistent one may also have a saved value in the device's flash, which
+   * it starts with instead. The "default" - what the Default column shows and
+   * the reset buttons restore - is the saved value if there is one, else the
+   * factory value. index -> { name, factoryValue, savedValue (null if none),
+   * persistent, type, and the row's elements once it is built }. */
+  const savedInfo = new Map();
+  let savedValuesSupported = false; // false on a firmware without GET_SAVED_VALUE
+
+  function effectiveDefault(index) {
+    const info = savedInfo.get(index);
+    return info.savedValue !== null ? info.savedValue : info.factoryValue;
+  }
+
+  function renderDefaultCell(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.defaultEl) return;
+    const el = info.defaultEl;
+    el.textContent = effectiveDefault(index);
+    el.classList.toggle("saved", info.savedValue !== null);
+    el.classList.toggle("transient", savedValuesSupported && !info.persistent);
+    if (info.savedValue !== null) el.title = "Saved value: " + info.savedValue + "\nFactory value: " + info.factoryValue;
+    else if (savedValuesSupported && !info.persistent) el.title = "Not saved: back to " + info.factoryValue + " at power-off";
+    else el.title = "Factory value";
+    info.factoryBtn.disabled = info.savedValue === null;
+    info.factoryBtn.title = info.savedValue !== null
+      ? "Reset the saved value to the factory value (" + info.factoryValue + ")"
+      : (savedValuesSupported && !info.persistent ? "Not saved: nothing to reset" : "Already the factory value");
+    renderValueCell(index);
+  }
+
+  /* Highlights the value cell while the live value differs from the default. */
+  function renderValueCell(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.input) return;
+    const input = info.input;
+    let live;
+    if (info.type === PROPERTY_TYPE_BOOL) live = input.checked ? 1 : 0;
+    else live = input.value === "" ? null : Math.max(0, Math.round(+input.value));
+    const def = effectiveDefault(index);
+    const modified = live !== null && live !== def;
+    info.resetBtn.disabled = !modified;
+    info.resetBtn.title = modified ? "Reset the value to the default (" + def + ")" : "Already the default";
+    const el = info.highlightEl;
+    el.classList.toggle("modified", modified);
+    if (!modified) el.title = "";
+    else if (savedValuesSupported && info.persistent)
+      el.title = "Changed from the default (" + def + ")\nNot saved: Save as default keeps it";
+    else el.title = "Changed from the default (" + def + ")";
+    updateRowVisibility(index);
+  }
+
+  /* With "show all" off the table lists only what differs from the firmware:
+   * a live value other than the factory value, or a saved value. A row being
+   * edited stays until it loses focus, so it can't vanish under the cursor. */
+  function rowIsInteresting(index) {
+    const info = savedInfo.get(index);
+    if (info.savedValue !== null) return true;
+    const input = info.input;
+    const live = info.type === PROPERTY_TYPE_BOOL ? (input.checked ? 1 : 0)
+                                                  : (input.value === "" ? info.factoryValue : Math.round(+input.value));
+    return live !== info.factoryValue;
+  }
+
+  function updateRowVisibility(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.row) return;
+    const editing = info.row.contains(document.activeElement);
+    info.row.hidden = !(propertiesShowAll.checked || editing || rowIsInteresting(index));
+    updateAllFactoryHint();
+    updateHeaderButtons();
+  }
+
+  /* Centres Save as default over the Value column: the status text before it
+   * is sized so the button's centre lands on the Value header's centre. Recomputed whenever rows show or
+   * hide (the Name column's width follows the longest visible name) and on
+   * resize. Falls back to natural flow when the table is hidden. */
+  function alignSaveButton() {
+    const status = propertiesStatus;
+    if (propertiesTable.hidden || propertiesSaveBtn.hidden) { status.style.flex = ""; return; }
+    const th = propertiesResetAllBtn.closest("th");
+    const row = status.parentElement;
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const thBox = th.getBoundingClientRect();
+    const btnWidth = propertiesSaveBtn.getBoundingClientRect().width;
+    const offset = thBox.left + thBox.width / 2 - btnWidth / 2 - row.getBoundingClientRect().left - gap;
+    status.style.flex = offset > 0 ? "0 0 " + offset + "px" : "";
+  }
+  window.addEventListener("resize", alignSaveButton);
+  // A collapsed card has no layout to measure: realign when it opens.
+  document.getElementById("propertiesCard").addEventListener("toggle", alignSaveButton);
+
+  function updateAllFactoryHint() {
+    // Only once enumeration is done (the switch appears then), not mid-load.
+    if (propertiesTable.hidden || propertiesShowAllLabel.hidden) { propertiesAllFactory.hidden = true; return; }
+    let anyShown = false;
+    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) { anyShown = true; break; }
+    propertiesAllFactory.hidden = anyShown || propertiesShowAll.checked;
+    alignSaveButton();
+  }
+
+  // Remembered per browser, like the collapsible cards; off until first set.
+  try { propertiesShowAll.checked = localStorage.getItem("propertiesShowAll") === "1"; } catch (_) {}
+  propertiesShowAll.addEventListener("change", () => {
+    try { localStorage.setItem("propertiesShowAll", propertiesShowAll.checked ? "1" : "0"); } catch (_) {}
+    for (const index of savedInfo.keys()) updateRowVisibility(index);
+  });
+
+  /* Set a table input from a value written elsewhere (graphs, buttons, the
+   * device's function buttons), unless it is the one being typed in. */
+  function syncTableValue(index, value) {
+    const info = savedInfo.get(index);
+    if (!info || !info.input || document.activeElement === info.input) return;
+    if (info.type === PROPERTY_TYPE_BOOL) info.input.checked = !!value;
+    else info.input.value = value;
+    renderValueCell(index);
+  }
+
+  /* The reverse: a table edit of a property that also has its own control
+   * (bellows and pedal graphs, keyboard system, table mode, bellows program)
+   * updates that control without writing to the device again. */
+  function setBellowField(obj, key, value) {
+    const m = /^(push|pull)([XY][12])$/.exec(key);
+    if (m) obj[m[1]][m[2].toLowerCase()] = value;
+    else obj[key] = value;
+  }
+
+  function syncControlsFromTable(index, value) {
+    if (bellowGraphLive) {
+      if (index === BELLOW_CENTER_PROP_INDEX) { bg.center = value; redrawGraph(); updateLiveDot(); return; }
+      for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
+        for (const key of Object.keys(PROP_INDEX[n])) {
+          if (PROP_INDEX[n][key] !== index) continue;
+          setBellowField(n === currentBellowProgram ? bg : bgPrograms[n], key, value);
+          redrawGraph();
+          updateLiveDot();
+          return;
+        }
+      }
+    }
+    if (bellowProgramLive && index === BELLOW_PROGRAM_PROP_INDEX) {
+      if (value < BELLOW_PROGRAM_COUNT) selectBellowProgram(value, { fromDevice: true });
+      return;
+    }
+    if (pedalGraphLive) {
+      for (const [key, idx] of Object.entries(PEDAL_PROP_INDEX)) {
+        if (idx !== index) continue;
+        const p = key.slice(0, 2), field = key.slice(2).toLowerCase();
+        pg[p][field] = value;
+        redrawPedalGraph(p);
+        return;
+      }
+    }
+    if (keyboardTuningLive && index === KEYBOARD_TUNING_PROP_INDEX) {
+      if (value < KBD_NOTE_TABLE.length) {
+        currentTuning = value;
+        syncTuningUi();
+        renderKeyboard("left");
+        renderKeyboard("right");
+      }
+      return;
+    }
+    if (tableModeLive && index === TABLE_MODE_PROP_INDEX) {
+      currentTableMode = !!value;
+      syncTableModeUi();
+      return;
+    }
+    if (tablemodeVelocityLive && index === TABLEMODE_VELOCITY_PROP_INDEX) currentTablemodeVelocity = value;
+  }
+
+  function setFromTable(index, value) {
+    queueSetProperty(index, value);
+    syncControlsFromTable(index, value);
+  }
+
+  function applySavedResponse(index, { status, value }) {
+    const info = savedInfo.get(index);
+    info.persistent = status !== SAVED_STATUS_TRANSIENT;
+    if (status === SAVED_STATUS_SAVED) info.savedValue = value;
+    else if (status === SAVED_STATUS_NONE) info.savedValue = null;
+    renderDefaultCell(index);
+  }
+
+  /* The link carries one request at a time and the live polls grab it every
+   * 100 ms, so a sequence of requests (Save, Factory reset) pauses them and
+   * waits for queued writes to drain first. */
+  async function withPollingPaused(fn) {
+    const wasPolling = peripheralsTimer !== null;
+    stopPeripheralPolling(); // also stops the keyboard-properties poll
+    try {
+      while (pending || writeInFlight || writeQueue.size > 0) await new Promise((r) => setTimeout(r, 20));
+      return await fn();
+    } finally {
+      if (wasPolling && activeOutput) { startPeripheralPolling(); startKeyboardPropsPolling(); }
+    }
+  }
+
+  /* The header arrows act on every row: Value resets every live value to its
+   * default, Default is the factory reset. Value is greyed when every value is
+   * its default, Default when nothing is saved, and Save as default when no
+   * persistent value differs from its default; all three while a Save or
+   * Factory reset is running. */
+  let propertiesBusy = false;
+  function updateHeaderButtons() {
+    let anyModified = false, anyToSave = false, anySaved = false;
+    for (const info of savedInfo.values()) {
+      if (!info.row) continue;
+      if (!info.resetBtn.disabled) {
+        anyModified = true;
+        if (info.persistent) anyToSave = true;
+      }
+      if (info.savedValue !== null) anySaved = true;
+    }
+    propertiesResetAllBtn.disabled = propertiesBusy || !anyModified;
+    propertiesFactoryResetBtn.disabled = propertiesBusy || !anySaved;
+    propertiesSaveBtn.disabled = propertiesBusy || !anyToSave;
+  }
+
+  function resetAllToDefault() {
+    if (!confirm("Reset every value to its default?")) return;
+    propertyResetRows.forEach(resetPropertyToDefault);
+  }
+
+  /* The Default column's arrow: the saved value goes back to the factory
+   * value (a CLEAR in the device's store). The live value is left alone, so
+   * it shows as changed if it was the saved value. */
+  async function clearSavedValue(index) {
+    const info = savedInfo.get(index);
+    info.factoryBtn.disabled = true;
+    try {
+      const r = await withPollingPaused(() => requestSetSavedValue(index, SAVED_OP_CLEAR, 0));
+      if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save " + info.name);
+      applySavedResponse(index, r);
+      log("saved value of " + info.name + " reset to factory (" + info.factoryValue + ")", "sysexSavedValue");
+    } catch (err) {
+      showToast("Reset of the saved value failed: " + err.message, { error: true });
+      renderDefaultCell(index);
+    }
+  }
+
+  /* Save as default: every persistent property whose live value differs from
+   * its default gets that value saved. Live values are read back first, as
+   * the function buttons and the console change them without this page
+   * writing them. Saving the factory value clears the saved value. */
+  async function saveCurrentAsDefaults() {
+    if (!confirm("Save the current values as defaults? The Bandolibre will start with them.")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const changed = await withPollingPaused(async () => {
+        let n = 0;
+        for (const [index, info] of savedInfo) {
+          if (!info.persistent) continue;
+          setPropertiesStatus("Saving… checking " + info.name);
+          const live = await requestPropertyValue(index);
+          if (live === effectiveDefault(index)) continue;
+          const op = live === info.factoryValue ? SAVED_OP_CLEAR : SAVED_OP_SET;
+          const r = await requestSetSavedValue(index, op, live);
+          if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save " + info.name);
+          applySavedResponse(index, r);
+          n++;
+        }
+        return n;
+      });
+      showToast(changed === 0 ? "Nothing to save: every value is already its default."
+                              : "Saved " + changed + " change" + (changed === 1 ? "" : "s") + " as default.");
+      log("save as default: " + changed + " change(s)", "sysexSavedValue");
+    } catch (err) {
+      showToast("Save failed: " + err.message, { error: true });
+      log("save as default failed: " + err.message, "sysexSavedValue");
+    } finally {
+      setPropertiesStatus(propertiesSummary);
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
+  }
+
+  async function factoryReset() {
+    if (!confirm("Factory reset: erase every saved value and return every setting to its factory value?")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const status = await withPollingPaused(async () => {
+        const st = await requestFactoryReset();
+        log("factory reset: " + (st === 0 ? "done" : "failed, status " + st), "sysexFactoryReset");
+        // Live values changed on the device: reload everything (table, graphs).
+        await enumerateProperties();
+        return st;
+      });
+      if (status !== 0) showToast("Factory reset failed: the device could not erase its saved values.", { error: true });
+      else showToast("Factory reset done: every setting is back to its factory value.");
+    } catch (err) {
+      showToast("Factory reset failed: " + err.message, { error: true });
+      log("factory reset failed: " + err.message, "sysexFactoryReset");
+    } finally {
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
   }
 
   /* Editable value cell: GET_PROPERTY_DESCRIPTION returns a property's type
@@ -1569,24 +2070,29 @@
    * graph drag never race. */
   // Rows currently in the table, so "Reset all to default" can walk every
   // input without re-deriving it from the DOM. Cleared in clearProperties().
-  const propertyResetRows = []; // { index, type, defaultValue, input }
+  const propertyResetRows = []; // { index, type, input }
 
-  function resetPropertyToDefault({ index, type, defaultValue, input }) {
+  function resetPropertyToDefault({ index, type, input }) {
+    const defaultValue = effectiveDefault(index);
     if (type === PROPERTY_TYPE_BOOL) {
       input.checked = !!defaultValue;
     } else {
       input.value = defaultValue;
     }
-    queueSetProperty(index, defaultValue);
+    setFromTable(index, defaultValue);
+    renderValueCell(index);
   }
 
-  function addPropertyValueInput(cell, index, type, value, defaultValue) {
+  function addPropertyValueInput(cell, index, type, value) {
     let input;
     if (type === PROPERTY_TYPE_BOOL) {
       input = document.createElement("input");
       input.type = "checkbox";
       input.checked = !!value;
-      input.addEventListener("change", () => queueSetProperty(index, input.checked ? 1 : 0));
+      input.addEventListener("change", () => {
+        setFromTable(index, input.checked ? 1 : 0);
+        renderValueCell(index);
+      });
     } else {
       input = document.createElement("input");
       input.type = "number";
@@ -1594,22 +2100,34 @@
       input.value = value;
       input.className = "prop-value-input";
       input.addEventListener("input", () => {
+        renderValueCell(index);
         if (input.value === "") return;
-        queueSetProperty(index, Math.max(0, Math.round(+input.value)));
+        setFromTable(index, Math.max(0, Math.round(+input.value)));
       });
     }
-    cell.appendChild(input);
+    // A checkbox has no background of its own, so its highlight goes on a wrapper.
+    let highlightEl = input;
+    if (type === PROPERTY_TYPE_BOOL) {
+      highlightEl = document.createElement("span");
+      highlightEl.className = "prop-check-wrap";
+      highlightEl.appendChild(input);
+    }
+    cell.appendChild(highlightEl);
 
-    const target = { index, type, defaultValue, input };
+    const target = { index, type, input };
     propertyResetRows.push(target);
+    const info = savedInfo.get(index);
+    info.type = type;
+    info.input = input;
+    info.highlightEl = highlightEl;
 
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className = "prop-reset-btn";
-    resetBtn.title = "Reset to default (" + defaultValue + ")";
-    resetBtn.textContent = "↺";
+    resetBtn.textContent = "↺"; // title set by renderDefaultCell
     resetBtn.addEventListener("click", () => resetPropertyToDefault(target));
-    return resetBtn;
+    cell.appendChild(resetBtn);
+    info.resetBtn = resetBtn;
   }
 
   function addPropertyRow(index, value, desc) {
@@ -1622,25 +2140,43 @@
     nameCell.textContent = desc.name || "?";
     const valueCell = document.createElement("td");
     valueCell.className = "value";
-    const resetBtn = addPropertyValueInput(valueCell, index, desc.type, value, desc.defaultValue);
+    addPropertyValueInput(valueCell, index, desc.type, value);
     const defaultCell = document.createElement("td");
     defaultCell.className = "default";
     const defaultValueSpan = document.createElement("span");
     defaultValueSpan.className = "default-value";
-    defaultValueSpan.textContent = desc.defaultValue;
-    defaultCell.append(defaultValueSpan, resetBtn);
+    // Same arrow, one column over: resets the saved value to the factory one.
+    const factoryBtn = document.createElement("button");
+    factoryBtn.type = "button";
+    factoryBtn.className = "prop-reset-btn";
+    factoryBtn.textContent = "↺"; // title and enabled state set by renderDefaultCell
+    factoryBtn.addEventListener("click", () => clearSavedValue(index));
+    defaultCell.append(defaultValueSpan, factoryBtn);
+    const info = savedInfo.get(index);
+    info.defaultEl = defaultValueSpan;
+    info.factoryBtn = factoryBtn;
+    renderDefaultCell(index);
     const descCell = document.createElement("td");
     descCell.textContent = desc.description;
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
+    row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
+    info.row = row;
     propertiesBody.appendChild(row);
+    updateRowVisibility(index);
   }
 
   async function enumerateProperties() {
     propertiesBody.innerHTML = "";
     propertyResetRows.length = 0;
+    savedInfo.clear();
+    savedValuesSupported = false;
     propertiesTable.hidden = true;
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
+    propertiesSaveBtn.hidden = true;
+    propertiesFactoryResetBtn.hidden = true;
+    propertiesShowAllLabel.hidden = true;
+    propertiesAllFactory.hidden = true;
     // A newer enumeration (reconnect, retry) owns the link state: an older
     // one failing late with "device disconnected" must not overwrite it.
     const generation = ++enumGeneration;
@@ -1652,9 +2188,7 @@
 
     setPropertiesStatus("Requesting property list…");
     setLinkState("checking");
-    console.log("[enum start]", { timestamp: Date.now() });
     try {
-      const helloStart = Date.now();
       let hello;
       try {
         hello = await requestHello();
@@ -1665,9 +2199,10 @@
         throw err;
       }
       if (generation === enumGeneration) setLinkState("ok");
-      const helloTime = Date.now() - helloStart;
-      log("hello: " + hello.version + ", " + hello.count + " properties", "sysexHello");
-      console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
+      log("hello: " + hello.version + ", " + hello.count + " properties" +
+          (hello.storeGeneration !== null ? ", store generation " + hello.storeGeneration : ""), "sysexHello");
+      // A firmware that reports a store generation answers GET_SAVED_VALUE.
+      savedValuesSupported = hello.storeGeneration !== null;
       if (hello.bellows !== null) {
         currentBellowsDirection = hello.bellows;
         updateKeyboardLighting("left");
@@ -1678,13 +2213,14 @@
       const byName = new Map(); // name -> index, for the live-editing controls below
       for (let i = 0; i < hello.count; i++) {
         setPropertiesStatus("Loading property " + (i + 1) + " / " + hello.count + "…");
-        const propStart = Date.now();
         try {
           const desc = await requestPropertyDescription(i);
           const value = await requestPropertyValue(i);
-          const propTime = Date.now() - propStart;
-          console.log("[property fetched]", { index: i, name: desc.name, desc: desc.description.substring(0, 50), value, elapsed: propTime });
-          if (!PROPS_EDITED_ELSEWHERE.has(desc.name)) addPropertyRow(i, value, desc);
+          savedInfo.set(i, { name: desc.name, factoryValue: desc.factoryValue, savedValue: null,
+                             persistent: savedValuesSupported, defaultEl: null, resetBtn: null, factoryBtn: null,
+                             type: desc.type, input: null, highlightEl: null, row: null });
+          if (savedValuesSupported) applySavedResponse(i, await requestSavedValue(i));
+          addPropertyRow(i, value, desc);
           fetched.set(i, { value, name: desc.name, description: desc.description });
           if (desc.name) byName.set(desc.name, i);
         } catch (err) {
@@ -1692,8 +2228,14 @@
           throw err;
         }
       }
-      setPropertiesStatus(hello.count + " propert" + (hello.count === 1 ? "y" : "ies"));
+      propertiesSummary = hello.count + " propert" + (hello.count === 1 ? "y" : "ies");
+      setPropertiesStatus(propertiesSummary);
       propertiesResetAllBtn.hidden = false;
+      updateHeaderButtons();
+      propertiesSaveBtn.hidden = !savedValuesSupported;
+      propertiesFactoryResetBtn.hidden = !savedValuesSupported;
+      propertiesShowAllLabel.hidden = false;
+      updateAllFactoryHint();
 
       applyBellowGraphFromFetched(fetched, byName);
       applyPedalGraphFromFetched(fetched, byName);
@@ -1722,7 +2264,9 @@
   }
 
   propertiesRetryBtn.addEventListener("click", enumerateProperties);
-  propertiesResetAllBtn.addEventListener("click", () => propertyResetRows.forEach(resetPropertyToDefault));
+  propertiesResetAllBtn.addEventListener("click", resetAllToDefault);
+  propertiesSaveBtn.addEventListener("click", saveCurrentAsDefaults);
+  propertiesFactoryResetBtn.addEventListener("click", factoryReset);
 
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
@@ -1753,7 +2297,7 @@
   let BELLOW_CENTER_PROP_INDEX = null;
   let bellowGraphLive = false;
   let BELLOW_PROGRAM_PROP_INDEX = null;
-  let currentBellowProgram = 0; // matches bellow_program's default_value
+  let currentBellowProgram = 0; // matches bellow_program's factory_value
   let bellowProgramLive = false; // true once bellow_program resolved on a connected device
 
   // Writes one field of the active program (key as in BELLOW_PROP_SUFFIX),
@@ -1782,19 +2326,6 @@
     p1: { min: 920, max: 3100, sample: null, connected: null },
     p2: { min: 920, max: 3100, sample: null, connected: null },
   };
-
-  // Properties already editable next to the bellows/pedal graphs (plus the
-  // Function buttons card further down) are left out of the generic
-  // Properties table below, so there's one place to edit each of them rather
-  // than two that could drift out of sync. Named rather than indexed, same
-  // reasoning as PROP_INDEX above.
-  const PROPS_EDITED_ELSEWHERE = new Set([
-    ...Array.from({ length: BELLOW_PROGRAM_COUNT }, (_, n) =>
-      Object.keys(BELLOW_PROP_SUFFIX).map((key) => bellowPropName(n, key))).flat(),
-    BELLOW_CENTER_PROP_NAME,
-    ...Object.values(PEDAL_PROP_NAMES),
-    "keyboard_tuning", "table_mode", "bellow_program",
-  ]);
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
   // Newton-Raphson + bisection solve for x(t)=x, then evaluate y(t).
@@ -2765,11 +3296,11 @@
   // assumed, same reasoning as PROP_INDEX above; null until a connected
   // device's property list has been searched for it.
   let KEYBOARD_TUNING_PROP_INDEX = null;
-  let currentTuning = 0; // matches keyboard_tuning's default_value
+  let currentTuning = 0; // matches keyboard_tuning's factory_value
   let keyboardTuningLive = false; // true once resolved against a connected device
 
   let TABLE_MODE_PROP_INDEX = null;
-  let currentTableMode = false; // matches table_mode's default_value
+  let currentTableMode = false; // matches table_mode's factory_value
   let tableModeLive = false; // same as keyboardTuningLive, for table_mode
 
   // No dedicated control for this one (it stays editable in the generic
@@ -2777,7 +3308,7 @@
   // can play it at the same velocity the device itself would use in table
   // mode, per tablemode_velocity's own description.
   let TABLEMODE_VELOCITY_PROP_INDEX = null;
-  let currentTablemodeVelocity = 80; // matches tablemode_velocity's default_value
+  let currentTablemodeVelocity = 80; // matches tablemode_velocity's factory_value
   let tablemodeVelocityLive = false; // same as keyboardTuningLive, for tablemode_velocity
 
   // MIDI channel (1-based) each wing's notes arrive on - L_MIDI_CH=0,
@@ -3009,7 +3540,6 @@
   const kbdVolume = { left: 100, right: 100 };
 
   const soundToggle = document.getElementById("soundToggle");
-  const soundStatus = document.getElementById("soundStatus");
   const kbdSoundEls = {
     left: {
       panel: document.getElementById("kbdSoundLeft"),
@@ -3023,9 +3553,13 @@
     },
   };
 
-  function setSoundStatus(text) {
-    soundStatus.textContent = text;
-    soundStatus.hidden = !text;
+  /* Sound engine progress and failures, as toasts so the Keyboards header
+   * never reflows: progress stays up until cleared with "", a failure until
+   * dismissed. */
+  let dismissSoundToast = null;
+  function setSoundStatus(text, { error = false } = {}) {
+    if (dismissSoundToast) { dismissSoundToast(); dismissSoundToast = null; }
+    if (text) dismissSoundToast = showToast(text, { error, sticky: true });
   }
 
   function patchKey(patch) {
@@ -3178,7 +3712,7 @@
     try {
       await ensureSoundEngine();
     } catch (err) {
-      setSoundStatus("Sound failed to load: " + err.message);
+      setSoundStatus("Sound failed to load: " + err.message, { error: true });
       log("sound engine failed to load: " + err.message, "other");
       soundEnabled = false;
       soundToggle.setAttribute("aria-pressed", "false");
@@ -3243,34 +3777,43 @@
    * A setting is skipped while this page's own write is in flight or still
    * queued (writeInFlight is a single slot, so it covers whichever write it
    * is), so a reply from just before the write lands can't bounce the UI back. */
+  // No write of this property pending: a device reading isn't stale.
+  const settledIndex = (index) => !writeInFlight && !writeQueue.has(index);
+
   function updateButtonSettingsFromDevice(p) {
     if (p.tableMode === null || p.bellowProgram === null) return; // older firmware
-    const settled = (index) => !writeInFlight && !writeQueue.has(index);
+    const settled = settledIndex;
     if (keyboardTuningLive && settled(KEYBOARD_TUNING_PROP_INDEX)
         && p.tuning !== currentTuning && p.tuning < KBD_NOTE_TABLE.length) {
       currentTuning = p.tuning;
       syncTuningUi();
       renderKeyboard("left");
       renderKeyboard("right");
+      syncTableValue(KEYBOARD_TUNING_PROP_INDEX, p.tuning);
     }
     if (tableModeLive && settled(TABLE_MODE_PROP_INDEX) && !!p.tableMode !== currentTableMode) {
       currentTableMode = !!p.tableMode;
       syncTableModeUi();
+      syncTableValue(TABLE_MODE_PROP_INDEX, p.tableMode ? 1 : 0);
     }
     if (bellowProgramLive && settled(BELLOW_PROGRAM_PROP_INDEX)
         && p.bellowProgram !== currentBellowProgram && p.bellowProgram < BELLOW_PROGRAM_COUNT) {
       selectBellowProgram(p.bellowProgram, { fromDevice: true });
+      syncTableValue(BELLOW_PROGRAM_PROP_INDEX, p.bellowProgram);
     }
   }
 
   let keyboardPropsTimer = null;
   async function pollKeyboardPropsOnce() {
     if (!activeOutput) return;
-    // No UI to sync here - just keeps the cached value current in case
-    // tablemode_velocity is edited from the generic Properties table.
+    // Keeps the cached value (and its table row) current in case
+    // tablemode_velocity is changed from the console.
     if (tablemodeVelocityLive) try {
       const value = await requestPropertyValue(TABLEMODE_VELOCITY_PROP_INDEX);
-      if (value >= 1 && value <= 127) currentTablemodeVelocity = value;
+      if (value >= 1 && value <= 127 && settledIndex(TABLEMODE_VELOCITY_PROP_INDEX)) {
+        currentTablemodeVelocity = value;
+        syncTableValue(TABLEMODE_VELOCITY_PROP_INDEX, value);
+      }
     } catch (err) {
       // Transient: retried next tick.
     }
@@ -3482,7 +4025,6 @@
   // mirroring midi_input_process's byte-scanning in usb_app.cc.
   let sysexBuf = [];
   let inSysex = false;
-  let sysexStartTime = 0;
 
   function handleMidiMessage(event) {
     const bytes = Array.from(event.data);
@@ -3522,7 +4064,6 @@
     }
     if (!silentSysex) {
       log("« " + hex + (description ? "  (" + description + ")" : ""), messageKind(bytes, startingSysex));
-      console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
     }
 
     for (const b of bytes) {
@@ -3530,17 +4071,14 @@
         if (inSysex) console.log("[sysex warning] 0xF0 while already in sysex, resetting");
         inSysex = true;
         sysexBuf = [b];
-        sysexStartTime = Date.now();
       } else if (inSysex) {
         sysexBuf.push(b);
         if (b === 0xf7) {
-          const frameTime = Date.now() - sysexStartTime;
           inSysex = false;
           const payload = unpackSysexFrame(Uint8Array.from(sysexBuf));
           if (payload) {
             if (!silentSysex) {
               log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
-              console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
             }
             // Device-initiated push, not a request/response - never has a
             // pending request to resolve (resolvePendingRequest below is a
@@ -3558,9 +4096,6 @@
           sysexBuf = [];
         }
       }
-    }
-    if (inSysex && sysexBuf.length > 0 && Date.now() - sysexStartTime > 100) {
-      console.log("[sysex partial]", { bufLen: sysexBuf.length, elapsed: Date.now() - sysexStartTime, pending: !!pending });
     }
   }
 
@@ -3742,6 +4277,17 @@
   // this, opening the modal would also collapse the card.
   document.getElementById("bwInfoBtn").addEventListener("click", (e) => e.preventDefault());
 
+  // The Keyboards summary holds the Solfège switch and the sound button. A
+  // click on their text or icon would also fold the card (only a click that
+  // lands on the form control itself is exempt), so cancel the fold and, for
+  // the switch's label, forward the click to its checkbox by hand.
+  document.getElementById("keyboardSummary").addEventListener("click", (e) => {
+    const ctl = e.target.closest("label, button, input, select");
+    if (!ctl || ctl.tagName === "INPUT" || ctl.tagName === "SELECT") return;
+    e.preventDefault();
+    if (ctl.tagName === "LABEL" && ctl.control) ctl.control.click();
+  });
+
   // Collapsible cards remember their open/closed state per browser.
   for (const card of document.querySelectorAll("details.collapsible[id]")) {
     const key = "collapsed:" + card.id;
@@ -3752,5 +4298,6 @@
   }
 })();
 </script>
+<div class="toast-host" id="toastHost" aria-live="polite"></div>
 </body>
 </html>
