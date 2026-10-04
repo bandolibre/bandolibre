@@ -47,6 +47,17 @@ ou un téléphone, où un instrument virtuel le transforme en son.
 
 ---
 
+## Prise en main de votre instrument
+
+Deux Bandolibre ne sortent jamais de l'atelier tout à fait identiques : les
+aimants ne sont jamais exactement pareils, et la géométrie varie légèrement d'un
+instrument à l'autre. Pour qu'une note ne sonne que lorsque vous poussez ou tirez, l'instrument doit
+savoir où se trouve le soufflet au repos.
+[Calibrez le soufflet](#calibrage-du-soufflet) avant la première utilisation
+de votre instrument.
+
+---
+
 ## Branchement
 
 Branchez le Bandolibre à votre ordinateur, tablette ou téléphone avec un câble
@@ -93,13 +104,15 @@ Après Manoury, il revient à la Rheinische Tonlage.
 Appuyez sur le **bouton du milieu** pour passer d'un programme de soufflet à
 l'autre : **1 → 2 → 3**, puis retour à 1.
 
-Chaque programme a ses propres réglages du soufflet : position de repos,
-course du soufflet avant qu'une note sonne, et façon dont votre effort se
-traduit en volume. Vous pouvez régler chacun d'eux dans l'outil de
-configuration. Par défaut, les programmes 2 et 3 atteignent le volume maximal
-avec moins d'effort sur le soufflet que le programme 1. Utiles pour jouer
-doucement, ou si la lame-ressort vous semble trop raide. Le programme de
-soufflet n'a pas d'effet en mode table.
+Chaque programme a ses propres réglages du soufflet : course du soufflet avant
+qu'une note sonne, et façon dont votre effort se traduit en volume. Vous pouvez
+régler chacun d'eux dans l'outil de configuration. Par défaut, les programmes 2
+et 3 atteignent le volume maximal avec moins d'effort sur le soufflet que le
+programme 1. Utiles pour jouer doucement, ou si la lame-ressort vous semble
+trop raide. Le programme de soufflet n'a pas d'effet en mode table.
+
+Maintenez le **bouton du milieu** une seconde pour calibrer plutôt la position
+de repos du soufflet : voir [Calibrage du soufflet](#calibrage-du-soufflet).
 
 ### Bouton droit : mode table
 
@@ -146,7 +159,7 @@ Il vous permet de :
 - **régler le soufflet** : déplacez les courbes de poussé et de tiré, ou
   choisissez un préréglage, pour définir comment votre effort se traduit en
   volume ;
-- **calibrer la position de repos** du soufflet ;
+- [**calibrer la position de repos**](#calibrage-du-soufflet) du soufflet ;
 - **calibrer les pédales** ;
 - changer le système de clavier, le programme de soufflet et le mode table ;
 - voir les deux claviers en direct pendant le jeu ;
@@ -192,6 +205,38 @@ firmware conserve vos réglages enregistrés.
 
 Pour revenir aux réglages d'origine de l'instrument, cliquez sur
 **Factory reset**.
+
+---
+
+## Calibrage du soufflet
+
+Le Bandolibre doit connaître la position de repos du soufflet, pour qu'une note
+ne sonne que lorsque vous poussez ou tirez. Calibrez-la avant la première
+utilisation de votre instrument, puis chaque fois que des notes sonnent alors
+que le soufflet est au repos. Il y a deux façons de faire, qui mesurent toutes
+deux le soufflet pendant une seconde. Dans les deux cas, posez d'abord
+l'instrument à plat sur une table et lâchez le soufflet.
+
+### Avec le bouton du milieu
+
+- Appuyez sur le **bouton du milieu** avec l'index, le pouce sous le module
+  principal, pour que l'appui ne pousse ni ne tire le soufflet.
+- Maintenez le bouton une seconde, jusqu'à ce que son voyant s'allume.
+- Gardez le bouton enfoncé sans bouger jusqu'à ce que le voyant s'éteigne, une
+  seconde plus tard.
+- La nouvelle position de repos est enregistrée : l'instrument la garde une
+  fois débranché.
+
+Cette méthode ne demande pas d'ordinateur.
+
+### Avec l'outil de configuration
+
+- Branchez l'instrument et ouvrez
+  l'[outil de configuration](#outil-de-configuration).
+- Dans la partie soufflet, sous **Bellow center**, cliquez sur **Calibrate**.
+  Ne touchez pas l'instrument pendant une seconde.
+- Cliquez sur **Save as default** juste à côté, pour que l'instrument garde la
+  nouvelle position de repos une fois débranché.
 
 ---
 

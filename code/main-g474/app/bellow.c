@@ -11,6 +11,7 @@
 #include "fixed_format.h"
 #include "keyboard.h"   /* L_MIDI_CH / R_MIDI_CH */
 #include "main.h"
+#include "midi.h"
 #include "one_euro_filter.h"
 #include "properties.h"
 #include "report.h"
@@ -327,6 +328,61 @@ static void bellow_report(bool sampled, const bellow_sample_t *s, const bellow_o
   }
 }
 
+/* Center calibration in progress (bellow_calibrate_center()). The raw total
+ * is averaged, like the configuration tool's Calibrate button does: the
+ * 1-euro filter lags and would bias a short window. 64-bit sum: at the
+ * fastest bellow_sample_period_us a second of totals can overflow 32 bits. */
+static struct {
+  bool     active;
+  uint32_t start_ms;
+  uint64_t sum;
+  uint32_t n;
+} g_calib;
+
+void bellow_calibrate_center(void)
+{
+  if (g_calib.active) return;
+  g_calib.active = true;
+  g_calib.start_ms = HAL_GetTick();
+  g_calib.sum = 0;
+  g_calib.n = 0;
+  printf("bellow: calibrating the center, leave the bellows at rest\r\n");
+}
+
+bool bellow_calibrating(void)
+{
+  return g_calib.active;
+}
+
+/* Ends a calibration once BELLOW_CALIBRATE_MS have passed: the mean becomes
+ * bellow_center (clamped to its range), saved to flash and pushed to the
+ * configuration tool. The flash write runs here in the main loop, like a
+ * save from the tool (~85 us, ~22 ms when it compacts). */
+static void bellow_calibrate_poll(const bellow_sample_t *s, bool sampled)
+{
+  if (!g_calib.active) return;
+  if (sampled)
+  {
+    g_calib.sum += (uint32_t)s->hall0 + s->hall1;
+    g_calib.n++;
+  }
+  if (HAL_GetTick() - g_calib.start_ms < BELLOW_CALIBRATE_MS) return;
+  g_calib.active = false;
+
+  size_t idx;
+  if (g_calib.n == 0 || !property_by_name("bellow_center", &idx))
+  {
+    printf("bellow: center calibration failed, no sample\r\n");
+    return;
+  }
+  uint64_t mean = (g_calib.sum + g_calib.n / 2) / g_calib.n;
+  property_set_u16(idx, mean > UINT16_MAX ? UINT16_MAX : (uint16_t)mean);
+  property_save_result_t r = property_set_saved(idx, g_properties->bellow_center);
+  printf("bellow: center %u from %lu samples, %s\r\n", g_properties->bellow_center,
+         (unsigned long)g_calib.n, r == PROPERTY_SAVE_OK ? "saved" : "save FAILED");
+  midi_send_property_changed(idx);
+}
+
 /* Samples both hall sensors, filters the combined reading through a 1-euro
  * filter, updates the bellows direction/intensity from the filtered value, emits the
  * expression CC, and reports. Call once per main loop iteration; sampling is
@@ -374,6 +430,7 @@ void bellow_poll(void)
 
     bellow_send_cc();
   }
+  bellow_calibrate_poll(&s, sampled);
   bellow_report(sampled, &s, &g_bellow_out);
 }
 

@@ -43,6 +43,17 @@ where a virtual instrument turns it into sound.
 
 ---
 
+## Getting started with your instrument
+
+No two Bandolibres come out of the workshop exactly alike: no two magnets are
+quite identical, and the geometry varies slightly from one instrument to
+another. For notes to sound only when you push or pull, the instrument has to
+know where the bellows sits at rest.
+[Calibrate the bellows](#bellows-calibration) before you play it for the first
+time.
+
+---
+
 ## Connecting
 
 Plug the Bandolibre into your computer, tablet or phone with a USB Type-B
@@ -88,12 +99,15 @@ After Manoury it goes back to Rheinische Tonlage.
 Press the **middle button** to step through three bellows programs:
 **1 → 2 → 3**, then back to 1.
 
-Each program has its own bellows settings: rest position, how far you move the
-bellows before a note sounds, and how your effort turns into loudness. You can
-tune each of them in the configuration tool. By default, programs 2 and 3
-reach full loudness with less bellows effort than program 1. Use them for quiet
-practice, or if the spring blade feels too stiff. The bellows program has no
-effect in table mode.
+Each program has its own bellows settings: how far you move the bellows before
+a note sounds, and how your effort turns into loudness. You can tune each of
+them in the configuration tool. By default, programs 2 and 3 reach full
+loudness with less bellows effort than program 1. Use them for quiet practice,
+or if the spring blade feels too stiff. The bellows program has no effect in
+table mode.
+
+Hold the **middle button** for one second to calibrate the rest position of
+the bellows instead: see [Bellows calibration](#bellows-calibration).
 
 ### Right button: table mode
 
@@ -136,7 +150,7 @@ With it you can:
 
 - **tune the bellows**: drag the push and pull curves, or pick a preset, to
   choose how your effort turns into loudness;
-- **calibrate the rest position** of the bellows;
+- [**calibrate the rest position**](#bellows-calibration) of the bellows;
 - **calibrate the pedals**;
 - switch keyboard system, bellows program and table mode;
 - see both keyboards live as you play;
@@ -174,6 +188,36 @@ In the tool's list of settings, saved values are highlighted; hover over one to
 see the factory value. Updating the firmware keeps your saved settings.
 
 To go back to the settings the instrument came with, click **Factory reset**.
+
+---
+
+## Bellows calibration
+
+The Bandolibre has to know the rest position of the bellows, so that a note
+sounds only when you push or pull. Calibrate it before you play the instrument
+for the first time, and again whenever notes sound while the bellows is at rest.
+There are two ways, and both measure the bellows for one second. Either way,
+first lay the instrument flat on a table and let go of the bellows.
+
+### With the middle button
+
+- Press the **middle button** with your index finger, your thumb under the
+  main module, so that pressing doesn't push or pull the bellows.
+- Hold the button for one second, until its light turns on.
+- Keep the button pressed and stay still until the light goes off, a second
+  later.
+- The new rest position is saved: the instrument keeps it when unplugged.
+
+This way needs no computer.
+
+### With the configuration tool
+
+- Connect the instrument and open the
+  [configuration tool](#configuration-tool).
+- In the bellows section, under **Bellow center**, click **Calibrate**. Don't
+  touch the instrument for one second.
+- Click **Save as default** next to it, so the instrument keeps the new rest
+  position when unplugged.
 
 ---
 

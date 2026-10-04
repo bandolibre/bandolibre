@@ -46,6 +46,16 @@ teléfono, donde un instrumento virtual lo convierte en sonido.
 
 ---
 
+## Primeros pasos con tu instrumento
+
+Ningún Bandolibre sale del taller exactamente igual a otro: los imanes nunca
+son del todo idénticos, y la geometría varía un poco de un instrumento a otro.
+Para que una nota suene solo cuando empujas o tiras, el instrumento tiene que
+saber dónde está el fuelle en reposo. [Calibra el fuelle](#calibración-del-fuelle) antes de usar
+tu instrumento por primera vez.
+
+---
+
 ## Conexión
 
 Conecta el Bandolibre a tu ordenador, tableta o teléfono con un cable USB
@@ -91,13 +101,16 @@ Después de Manoury vuelve a la Rheinische Tonlage.
 Pulsa el **botón central** para pasar por tres programas de fuelle:
 **1 → 2 → 3**, y de nuevo 1.
 
-Cada programa tiene sus propios ajustes del fuelle: posición de reposo,
-recorrido del fuelle antes de que suene una nota, y cómo tu esfuerzo se
-convierte en volumen. Puedes ajustar cada uno en la herramienta de
-configuración. Por defecto, los programas 2 y 3 alcanzan el volumen máximo con
-menos esfuerzo del fuelle que el programa 1. Úsalos para practicar en voz baja,
-o si la lámina de resorte te parece demasiado dura. El programa de fuelle no
-tiene efecto en modo mesa.
+Cada programa tiene sus propios ajustes del fuelle: recorrido del fuelle antes
+de que suene una nota, y cómo tu esfuerzo se convierte en volumen. Puedes
+ajustar cada uno en la herramienta de configuración. Por defecto, los
+programas 2 y 3 alcanzan el volumen máximo con menos esfuerzo del fuelle que el
+programa 1. Úsalos para practicar en voz baja, o si la lámina de resorte te
+parece demasiado dura. El programa de fuelle no tiene efecto en modo mesa.
+
+Mantén pulsado el **botón central** un segundo para calibrar en su lugar la
+posición de reposo del fuelle: consulta
+[Calibración del fuelle](#calibración-del-fuelle).
 
 ### Botón derecho: modo mesa
 
@@ -141,7 +154,7 @@ Con ella puedes:
 
 - **ajustar el fuelle**: arrastra las curvas de empuje y tracción, o elige un
   ajuste predefinido, para definir cómo tu esfuerzo se convierte en volumen;
-- **calibrar la posición de reposo** del fuelle;
+- [**calibrar la posición de reposo**](#calibración-del-fuelle) del fuelle;
 - **calibrar los pedales**;
 - cambiar el sistema de teclado, el programa de fuelle y el modo mesa;
 - ver ambos teclados en vivo mientras tocas;
@@ -185,6 +198,36 @@ resaltados; pasa el cursor sobre uno para ver el valor de fábrica. Actualizar
 el firmware conserva tus ajustes guardados.
 
 Para volver a los ajustes de fábrica del instrumento, pulsa **Factory reset**.
+
+---
+
+## Calibración del fuelle
+
+El Bandolibre tiene que conocer la posición de reposo del fuelle, para que una
+nota suene solo cuando empujas o tiras. Calíbrala antes de usar tu instrumento
+por primera vez, y de nuevo siempre que suenen notas con el fuelle en reposo.
+Hay dos maneras, y las dos miden el fuelle durante un segundo. En ambos casos,
+deja primero el instrumento plano sobre una mesa y suelta el fuelle.
+
+### Con el botón central
+
+- Pulsa el **botón central** con el índice, con el pulgar bajo el módulo
+  principal, para que al pulsar no empujes ni tires del fuelle.
+- Mantén pulsado el botón un segundo, hasta que se encienda su luz.
+- Sigue pulsando sin moverte hasta que la luz se apague, un segundo después.
+- La nueva posición de reposo queda guardada: el instrumento la conserva al
+  desconectarlo.
+
+Este método no necesita ordenador.
+
+### Con la herramienta de configuración
+
+- Conecta el instrumento y abre la
+  [herramienta de configuración](#herramienta-de-configuración).
+- En la parte del fuelle, bajo **Bellow center**, pulsa **Calibrate**. No
+  toques el instrumento durante un segundo.
+- Pulsa **Save as default** justo al lado, para que el instrumento conserve la
+  nueva posición de reposo al desconectarlo.
 
 ---
 

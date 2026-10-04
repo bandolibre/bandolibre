@@ -34,6 +34,18 @@ void bellow_poll(void);
  * classification: hall0/hall1 correspond to hadc3/hadc4 in bellow.c. */
 void bellow_get_raw(uint16_t *hall0, uint16_t *hall1);
 
+/* Starts calibrating the bellows center (long press of FN1): bellow_poll()
+ * averages the raw combined hall reading over the next
+ * BELLOW_CALIBRATE_MS, then sets bellow_center to it, saves it to flash
+ * (property_set_saved) and tells the configuration tool
+ * (midi_send_property_changed). The bellows keeps playing meanwhile; it must
+ * be left at rest. Ignored while a calibration is already running. */
+#define BELLOW_CALIBRATE_MS 1000
+void bellow_calibrate_center(void);
+
+/* True while a calibration started by bellow_calibrate_center() runs. */
+bool bellow_calibrating(void);
+
 /* Diagnostic sweep over a range of the bellow_settle_us property: for each
  * value, repeatedly samples both hall sensors and prints a table of their mean
  * and standard deviation, to pick the smallest settling delay that reads

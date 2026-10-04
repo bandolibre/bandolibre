@@ -36,6 +36,9 @@ enum sysex_message_id : uint8_t {
   SYSEX_MSG_GET_SAVED_VALUE          = 0x06,
   SYSEX_MSG_SET_SAVED_VALUE          = 0x07,
   SYSEX_MSG_FACTORY_RESET            = 0x08,
+  /* Device -> host push notification: a property the device changed and
+   * saved on its own (see midi_send_property_changed). */
+  SYSEX_MSG_PROPERTY_CHANGED         = 0x09,
 };
 
 /* Status byte of the GET/SET_SAVED_VALUE response. */
@@ -297,7 +300,7 @@ void handle_set_property(gsl::span<const uint8_t> body)
 /* [id, u16 index, u8 status, u16 value]: the saved state of one property. A
  * failed write reports SAVED_STATUS_ERROR with the property's current default;
  * the client re-reads to learn what the flash still holds. */
-void send_saved_value_response(sysex_message_id message_id, uint16_t index, bool failed)
+void write_saved_state(DataWriter &writer, uint16_t index, bool failed)
 {
   const property_desc_t *d = property_at(index);
   uint8_t status;
@@ -306,13 +309,17 @@ void send_saved_value_response(sysex_message_id message_id, uint16_t index, bool
   else if (d->tag == PROPERTY_TAG_NONE) status = SAVED_STATUS_TRANSIENT;
   else if (property_get_saved(index, &value)) status = SAVED_STATUS_SAVED;
   else status = SAVED_STATUS_NONE;
+  writer.write(status);
+  writer.write(value);
+}
 
+void send_saved_value_response(sysex_message_id message_id, uint16_t index, bool failed)
+{
   std::array<uint8_t, 8> payload;
   DataWriter writer(payload);
   writer.write((uint8_t)message_id);
   writer.write(index);
-  writer.write(status);
-  writer.write(value);
+  write_saved_state(writer, index, failed);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -416,6 +423,24 @@ void midi_send_bellows_direction(uint8_t direction)
 {
   uint8_t payload[2] = { (uint8_t)SYSEX_MSG_BELLOWS_DIRECTION, direction };
   usb_app_midi_send_sysex(payload, sizeof(payload));
+}
+
+/* [id, u16 index, u16 live value, u8 status, u16 value]: the last two as in
+ * the GET_SAVED_VALUE response. */
+void midi_send_property_changed(size_t index)
+{
+  uint16_t live;
+  if (!get_property_raw(index, &live)) return;
+
+  std::array<uint8_t, 8> payload;
+  DataWriter writer(payload);
+  writer.write((uint8_t)SYSEX_MSG_PROPERTY_CHANGED);
+  writer.write((uint16_t)index);
+  writer.write(live);
+  write_saved_state(writer, (uint16_t)index, false);
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
 }
 
 namespace {

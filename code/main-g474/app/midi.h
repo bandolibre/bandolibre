@@ -9,6 +9,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+
+/* The console and sysex-receive layer below is C++ only (gsl::span); the push
+ * notifications at the end are C-callable, for the C modules that raise
+ * them. */
+#ifdef __cplusplus
 #include <gsl/span>
 
 /* Call from the main loop on every iteration. When midi_active_sensing_enable
@@ -40,6 +45,9 @@ size_t midi_console_complete(const char *prefix, const char **out, size_t cap);
  * (0xF0...0xF7) has been received and its checksum verified. */
 void midi_sysex_received(gsl::span<const uint8_t> data);
 
+extern "C" {
+#endif /* __cplusplus */
+
 /* Sends a Bellows Direction sysex push notification (SYSEX_MSG_BELLOWS_DIRECTION
  * in midi.cc): direction is bellows_t's raw encoding (0=BELLOWS_PULL,
  * 1=BELLOWS_PUSH, 2=BELLOWS_NEUTRAL). Called by keyboard.cpp exactly when the
@@ -47,10 +55,21 @@ void midi_sysex_received(gsl::span<const uint8_t> data);
  * events it explains - so a client can always resolve which push/pull note a
  * key is currently sounding without guessing from the note number alone.
  *
- * extern "C": keyboard.cpp calls this from inside its own file-wide
+ * C linkage: keyboard.cpp calls this from inside its own file-wide
  * extern "C" block (its own functions need C linkage to be callable from
- * main.c), so this declaration and midi.cc's definition of it must agree on
- * C linkage too, unlike the rest of this gsl::span-based, C++-only header. */
-extern "C" void midi_send_bellows_direction(uint8_t direction);
+ * main.c), so this declaration and midi.cc's definition of it must agree. */
+void midi_send_bellows_direction(uint8_t direction);
+
+/* Sends a Property Changed sysex push notification (SYSEX_MSG_PROPERTY_CHANGED
+ * in midi.cc) with the property's live value and saved state, for a change
+ * the device made on its own and saved to flash (the bellows center
+ * calibrated by a long press of FN1), so the configuration tool shows it
+ * without polling. Changes the tool already polls (table_mode,
+ * keyboard_tuning, bellow_program in GET_PERIPHERALS) don't need it. */
+void midi_send_property_changed(size_t index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MIDI_H_ */

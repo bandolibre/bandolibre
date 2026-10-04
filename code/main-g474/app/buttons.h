@@ -14,9 +14,11 @@
  * g_properties->table_mode (or via buttons_table_mode()).
  *
  * FN1 (middle) cycles the bellows program (BELLOW_PROGRAM_COUNT sets of
- * deadzone, full travel and response curves, see bellow.h). It writes
- * the bellow_program property rather than latching state of its own, so read
- * it from g_properties->bellow_program.
+ * deadzone, full travel and response curves, see bellow.h), on release. It
+ * writes the bellow_program property rather than latching state of its own,
+ * so read it from g_properties->bellow_program. Held for a second instead, it
+ * calibrates the bellows center (bellow_calibrate_center()) and saves it;
+ * LED_FN1 is lit for the second the calibration samples.
  *
  * FN2 (left) cycles the keyboard tuning (Rheinische -> Peguri -> Manoury and
  * back). It writes the keyboard_tuning property rather than latching state of

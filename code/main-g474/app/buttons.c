@@ -7,6 +7,10 @@
 #include "main.h"
 #include "properties.h"
 
+/* How long FN1 must be held to calibrate the bellows center rather than
+ * advance the bellows program. */
+#define FN1_LONG_PRESS_MS 1000
+
 bool buttons_table_mode(void)
 {
   return g_properties->table_mode;
@@ -64,12 +68,34 @@ void buttons_poll(void)
   if (HAL_GPIO_ReadPin(SW_FN1_GPIO_Port,       SW_FN1_Pin)        == GPIO_PIN_RESET) fn |= 2;
   if (HAL_GPIO_ReadPin(SW_FN2_GPIO_Port,       SW_FN2_Pin)        == GPIO_PIN_RESET) fn |= 4;
 
-  /* Act on rising edges (press, not release). FN0 toggles table mode; FN1
-   * advances the bellows program, wrapping after the last; FN2
-   * advances the keyboard tuning, wrapping after the last. */
+  /* FN0 and FN2 act on rising edges (press, not release): FN0 toggles table
+   * mode, FN2 advances the keyboard tuning, wrapping after the last. */
   if ((fn & 1) && !(fn_prev & 1)) toggle_table_mode();
-  if ((fn & 2) && !(fn_prev & 2)) cycle_bellow_program();
   if ((fn & 4) && !(fn_prev & 4)) cycle_keyboard_tuning();
+
+  /* FN1 has a long press too, so a short press can only be told apart on
+   * release: released before FN1_LONG_PRESS_MS it advances the bellows
+   * program; held that long it calibrates the bellows center instead, and its
+   * release then does nothing. Armed only by a press seen here, so neither the
+   * 0xFF above nor a button held at boot counts as a press. */
+  static bool fn1_armed;
+  static uint32_t fn1_down_ms;
+  if ((fn & 2) && !(fn_prev & 2))
+  {
+    fn1_armed = true;
+    fn1_down_ms = HAL_GetTick();
+  }
+  if (fn1_armed && (fn & 2) && HAL_GetTick() - fn1_down_ms >= FN1_LONG_PRESS_MS)
+  {
+    fn1_armed = false;
+    bellow_calibrate_center();
+  }
+  if (fn1_armed && !(fn & 2))
+  {
+    fn1_armed = false;
+    cycle_bellow_program();
+  }
+  HAL_GPIO_WritePin(LED_FN1_GPIO_Port, LED_FN1_Pin, bellow_calibrating() ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
   if (fn != fn_prev)
   {
