@@ -76,17 +76,17 @@ synthé, sélectionnez **Bandolibre** comme entrée MIDI.
 
 ## Boutons de fonction
 
-### Bouton gauche : mode table
+### Bouton gauche : système de clavier
 
-Appuyez sur le **bouton gauche** pour activer ou désactiver le mode table.
+Appuyez sur le **bouton gauche** pour passer d'un système de clavier à l'autre :
 
-En mode table, vous pouvez jouer avec l'instrument posé à plat sur une table.
-Chaque touche sonne dès que vous l'enfoncez, sans pousser ni tirer le soufflet.
-Chaque touche joue sa note **tirée**, et toutes les notes sonnent au même
-volume.
+| Système | Poussé et tiré |
+|---|---|
+| **Rheinische Tonlage** (par défaut) | Notes différentes (bisonore), le bandonéon argentin |
+| **Peguri** | Même note dans les deux sens (unisonore) |
+| **Manoury** | Même note dans les deux sens (unisonore) |
 
-C'est pratique pour saisir une partition note par note dans un logiciel de
-notation. Appuyez à nouveau pour revenir au jeu normal.
+Après Manoury, il revient à la Rheinische Tonlage.
 
 ### Bouton du milieu : programme de soufflet
 
@@ -101,17 +101,17 @@ avec moins d'effort sur le soufflet que le programme 1. Utiles pour jouer
 doucement, ou si la lame-ressort vous semble trop raide. Le programme de
 soufflet n'a pas d'effet en mode table.
 
-### Bouton droit : système de clavier
+### Bouton droit : mode table
 
-Appuyez sur le **bouton droit** pour passer d'un système de clavier à l'autre :
+Appuyez sur le **bouton droit** pour activer ou désactiver le mode table.
 
-| Système | Poussé et tiré |
-|---|---|
-| **Rheinische Tonlage** (par défaut) | Notes différentes (bisonore), le bandonéon argentin |
-| **Peguri** | Même note dans les deux sens (unisonore) |
-| **Manoury** | Même note dans les deux sens (unisonore) |
+En mode table, vous pouvez jouer avec l'instrument posé à plat sur une table.
+Chaque touche sonne dès que vous l'enfoncez, sans pousser ni tirer le soufflet.
+Chaque touche joue sa note **tirée**, et toutes les notes sonnent au même
+volume.
 
-Après Manoury, il revient à la Rheinische Tonlage.
+C'est pratique pour saisir une partition note par note dans un logiciel de
+notation. Appuyez à nouveau pour revenir au jeu normal.
 
 ---
 
@@ -272,10 +272,10 @@ le même câble USB, sans outil ni logiciel supplémentaire.
 1. Téléchargez le dernier `main-g474.uf2` depuis la
    [page des versions](https://github.com/bandolibre/bandolibre/releases).
 2. Débranchez le Bandolibre.
-3. Maintenez le **bouton de fonction droit** enfoncé et rebranchez le câble.
+3. Maintenez le **bouton de fonction gauche** enfoncé et rebranchez le câble.
    Gardez-le enfoncé jusqu'à l'apparition d'un lecteur.
 4. Un lecteur nommé **BANDOLIBRE** apparaît, comme une clé USB. Le voyant
-   au-dessus du bouton droit clignote lentement pendant l'attente.
+   au-dessus du bouton gauche clignote lentement pendant l'attente.
 5. Copiez `main-g474.uf2` sur ce lecteur.
 6. Le voyant clignote plus vite pendant la copie, puis reste allumé environ une
    seconde. Le lecteur disparaît alors et le Bandolibre redémarre avec le
@@ -289,13 +289,13 @@ n'y restent pas.
 - **La copie a été interrompue, ou le câble s'est débranché.** Rien n'est
   endommagé : le nouveau firmware n'est installé qu'une fois le fichier reçu en
   entier. Recommencez à l'étape 2.
-- **Le lecteur BANDOLIBRE apparaît sans que vous teniez le bouton droit.**
+- **Le lecteur BANDOLIBRE apparaît sans que vous teniez le bouton gauche.**
   L'instrument n'a trouvé aucun firmware valide et en attend un. Copiez à
   nouveau le fichier `.uf2`.
 - **Rien ne se passe lors de la copie.** Vérifiez qu'il s'agit bien du fichier
   `main-g474.uf2` de la page des versions. Tout autre fichier est ignoré : un
   mauvais fichier ne peut pas endommager l'instrument.
-- **Le lecteur n'apparaît pas.** Maintenez le bouton droit *avant* de brancher
+- **Le lecteur n'apparaît pas.** Maintenez le bouton gauche *avant* de brancher
   le câble, et gardez-le enfoncé une ou deux secondes après.
 
 ---
@@ -308,7 +308,7 @@ n'y restent pas.
 - Vérifiez que l'instrument écoute le canal 1 (main gauche) et le canal 2 (main
   droite), ou tous les canaux.
 - Poussez ou tirez le soufflet en appuyant sur une touche, ou activez le mode
-  table (bouton gauche).
+  table (bouton droit).
 - Vérifiez que votre instrument réagit au CC#11 : certains restent muets tant
   que le CC#11 est à 0.
 

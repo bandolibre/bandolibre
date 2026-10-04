@@ -4,7 +4,7 @@
 
 The wing boards report which side they are (left or right); the notes those
 buttons play are chosen by the `keyboard_tuning` property, so one firmware
-covers several bandoneon systems on the same hardware. The **right function
+covers several bandoneon systems on the same hardware. The **left function
 button (FN2)** cycles through them, wrapping after the last, and the tuning now
 selected is reported on the console. FN2 only writes the property, so the button
 and `set keyboard_tuning` stay in agreement.
@@ -44,7 +44,7 @@ Settings:
 
 ## Table mode
 
-The **left function button (FN0)** toggles table mode on and off; the current
+The **right function button (FN0)** toggles table mode on and off; the current
 state is reported on the console.
 
 Normally a note only sounds while the bellows is moving, and its pitch and

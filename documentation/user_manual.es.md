@@ -74,16 +74,17 @@ En tu DAW, programa de notación o aplicación de sintetizador, selecciona
 
 ## Botones de función
 
-### Botón izquierdo: modo mesa
+### Botón izquierdo: sistema de teclado
 
-Pulsa el **botón izquierdo** para activar o desactivar el modo mesa.
+Pulsa el **botón izquierdo** para pasar por los tres sistemas de teclado:
 
-En modo mesa puedes tocar con el instrumento apoyado en una mesa. Cada tecla
-suena en cuanto la pulsas, sin empujar ni tirar del fuelle. Cada tecla toca su
-nota de **tracción**, y todas las notas suenan al mismo volumen.
+| Sistema | Empuje y tracción |
+|---|---|
+| **Rheinische Tonlage** (por defecto) | Notas distintas (bisonórico), el bandoneón argentino |
+| **Peguri** | Misma nota en ambos sentidos (unisonórico) |
+| **Manoury** | Misma nota en ambos sentidos (unisonórico) |
 
-Es útil para introducir una partitura nota a nota en un programa de notación.
-Pulsa de nuevo para volver a tocar normalmente.
+Después de Manoury vuelve a la Rheinische Tonlage.
 
 ### Botón central: programa de fuelle
 
@@ -98,17 +99,16 @@ menos esfuerzo del fuelle que el programa 1. Úsalos para practicar en voz baja,
 o si la lámina de resorte te parece demasiado dura. El programa de fuelle no
 tiene efecto en modo mesa.
 
-### Botón derecho: sistema de teclado
+### Botón derecho: modo mesa
 
-Pulsa el **botón derecho** para pasar por los tres sistemas de teclado:
+Pulsa el **botón derecho** para activar o desactivar el modo mesa.
 
-| Sistema | Empuje y tracción |
-|---|---|
-| **Rheinische Tonlage** (por defecto) | Notas distintas (bisonórico), el bandoneón argentino |
-| **Peguri** | Misma nota en ambos sentidos (unisonórico) |
-| **Manoury** | Misma nota en ambos sentidos (unisonórico) |
+En modo mesa puedes tocar con el instrumento apoyado en una mesa. Cada tecla
+suena en cuanto la pulsas, sin empujar ni tirar del fuelle. Cada tecla toca su
+nota de **tracción**, y todas las notas suenan al mismo volumen.
 
-Después de Manoury vuelve a la Rheinische Tonlage.
+Es útil para introducir una partitura nota a nota en un programa de notación.
+Pulsa de nuevo para volver a tocar normalmente.
 
 ---
 
@@ -263,10 +263,10 @@ cable USB, sin herramientas ni software adicional.
 1. Descarga el último `main-g474.uf2` desde la
    [página de versiones](https://github.com/bandolibre/bandolibre/releases).
 2. Desconecta el Bandolibre.
-3. Mantén pulsado el **botón de función derecho** y vuelve a conectar el
+3. Mantén pulsado el **botón de función izquierdo** y vuelve a conectar el
    cable. Mantenlo pulsado hasta que aparezca una unidad.
 4. Aparece una unidad llamada **BANDOLIBRE**, como una memoria USB. La luz
-   sobre el botón derecho parpadea lentamente mientras espera.
+   sobre el botón izquierdo parpadea lentamente mientras espera.
 5. Copia `main-g474.uf2` en esa unidad.
 6. La luz parpadea más rápido durante la copia y luego queda encendida
    alrededor de un segundo. La unidad desaparece y el Bandolibre se reinicia
@@ -280,14 +280,14 @@ se conservan.
 - **La copia se interrumpió, o se desconectó el cable.** No se daña nada: el
   nuevo firmware solo se instala cuando el archivo ha llegado completo. Vuelve
   a empezar desde el paso 2.
-- **La unidad BANDOLIBRE aparece sin que pulses el botón derecho.** El
+- **La unidad BANDOLIBRE aparece sin que pulses el botón izquierdo.** El
   instrumento no encontró un firmware válido y espera uno. Copia de nuevo el
   archivo `.uf2`.
 - **No pasa nada al copiar el archivo.** Comprueba que sea el archivo
   `main-g474.uf2` de la página de versiones. Cualquier otro archivo se ignora,
   así que un archivo equivocado no puede dañar el instrumento.
-- **La unidad no aparece.** Mantén pulsado el botón derecho *antes* de conectar
-  el cable, y sigue pulsándolo uno o dos segundos después.
+- **La unidad no aparece.** Mantén pulsado el botón izquierdo *antes* de
+  conectar el cable, y sigue pulsándolo uno o dos segundos después.
 
 ---
 
@@ -299,7 +299,7 @@ se conservan.
 - Comprueba que el instrumento escuche el canal 1 (mano izquierda) y el canal 2
   (mano derecha), o todos los canales.
 - Empuja o tira del fuelle al pulsar una tecla, o activa el modo mesa (botón
-  izquierdo).
+  derecho).
 - Comprueba que tu instrumento responda al CC#11: algunos quedan en silencio
   mientras el CC#11 está en 0.
 

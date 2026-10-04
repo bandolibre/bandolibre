@@ -7,7 +7,7 @@ install.
 ## Doing the update
 
 1. Unplug the instrument's USB cable.
-2. Hold down **FN2**, the rightmost of the three function buttons.
+2. Hold down **FN2**, the leftmost of the three function buttons.
 3. Plug the USB cable back in, keeping FN2 held until a drive appears.
 4. A drive called **BANDOLIBRE** shows up, the way a USB stick would. Its LED
    blinks slowly while it waits.

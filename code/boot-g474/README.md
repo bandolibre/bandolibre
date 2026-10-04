@@ -3,7 +3,7 @@
 Lets the main board be reflashed by copying a file onto a USB drive, with no
 ST-Link, no toolchain and no cable other than the one already carrying MIDI.
 
-Hold **FN2** (the rightmost function button) while powering the instrument on,
+Hold **FN2** (the leftmost function button) while powering the instrument on,
 and a drive called `BANDOLIBRE` appears. Drop `main-g474.uf2` on it; when the
 copy finishes the drive disappears and the instrument restarts on the new
 firmware. End-user instructions are in

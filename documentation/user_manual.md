@@ -71,16 +71,17 @@ input.
 
 ## Function buttons
 
-### Left button: table mode
+### Left button: keyboard system
 
-Press the **left button** to switch table mode on or off.
+Press the **left button** to step through the three keyboard systems:
 
-In table mode you can play with the instrument resting flat on a table. Each key
-sounds as soon as you press it, without pushing or pulling the bellows. Every key plays its
-**pull** note, and every note plays at the same fixed loudness.
+| System | Push and pull |
+|---|---|
+| **Rheinische Tonlage** (default) | Different notes (bisonoric), the Argentine bandoneon |
+| **Peguri** | Same note both ways (unisonoric) |
+| **Manoury** | Same note both ways (unisonoric) |
 
-This is useful for entering a score into notation software one note at a time.
-Press it again to go back to normal playing.
+After Manoury it goes back to Rheinische Tonlage.
 
 ### Middle button: bellows program
 
@@ -94,17 +95,16 @@ reach full loudness with less bellows effort than program 1. Use them for quiet
 practice, or if the spring blade feels too stiff. The bellows program has no
 effect in table mode.
 
-### Right button: keyboard system
+### Right button: table mode
 
-Press the **right button** to step through the three keyboard systems:
+Press the **right button** to switch table mode on or off.
 
-| System | Push and pull |
-|---|---|
-| **Rheinische Tonlage** (default) | Different notes (bisonoric), the Argentine bandoneon |
-| **Peguri** | Same note both ways (unisonoric) |
-| **Manoury** | Same note both ways (unisonoric) |
+In table mode you can play with the instrument resting flat on a table. Each key
+sounds as soon as you press it, without pushing or pulling the bellows. Every key plays its
+**pull** note, and every note plays at the same fixed loudness.
 
-After Manoury it goes back to Rheinische Tonlage.
+This is useful for entering a score into notation software one note at a time.
+Press it again to go back to normal playing.
 
 ---
 
@@ -249,10 +249,10 @@ USB cable, without any extra tool or software.
 1. Download the latest `main-g474.uf2` from the
    [releases page](https://github.com/bandolibre/bandolibre/releases).
 2. Unplug the Bandolibre.
-3. Hold down the **right function button** and plug the cable back in. Keep
+3. Hold down the **left function button** and plug the cable back in. Keep
    holding it until a drive appears.
 4. A drive called **BANDOLIBRE** appears, like a USB stick. The light above the
-   right button blinks slowly while it waits.
+   left button blinks slowly while it waits.
 5. Copy `main-g474.uf2` onto that drive.
 6. The light blinks faster during the copy, then stays on for about a second.
    The drive then disappears and the Bandolibre restarts with the new firmware.
@@ -265,12 +265,12 @@ stay there.
 - **The copy was interrupted, or the cable came out.** Nothing is damaged: the
   new firmware is only installed once the whole file has arrived. Start again
   from step 2.
-- **The BANDOLIBRE drive appears without you holding the right button.** The instrument
+- **The BANDOLIBRE drive appears without you holding the left button.** The instrument
   found no valid firmware and is waiting for one. Copy the `.uf2` file again.
 - **Nothing happens when you copy the file.** Check that it is the
   `main-g474.uf2` file from the releases page. Any other file is ignored, so a
   wrong file cannot damage the instrument.
-- **The drive does not appear.** Hold the right button *before* plugging in the cable, and
+- **The drive does not appear.** Hold the left button *before* plugging in the cable, and
   keep holding it for a second or two afterwards.
 
 ---
@@ -281,7 +281,7 @@ stay there.
 - Check that **Bandolibre** is selected as the MIDI input in your software.
 - Check that the instrument listens on channel 1 (left hand) and channel 2
   (right hand), or on all channels.
-- Push or pull the bellows while pressing a key, or turn on table mode (left button).
+- Push or pull the bellows while pressing a key, or turn on table mode (right button).
 - Check that your instrument responds to CC#11: some stay silent while CC#11
   is at 0.
 
