@@ -37,6 +37,8 @@
     --bad: #c0392b;
     --push: #2f7d78;
     --pull: #b3591a;
+    --saved-bg: #fdf0cf;
+    --modified-bg: #dbe8fb;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -48,6 +50,8 @@
       --border: #333436;
       --push: #6cb3ad;
       --pull: #d99a52;
+      --saved-bg: #43381c;
+      --modified-bg: #1f3350;
     }
   }
   * { box-sizing: border-box; }
@@ -82,6 +86,17 @@
     gap: 10px;
     flex-wrap: wrap;
   }
+  /* Device picker and connection status share a row; the status wraps under
+   * the picker on narrow screens. The status has a fixed width so the picker
+   * doesn't resize as the message changes (long error messages wrap). */
+  .device-row {
+    display: flex;
+    align-items: center;
+    gap: 8px 16px;
+    flex-wrap: wrap;
+  }
+  .device-row select { flex: 1 1 240px; width: auto; min-width: 0; }
+  .device-row .status-row { flex: 0 0 15em; max-width: 100%; flex-wrap: nowrap; }
   .dot {
     width: 10px;
     height: 10px;
@@ -144,11 +159,40 @@
   }
   .activity-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
   }
-  .activity-header label { margin-bottom: 0; }
+  /* Collapsible cards (<details>): the summary reads like the other cards'
+   * <label> headings, with a chevron that turns when the card is open. */
+  .collapsible > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .collapsible > summary::-webkit-details-marker { display: none; }
+  .collapsible[open] > summary { margin-bottom: 6px; }
+  .summary-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .summary-title::before {
+    content: "";
+    width: 0.45em;
+    height: 0.45em;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+  }
+  .collapsible[open] .summary-title::before { transform: rotate(45deg); }
+  .collapsible > summary:hover .summary-title { color: var(--fg); }
   .bw-wrap {
     display: flex;
     align-items: center;
@@ -166,6 +210,10 @@
   }
   .info-btn-sm svg { width: 12px; height: 12px; }
   table.properties-table {
+    /* Shared by the header labels and the row contents, so the ↺ arrows line
+     * up down each column. rem, not em: header and rows differ in font size. */
+    --prop-value-w: 5.2rem;
+    --prop-default-w: 4.4rem;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
@@ -176,7 +224,9 @@
     text-align: left;
     padding: 6px 8px;
     border-bottom: 1px solid var(--border);
-    vertical-align: top;
+    /* Centred, like the Value/Default controls, so # and Name stay level with
+     * them when a long description wraps onto a second line. */
+    vertical-align: middle;
   }
   table.properties-table th {
     color: var(--muted);
@@ -184,6 +234,9 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    /* Keeps the Value/Default header arrows on the label's line. */
+    white-space: nowrap;
+    vertical-align: middle;
   }
   table.properties-table td.index {
     color: var(--muted);
@@ -194,6 +247,9 @@
     font-family: var(--mono);
     white-space: nowrap;
   }
+  /* th.name gets an inline width from fitNameColumn(): the longest name, so
+   * the columns stay put when "show all" hides most rows. A width on a table
+   * cell acts as its minimum. */
   table.properties-table td.value {
     font-family: var(--mono);
     white-space: nowrap;
@@ -211,13 +267,33 @@
     height: 22px;
     vertical-align: middle;
   }
+  /* The value input, the checkbox pill and the default pill share one 22px,
+   * vertically centred box, so the Value and Default columns line up. */
   .default-value {
-    display: inline-block;
-    width: 3.5em;
-    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    width: var(--prop-default-w);
+    height: 22px;
+    vertical-align: middle;
+    border-radius: 4px;
+    padding: 0 3px;
+    font-variant-numeric: tabular-nums;
   }
+  /* A saved value overrides the factory value: the factory value is in the
+   * tooltip. Transient properties are never saved. */
+  .default-value.saved { background: var(--saved-bg); color: var(--fg); font-weight: 600; cursor: help; }
+  .default-value.transient { opacity: 0.55; cursor: help; }
+  /* The live value differs from the default (saved, else factory): the same
+   * pill as a saved default, on the input itself or around a checkbox. */
+  .prop-check-wrap {
+    display: inline-flex; align-items: center; box-sizing: border-box;
+    width: var(--prop-value-w); height: 22px; padding: 0 4px; border-radius: 4px; vertical-align: middle;
+  }
+  .prop-value-input.modified, .prop-check-wrap.modified { background: var(--modified-bg); cursor: help; }
   .prop-value-input {
-    width: 6em; border: 1px solid var(--border); border-radius: 6px;
+    width: var(--prop-value-w); border: 1px solid var(--border); border-radius: 6px;
     background: var(--bg); color: var(--fg); font-family: var(--mono);
     font-size: 0.85rem; padding: 2px 6px; font-variant-numeric: tabular-nums;
     box-sizing: border-box; height: 22px; vertical-align: middle;
@@ -239,7 +315,14 @@
     cursor: pointer;
     vertical-align: middle;
   }
-  .prop-reset-btn:hover { border-color: var(--muted); }
+  .prop-reset-btn:hover:not(:disabled) { border-color: var(--muted); }
+  .prop-reset-btn:disabled { opacity: 0.3; cursor: default; }
+  /* author display:inline-flex/flex would otherwise beat the UA [hidden] rule */
+  .prop-reset-btn[hidden], .kbd-toggle[hidden] { display: none; }
+  table.properties-table th .prop-reset-btn { font-weight: normal; }
+  .th-label { display: inline-block; box-sizing: border-box; vertical-align: middle; }
+  .th-label.value { width: var(--prop-value-w); }
+  .th-label.default { width: var(--prop-default-w); text-align: right; padding-right: 3px; }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -253,6 +336,32 @@
   .retry-btn:hover {
     border-color: var(--muted);
   }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    /* Raised rather than filled: a filled button reads as the pressed state
+     * of the choice buttons. */
+    font-weight: 600;
+    border-color: color-mix(in srgb, var(--fg) 35%, var(--card));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  }
+  .icon-btn:hover:not(:disabled) {
+    border-color: var(--fg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+  }
+  .icon-btn:active:not(:disabled) { box-shadow: none; transform: translateY(1px); }
+  .icon-btn:disabled { cursor: progress; opacity: 0.7; }
+  .icon-btn svg { width: 14px; height: 14px; flex: none; display: block; }
+  /* line-height 1: the default "normal" line box adds uneven space above and
+   * below the label, so the text sits off the icon's centre line. */
+  .icon-btn { line-height: 1; justify-content: center; padding-top: 5px; padding-bottom: 5px; }
+  /* The system font's capitals sit 1px above the line box's centre (measured
+   * in Chrome), so the label is nudged down to line up with the icon. */
+  .icon-btn .btn-label { position: relative; top: 1px; }
+  .icon-btn[hidden] { display: none; }
+  /* Nothing to save, rather than busy: greyed, not the progress cursor. */
+  #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
   /* ---- Bellows curve graph ---- */
   .bellow-header {
@@ -319,6 +428,16 @@
   }
   .bp-presets button:hover { border-color: var(--muted); }
 
+  /* One-of-N selectors (bellows program, keyboard system): every value is visible
+   * upfront and the active one is filled. */
+  .choice-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .choice-buttons button {
+    font-size: 0.85rem; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+    padding: 5px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .choice-buttons button:hover { border-color: var(--muted); }
+  .choice-buttons button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
   .bp-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
   @media (max-width: 520px) { .bp-params { grid-template-columns: 1fr; } }
   .bp-group {
@@ -336,7 +455,10 @@
   .bp-swatch.push { background: var(--push); }
   .bp-swatch.pull { background: var(--pull); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
-  .bp-center-row { display: flex; align-items: center; gap: 8px; }
+  /* P1 and P2 side by side, stacking when the group is too narrow. */
+  .bp-cp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  /* stretch: the Calibrate button takes the center box's height. */
+  .bp-center-row { display: flex; align-items: stretch; gap: 8px; }
   .bp-center-row .bp-x { flex: 1; max-width: 12em; }
   .bp-cp-row-label { font-size: 0.72rem; color: var(--muted); }
   .bp-x, .bp-xy, .bp-xyz { display: grid; gap: 6px; }
@@ -367,15 +489,14 @@
   .bp-vline.ped-min { stroke: var(--push); }
   .bp-vline.ped-max { stroke: var(--pull); }
 
-  /* ---- Function buttons (mirrors the 3 physical FN buttons, left to
-     right: tuning, bellows sensitivity, table mode) ---- */
+  /* ---- Function buttons: keyboard system, bellows program, table mode ---- */
   .fnbtn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  @media (max-width: 640px) { .fnbtn-grid { grid-template-columns: 1fr; } }
   .fnbtn-box {
     min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
     display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
   }
-  .fnbtn-title { font-size: 0.75rem; color: var(--muted); }
-  .fnbtn-box select { font-size: 0.85rem; padding: 4px 6px; }
+  .fnbtn-title { font-size: 0.8rem; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
   .fnbtn-desc { font-size: 0.7rem; color: var(--muted); margin: 0; line-height: 1.35; }
 
   /* ---- Keyboard layout diagrams ---- */
@@ -424,6 +545,14 @@
   .kbd-toggle-switch input:checked + .kbd-toggle-track { background: var(--ok); }
   .kbd-toggle-switch input:checked + .kbd-toggle-track::before { transform: translateX(15px); }
   .kbd-toggle-switch input:focus-visible + .kbd-toggle-track { outline: 2px solid var(--muted); outline-offset: 2px; }
+  /* Three-position variant (bellows zoom): a hidden range input over a wider
+   * track, so clicking a spot, dragging and arrow keys all pick a stop. */
+  .zoom-switch { width: 51px; }
+  .zoom-switch input { -webkit-appearance: none; appearance: none; }
+  .zoom-switch[data-level="1"] .kbd-toggle-track,
+  .zoom-switch[data-level="2"] .kbd-toggle-track { background: var(--ok); }
+  .zoom-switch[data-level="1"] .kbd-toggle-track::before { transform: translateX(15px); }
+  .zoom-switch[data-level="2"] .kbd-toggle-track::before { transform: translateX(30px); }
 
   /* ---- Sound (soundfont playback) ---- */
   .sound-toggle {
@@ -438,9 +567,6 @@
   .sound-toggle[aria-pressed="true"] { color: var(--ok); border-color: var(--ok); }
   .sound-toggle[aria-pressed="true"] .icon-on { display: block; }
   .sound-toggle[aria-pressed="true"] .icon-muted { display: none; }
-  .sound-status {
-    font-size: 0.78rem; color: var(--muted); margin-left: 8px; flex-basis: 100%;
-  }
   /* min-height reserves the space the instrument select/knob need whether
    * or not sound is currently enabled, so toggling it on/off never reflows
    * the keyboard diagram below. */
@@ -499,6 +625,35 @@
     padding: 16px;
   }
   .info-overlay[hidden] { display: none; }
+
+  /* Toasts: the outcome of an action (saved, factory reset, a failure),
+   * bottom-centre, one at a time. Success leaves after 5 s, paused while
+   * hovered; an error stays until dismissed. */
+  .toast-host {
+    position: fixed; left: 0; right: 0; bottom: 16px; z-index: 1000;
+    display: flex; justify-content: center; padding: 0 16px; pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 12px;
+    max-width: 560px; padding: 10px 10px 10px 16px;
+    border-radius: 8px; font-size: 0.85rem;
+    background: var(--fg); color: var(--bg);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .toast.shown { opacity: 1; transform: none; }
+  .toast.error { background: var(--bad); color: #fff; }
+  .toast-close {
+    flex: none; width: 24px; height: 24px; padding: 0;
+    border: none; border-radius: 6px; background: transparent; color: inherit;
+    font-size: 0.9rem; cursor: pointer; opacity: 0.75;
+  }
+  .toast-close:hover { opacity: 1; background: rgba(127, 127, 127, 0.25); }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; transform: none; }
+  }
   .info-modal {
     position: relative;
     background: var(--card);
@@ -570,26 +725,57 @@
   </div>
 
   <div class="card">
-    <div class="status-row">
-      <span class="dot" id="statusDot"></span>
-      <span id="statusText">Starting…</span>
+    <label for="deviceSelect">MIDI device</label>
+    <div class="device-row">
+      <select id="deviceSelect"></select>
+      <div class="status-row">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Starting…</span>
+      </div>
     </div>
+    <p class="hint">Bandolibre boards are picked automatically. Pick another device here to override; it stays selected until it disconnects.</p>
   </div>
 
   <div class="card">
-    <label for="deviceSelect">MIDI device</label>
-    <select id="deviceSelect"></select>
-    <p class="hint">Bandolibre boards are picked automatically. Pick another device here to override; it stays selected until it disconnects.</p>
+    <label>Function buttons</label>
+    <div class="fnbtn-grid">
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Keyboard system</div>
+        <div class="choice-buttons" id="kbdTuningButtons" role="group" aria-label="Keyboard system">
+          <button type="button" data-tuning="0" aria-pressed="true">Rheinische Tonlage</button>
+          <button type="button" data-tuning="1" aria-pressed="false">Peguri</button>
+          <button type="button" data-tuning="2" aria-pressed="false">Manoury</button>
+        </div>
+        <p class="fnbtn-desc">Notes each key plays</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Bellows program</div>
+        <div class="choice-buttons" id="bpPrograms" role="group" aria-label="Bellows program">
+          <button type="button" data-program="0" aria-pressed="true">Program 1</button>
+          <button type="button" data-program="1" aria-pressed="false">Program 2</button>
+          <button type="button" data-program="2" aria-pressed="false">Program 3</button>
+        </div>
+        <p class="fnbtn-desc">Response curve edited in the graph below</p>
+      </div>
+      <div class="fnbtn-box">
+        <div class="fnbtn-title">Table mode</div>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="kbdTableModeToggle">
+          <span class="kbd-toggle-track"></span>
+        </span>
+        <p class="fnbtn-desc">Bellows always pulling</p>
+      </div>
+    </div>
   </div>
 
   <div class="card">
     <div class="bellow-header">
       <label>Bellow</label>
       <span class="bellow-status" id="bellowStatus">Showing defaults — connect to read and tune the live device.</span>
-      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×4, centered on bellow_center">
-        <span>🔍 ×4</span>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="zoomCenterToggle">
+      <label class="kbd-toggle" title="Zoom the sensor and CC axes ×1, ×4 or ×8, centered on the bellows center">
+        <span>🔍 <span id="zoomLevelLabel">×1</span></span>
+        <span class="kbd-toggle-switch zoom-switch" id="zoomSwitch" data-level="0">
+          <input type="range" id="zoomCenterSlider" min="0" max="2" step="1" value="0" aria-label="Bellows graph zoom">
           <span class="kbd-toggle-track"></span>
         </span>
       </label>
@@ -646,15 +832,15 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Hold Shift while dragging for fine adjustment. Shown at unity sensitivity; hysteresis not shown (deadzone lines use <code>bellow_dead</code> only).</p>
+    <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold Shift while dragging for fine adjustment.</p>
 
     <div class="bp-group">
       <div class="bp-group-title">Presets</div>
       <div class="bp-presets" id="bpPresets">
         <button type="button" data-preset="linear">Linear</button>
-        <button type="button" data-preset="feather">Feather touch</button>
+        <button type="button" data-preset="normal">Normal</button>
+        <button type="button" data-preset="smooth">Smooth</button>
         <button type="button" data-preset="firm">Firm press</button>
-        <button type="button" data-preset="cliff">Hard landing</button>
       </div>
     </div>
 
@@ -662,12 +848,30 @@
       <div class="bp-group bp-group-full">
         <div class="bp-group-title">Bellow center</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Sensor value at rest</span>
+          <span class="bp-cp-row-label">Sensor value at rest (shared by all bellows programs)</span>
           <div class="bp-center-row">
             <div class="bp-x">
               <label><span>center</span><input type="number" id="num-center" min="17000" max="34000" value="27800"></label>
             </div>
-            <button type="button" class="retry-btn" id="btnSampleCenter">Set from current (1s average)</button>
+            <button type="button" class="retry-btn icon-btn" id="btnSampleCenter" title="Set the center from the current sensor reading, averaged over 1 s. Leave the bellows at rest.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="7"></circle>
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+              </svg>
+              <span class="btn-label">Calibrate</span>
+            </button>
+            <button type="button" class="retry-btn icon-btn" id="btnSaveCenter" disabled title="Save the center as the value the device starts with">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"></path>
+                <path d="M8 3v5h7V3"></path>
+                <rect x="8" y="13" width="8" height="6" rx="1"></rect>
+              </svg>
+              <span class="btn-label">Save as default</span>
+            </button>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -681,46 +885,50 @@
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch push"></span>Push curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Bellow sensor reading at full push</span>
+          <span class="bp-cp-row-label">Full push: how far the sensor reading drops below the center</span>
           <div class="bp-x">
-            <label><span>full push</span><input type="number" id="num-full-push" min="0" max="50000" value="23400"></label>
+            <label><span>push travel</span><input type="number" id="num-push-travel" min="0" max="17000" value="3123"></label>
           </div>
         </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P1 — near center</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
-            <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+        <div class="bp-cp-pair">
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P1 — near center</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
+              <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+            </div>
           </div>
-        </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P2 — near full travel</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
-            <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P2 — near full travel</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
+              <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+            </div>
           </div>
         </div>
       </div>
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch pull"></span>Pull curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Bellow sensor reading at full pull</span>
+          <span class="bp-cp-row-label">Full pull: how far the sensor reading rises above the center</span>
           <div class="bp-x">
-            <label><span>full pull</span><input type="number" id="num-full-pull" min="0" max="50000" value="32000"></label>
+            <label><span>pull travel</span><input type="number" id="num-pull-travel" min="0" max="17000" value="3028"></label>
           </div>
         </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P1 — near center</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
-            <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+        <div class="bp-cp-pair">
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P1 — near center</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
+              <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+            </div>
           </div>
-        </div>
-        <div class="bp-cp-row">
-          <span class="bp-cp-row-label">P2 — near full travel</span>
-          <div class="bp-xy">
-            <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
-            <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+          <div class="bp-cp-row">
+            <span class="bp-cp-row-label">P2 — near full travel</span>
+            <div class="bp-xy">
+              <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
+              <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+            </div>
           </div>
         </div>
       </div>
@@ -794,41 +1002,9 @@
     </div>
   </div>
 
-  <div class="card">
-    <label>Function buttons</label>
-    <div class="fnbtn-grid">
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Tuning</div>
-        <select id="kbdTuningSelect">
-          <option value="0">Rheinische Tonlage</option>
-          <option value="1">Peguri</option>
-          <option value="2">Manoury</option>
-        </select>
-        <p class="fnbtn-desc">Selects which mapping from key to notes is used: Rheinische, Peguri, or Manoury.</p>
-      </div>
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Bellows sensitivity</div>
-        <select id="bellowSensSelect">
-          <option value="0">Low (unity)</option>
-          <option value="1">Medium</option>
-          <option value="2">High</option>
-        </select>
-        <p class="fnbtn-desc">How much bellows travel is needed for full expression (CC#11) - higher levels reach full swing with less push/pull. Also cycled by the FN1 button.</p>
-      </div>
-      <div class="fnbtn-box">
-        <div class="fnbtn-title">Table mode</div>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="kbdTableModeToggle">
-          <span class="kbd-toggle-track"></span>
-        </span>
-        <p class="fnbtn-desc">Pins the bellows direction to PULL so keys sound with the instrument resting on a table.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="status-row">
-      <label>Keyboards</label>
+  <details class="card collapsible" id="keyboardCard" open>
+    <summary id="keyboardSummary">
+      <span class="summary-title">Keyboards</span>
       <label class="kbd-toggle">
         <span>Solfège</span>
         <span class="kbd-toggle-switch">
@@ -848,8 +1024,7 @@
           <line x1="22" y1="9" x2="16" y2="15"></line>
         </svg>
       </button>
-      <span class="sound-status" id="soundStatus" hidden></span>
-    </div>
+    </summary>
     <div class="kbd-grid">
       <div class="kbd-panel">
         <div class="kbd-panel-header">
@@ -888,24 +1063,42 @@
         <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
       </div>
     </div>
-  </div>
+  </details>
 
-  <div class="card">
-    <label>Properties</label>
+  <details class="card collapsible" id="propertiesCard" open>
+    <summary><span class="summary-title">Properties</span></summary>
     <div class="status-row">
       <p class="hint" id="propertiesStatus">Not connected.</p>
       <button type="button" class="retry-btn" id="propertiesRetryBtn" hidden>Retry</button>
-      <button type="button" class="retry-btn" id="propertiesResetAllBtn" hidden>Reset all to default</button>
+      <button type="button" class="retry-btn icon-btn" id="propertiesSaveBtn" hidden title="Save every current value as the value the device starts with">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"></path>
+          <path d="M8 3v5h7V3"></path>
+          <rect x="8" y="13" width="8" height="6" rx="1"></rect>
+        </svg>
+        <span class="btn-label">Save as default</span>
+      </button>
+      <label class="kbd-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
+        <span>show all</span>
+        <span class="kbd-toggle-switch">
+          <input type="checkbox" id="propertiesShowAll">
+          <span class="kbd-toggle-track"></span>
+        </span>
+      </label>
     </div>
     <table class="properties-table" id="propertiesTable" hidden>
-      <thead><tr><th>#</th><th>Name</th><th>Value</th><th>Default</th><th>Description</th></tr></thead>
+      <thead><tr><th>#</th><th class="name">Name</th>
+        <th><span class="th-label value">Value</span><button type="button" class="prop-reset-btn" id="propertiesResetAllBtn" hidden title="Reset every value to its default">↺</button></th>
+        <th><span class="th-label default">Default</span><button type="button" class="prop-reset-btn" id="propertiesFactoryResetBtn" hidden title="Factory reset: erase every saved value and return every setting to its factory value">↺</button></th>
+        <th>Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
-  </div>
+    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>show all</em> to see them.</p>
+  </details>
 
-  <div class="card">
-    <div class="activity-header">
-      <label>Activity</label>
+  <details class="card collapsible" id="activityCard" open>
+    <summary class="activity-header">
+      <span class="summary-title">Activity</span>
       <span class="bw-wrap">
         <span id="bwIndicator" title="MIDI traffic, both directions, updated every second">0.0 kb/s</span>
         <button type="button" class="info-btn info-btn-sm" id="bwInfoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="Bandwidth budget reference">
@@ -916,7 +1109,7 @@
           </svg>
         </button>
       </span>
-    </div>
+    </summary>
     <div class="log-filters" id="logFilters">
       <div class="log-filter-row">
         <label><input type="checkbox" data-kind="note" checked> Notes</label>
@@ -932,11 +1125,13 @@
         <label><input type="checkbox" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
         <label><input type="checkbox" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
         <label><input type="checkbox" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
+        <label><input type="checkbox" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
+        <label><input type="checkbox" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
         <label><input type="checkbox" data-kind="sysexOther" data-group="sysex" checked> Other Sysex</label>
       </div>
     </div>
     <div id="log"></div>
-  </div>
+  </details>
 </main>
 
 <!-- Soundfont playback engine (lazy-loaded only once sound is enabled - see
@@ -970,6 +1165,11 @@
   const propertiesBody = document.getElementById("propertiesBody");
   const propertiesRetryBtn = document.getElementById("propertiesRetryBtn");
   const propertiesResetAllBtn = document.getElementById("propertiesResetAllBtn");
+  const propertiesSaveBtn = document.getElementById("propertiesSaveBtn");
+  const propertiesFactoryResetBtn = document.getElementById("propertiesFactoryResetBtn");
+  const propertiesShowAllLabel = document.getElementById("propertiesShowAllLabel");
+  const propertiesShowAll = document.getElementById("propertiesShowAll");
+  const propertiesAllFactory = document.getElementById("propertiesAllFactory");
   const bwIndicatorEl = document.getElementById("bwIndicator");
 
   // ---- Bandwidth indicator (Activity card): raw MIDI byte throughput, both
@@ -1015,7 +1215,16 @@
   // Device -> host push notification, not a request/response: sent whenever
   // the effective bellows direction changes (see keyboard.cpp/midi.cc).
   const SYSEX_MSG_BELLOWS_DIRECTION = 0x05;
+  // Saved values: what a property boots with, stored in the device's flash.
+  const SYSEX_MSG_GET_SAVED_VALUE = 0x06;
+  const SYSEX_MSG_SET_SAVED_VALUE = 0x07;
+  const SYSEX_MSG_FACTORY_RESET = 0x08;
   const PROPERTY_TYPE_BOOL = 0;
+
+  // GET/SET_SAVED_VALUE response status (saved_value_status in midi.cc) and
+  // SET_SAVED_VALUE operation (saved_value_op).
+  const SAVED_STATUS_NONE = 0, SAVED_STATUS_SAVED = 1, SAVED_STATUS_TRANSIENT = 2, SAVED_STATUS_ERROR = 3;
+  const SAVED_OP_CLEAR = 0, SAVED_OP_SET = 1;
 
   // bellows_t's raw wire encoding (keyboard_layout.h): matches the byte sent
   // in HELLO's trailing field and every BELLOWS_DIRECTION message.
@@ -1213,6 +1422,9 @@
       case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
       case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "BELLOWS_DIRECTION";
+      case SYSEX_MSG_GET_SAVED_VALUE: return "GET_SAVED_VALUE";
+      case SYSEX_MSG_SET_SAVED_VALUE: return "SET_SAVED_VALUE";
+      case SYSEX_MSG_FACTORY_RESET: return "FACTORY_RESET";
       default: return "0x" + id.toString(16).padStart(2, "0");
     }
   }
@@ -1229,6 +1441,9 @@
       case SYSEX_MSG_SET_PROPERTY: return "sysexSetProperty";
       case SYSEX_MSG_GET_PERIPHERALS: return "sysexGetPeripherals";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "sysexBellowsDirection";
+      case SYSEX_MSG_GET_SAVED_VALUE:
+      case SYSEX_MSG_SET_SAVED_VALUE: return "sysexSavedValue";
+      case SYSEX_MSG_FACTORY_RESET: return "sysexFactoryReset";
       default: return "sysexOther";
     }
   }
@@ -1260,8 +1475,10 @@
         reader.readUint8(); // wing id left
         reader.readUint8(); // wing id right
         const bellows = reader.readUint8();
+        const generation = reader.readUInt16();
         return name + " version=\"" + version + "\" properties=" + count +
-               (bellows !== null ? " bellows=" + bellowsDirectionName(bellows) : "");
+               (bellows !== null ? " bellows=" + bellowsDirectionName(bellows) : "") +
+               (generation !== null ? " store_generation=" + generation : "");
       }
       case SYSEX_MSG_GET_PROPERTY:
       case SYSEX_MSG_SET_PROPERTY: {
@@ -1276,11 +1493,11 @@
         if (index === null) return name;
         const type = reader.readUint8();
         if (type === null) return name + " index=" + index;
-        const defaultValue = reader.readUInt16();
+        const factoryValue = reader.readUInt16();
         const propName = reader.readString();
         const description = reader.readString();
         return name + " index=" + index + " type=" + type +
-               (defaultValue !== null ? " default=" + defaultValue : "") +
+               (factoryValue !== null ? " factory=" + factoryValue : "") +
                (propName !== null ? " name=\"" + propName + "\"" : "") +
                (description !== null ? " desc=\"" + description + "\"" : "");
       }
@@ -1292,13 +1509,32 @@
         const pedal1Sample = reader.readUInt16();
         const pedal2Connected = reader.readUint8();
         const pedal2Sample = reader.readUInt16();
+        const tableMode = reader.readUint8();
+        const tuning = reader.readUint8();
+        const bellowProgram = reader.readUint8();
         return name + " hall0=" + hall0 + " hall1=" + hall1 +
                " pedal1=" + (pedal1Connected ? "connected" : "disconnected") + ":" + pedal1Sample +
-               " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample;
+               " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample +
+               (tableMode !== null ? " table_mode=" + tableMode + " keyboard_tuning=" + tuning +
+                                     " bellow_program=" + bellowProgram : "");
       }
       case SYSEX_MSG_BELLOWS_DIRECTION: {
         const dir = reader.readUint8();
         return dir === null ? name : name + " " + bellowsDirectionName(dir);
+      }
+      // GET request: index. SET request: index, op, value. Both responses:
+      // index, status, value - so the middle byte reads as op or status.
+      case SYSEX_MSG_GET_SAVED_VALUE:
+      case SYSEX_MSG_SET_SAVED_VALUE: {
+        const index = reader.readUInt16();
+        if (index === null) return name;
+        const code = reader.readUint8();
+        const value = reader.readUInt16();
+        return name + " index=" + index + (code !== null ? " op/status=" + code + " value=" + value : "");
+      }
+      case SYSEX_MSG_FACTORY_RESET: {
+        const status = reader.readUint8();
+        return status === null ? name + " (request, no body)" : name + " status=" + status;
       }
       default:
         return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
@@ -1328,7 +1564,6 @@
       const sentAt = Date.now();
       if (!silent) {
         log("» " + hex + "  (" + desc + ")", kind);
-        console.log("[sysex send]", { desc, frameLen: frame.length, payloadLen: payload.length, timeoutMs, sentAt });
       }
       const timeoutId = setTimeout(() => {
         const elapsed = Date.now() - sentAt;
@@ -1344,7 +1579,6 @@
       try {
         activeOutput.send(frame);
         bwBytesSinceTick += frame.length;
-        if (!silent) console.log("[sysex sent]", { desc, elapsed: Date.now() - sentAt });
       } catch (e) {
         console.log("[sysex send error]", e.message);
         clearTimeout(timeoutId);
@@ -1365,7 +1599,6 @@
     pending = null;
     if (!silent) {
       log("« response (" + desc + ")", kind);
-      console.log("[sysex response]", { desc, elapsed, payloadLen: payload.length });
     }
     resolve(payload);
     pumpWriteQueue();
@@ -1380,7 +1613,8 @@
     reader.readUint8(); // wing id left
     reader.readUint8(); // wing id right
     const bellows = reader.readUint8(); // initial bellows direction, null on an older firmware
-    return { version, count, bellows };
+    const storeGeneration = reader.readUInt16(); // saved-values store generation, null on an older firmware
+    return { version, count, bellows, storeGeneration };
   }
 
   async function requestPropertyDescription(index) {
@@ -1390,10 +1624,10 @@
     reader.readUint8(); // message id
     reader.readUInt16(); // echoed index
     const type = reader.readUint8();
-    const defaultValue = reader.readUInt16();
+    const factoryValue = reader.readUInt16();
     const name = reader.readString();
     const description = reader.readString();
-    return { type, name, description, defaultValue };
+    return { type, name, description, factoryValue };
   }
 
   async function requestPropertyValue(index) {
@@ -1407,7 +1641,9 @@
 
   /* The bellows' two raw hall ADC readings and both pedals' wiper ADC
    * readings + presence flags (a disconnected pedal's sample is floating and
-   * meaningless). */
+   * meaningless), then the settings the function buttons change: table mode,
+   * keyboard system and bellows program (null from an older firmware that
+   * doesn't send them). */
   async function requestPeripherals() {
     const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_GET_PERIPHERALS).toBytes());
     const reader = new DataReader(payload);
@@ -1418,7 +1654,11 @@
     const pedal1Sample = reader.readUInt16();
     const pedal2Connected = !!reader.readUint8();
     const pedal2Sample = reader.readUInt16();
-    return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample };
+    const tableMode = reader.readUint8();
+    const tuning = reader.readUint8();
+    const bellowProgram = reader.readUint8();
+    return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample,
+             tableMode, tuning, bellowProgram };
   }
 
   async function requestSetProperty(index, value) {
@@ -1428,6 +1668,38 @@
     reader.readUint8();   // message id
     reader.readUInt16();  // echoed index
     return reader.readUInt16(); // value actually in effect (may be clamped)
+  }
+
+  /* A property's saved value: { status, value }, status one of SAVED_STATUS_*.
+   * With SAVED_STATUS_NONE the value is the factory value. */
+  async function requestSavedValue(index) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_GET_SAVED_VALUE).writeUInt16(index).toBytes());
+    return readSavedValueResponse(payload);
+  }
+
+  async function requestSetSavedValue(index, op, value) {
+    const payload = await sendSysexRequest(
+      new DataWriter().writeUint8(SYSEX_MSG_SET_SAVED_VALUE).writeUInt16(index).writeUint8(op)
+        .writeUInt16(value).toBytes());
+    return readSavedValueResponse(payload);
+  }
+
+  function readSavedValueResponse(payload) {
+    const reader = new DataReader(payload);
+    reader.readUint8();   // message id
+    reader.readUInt16();  // echoed index
+    const status = reader.readUint8();
+    const value = reader.readUInt16();
+    return { status, value };
+  }
+
+  /* Erases the device's saved values; its live values return to factory.
+   * Resolves to the status byte: 0 on success. Erasing flash pages takes
+   * tens of milliseconds, hence the longer timeout. */
+  async function requestFactoryReset() {
+    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_FACTORY_RESET).toBytes(), 3000);
+    return new DataReader(payload.slice(1)).readUint8();
   }
 
   /* Writes to the live device are queued rather than sent immediately: the
@@ -1440,6 +1712,7 @@
   let writeInFlight = false;
   function queueSetProperty(index, value) {
     writeQueue.set(index, value);
+    syncTableValue(index, value);
     pumpWriteQueue();
   }
   function pumpWriteQueue() {
@@ -1452,6 +1725,47 @@
       .finally(() => { writeInFlight = false; pumpWriteQueue(); });
   }
 
+  /* Shows a toast (see .toast) and returns a function that dismisses it.
+   * Errors are announced as alerts and stay until dismissed, as do sticky
+   * toasts (progress, dismissed by the caller when done); anything else
+   * leaves after 5 s unless hovered. A new toast replaces the current one. */
+  function showToast(text, { error = false, sticky = false } = {}) {
+    const host = document.getElementById("toastHost");
+    let timer = null;
+    host.replaceChildren();
+    const toast = document.createElement("div");
+    toast.className = "toast" + (error ? " error" : "");
+    if (error) toast.setAttribute("role", "alert");
+    const msg = document.createElement("span");
+    msg.textContent = text;
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "toast-close";
+    close.setAttribute("aria-label", "Dismiss");
+    close.textContent = "✕";
+    toast.append(msg, close);
+    host.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("shown"));
+
+    const dismiss = () => {
+      clearTimeout(timer);
+      toast.classList.remove("shown");
+      setTimeout(() => toast.remove(), 250);
+    };
+    close.addEventListener("click", dismiss);
+    if (!error && !sticky) {
+      const arm = () => { timer = setTimeout(dismiss, 5000); };
+      toast.addEventListener("pointerenter", () => clearTimeout(timer));
+      toast.addEventListener("pointerleave", arm);
+      arm();
+    }
+    return dismiss;
+  }
+
+  // The status line's resting text ("71 properties"), restored after an
+  // action that showed its progress there.
+  let propertiesSummary = "";
+
   function setPropertiesStatus(text) {
     propertiesStatus.textContent = text;
   }
@@ -1459,10 +1773,335 @@
   function clearProperties() {
     propertiesBody.innerHTML = "";
     propertyResetRows.length = 0;
+    savedInfo.clear();
     propertiesTable.hidden = true;
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
+    propertiesSaveBtn.hidden = true;
+    propertiesFactoryResetBtn.hidden = true;
+    propertiesShowAllLabel.hidden = true;
+    propertiesAllFactory.hidden = true;
+    updateSaveCenterButton();
     setPropertiesStatus("Not connected.");
+  }
+
+  /* Saved values. Every property has a factory value (from the firmware) and
+   * a persistent one may also have a saved value in the device's flash, which
+   * it starts with instead. The "default" - what the Default column shows and
+   * the reset buttons restore - is the saved value if there is one, else the
+   * factory value. index -> { name, factoryValue, savedValue (null if none),
+   * persistent, type, and the row's elements once it is built }. */
+  const savedInfo = new Map();
+  let savedValuesSupported = false; // false on a firmware without GET_SAVED_VALUE
+
+  function effectiveDefault(index) {
+    const info = savedInfo.get(index);
+    return info.savedValue !== null ? info.savedValue : info.factoryValue;
+  }
+
+  function renderDefaultCell(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.defaultEl) return;
+    const el = info.defaultEl;
+    el.textContent = effectiveDefault(index);
+    el.classList.toggle("saved", info.savedValue !== null);
+    el.classList.toggle("transient", savedValuesSupported && !info.persistent);
+    if (info.savedValue !== null) el.title = "Saved value: " + info.savedValue + "\nFactory value: " + info.factoryValue;
+    else if (savedValuesSupported && !info.persistent) el.title = "Not saved: back to " + info.factoryValue + " at power-off";
+    else el.title = "Factory value";
+    info.factoryBtn.disabled = info.savedValue === null;
+    info.factoryBtn.title = info.savedValue !== null
+      ? "Reset the saved value to the factory value (" + info.factoryValue + ")"
+      : (savedValuesSupported && !info.persistent ? "Not saved: nothing to reset" : "Already the factory value");
+    renderValueCell(index);
+  }
+
+  /* Highlights the value cell while the live value differs from the default. */
+  function renderValueCell(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.input) return;
+    const input = info.input;
+    let live;
+    if (info.type === PROPERTY_TYPE_BOOL) live = input.checked ? 1 : 0;
+    else live = input.value === "" ? null : Math.max(0, Math.round(+input.value));
+    const def = effectiveDefault(index);
+    const modified = live !== null && live !== def;
+    info.resetBtn.disabled = !modified;
+    info.resetBtn.title = modified ? "Reset the value to the default (" + def + ")" : "Already the default";
+    const el = info.highlightEl;
+    el.classList.toggle("modified", modified);
+    if (!modified) el.title = "";
+    else if (savedValuesSupported && info.persistent)
+      el.title = "Changed from the default (" + def + ")\nNot saved: Save as default keeps it";
+    else el.title = "Changed from the default (" + def + ")";
+    updateRowVisibility(index);
+    if (index === BELLOW_CENTER_PROP_INDEX) updateSaveCenterButton();
+  }
+
+  /* With "show all" off the table lists only what differs from the firmware:
+   * a live value other than the factory value, or a saved value. A row being
+   * edited stays until it loses focus, so it can't vanish under the cursor. */
+  function rowIsInteresting(index) {
+    const info = savedInfo.get(index);
+    if (info.savedValue !== null) return true;
+    const input = info.input;
+    const live = info.type === PROPERTY_TYPE_BOOL ? (input.checked ? 1 : 0)
+                                                  : (input.value === "" ? info.factoryValue : Math.round(+input.value));
+    return live !== info.factoryValue;
+  }
+
+  function updateRowVisibility(index) {
+    const info = savedInfo.get(index);
+    if (!info || !info.row) return;
+    const editing = info.row.contains(document.activeElement);
+    info.row.hidden = !(propertiesShowAll.checked || editing || rowIsInteresting(index));
+    updateAllFactoryHint();
+    updateHeaderButtons();
+  }
+
+  /* Centres Save as default over the Value column: the status text before it
+   * is sized so the button's centre lands on the Value header's centre. Recomputed whenever rows show or
+   * hide (the Name column's width follows the longest visible name) and on
+   * resize. Falls back to natural flow when the table is hidden. */
+  function alignSaveButton() {
+    const status = propertiesStatus;
+    if (propertiesTable.hidden || propertiesSaveBtn.hidden) { status.style.flex = ""; return; }
+    const th = propertiesResetAllBtn.closest("th");
+    const row = status.parentElement;
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const thBox = th.getBoundingClientRect();
+    const btnWidth = propertiesSaveBtn.getBoundingClientRect().width;
+    const offset = thBox.left + thBox.width / 2 - btnWidth / 2 - row.getBoundingClientRect().left - gap;
+    status.style.flex = offset > 0 ? "0 0 " + offset + "px" : "";
+  }
+  window.addEventListener("resize", alignSaveButton);
+  // A collapsed card has no layout to measure: realign when it opens.
+  document.getElementById("propertiesCard").addEventListener("toggle", alignSaveButton);
+
+  /* Minimum Name column width = the longest property name, measured with the
+   * name cells' font (hidden rows count too: a canvas needs no layout). */
+  let nameMeasureCtx = null;
+  function fitNameColumn() {
+    const th = propertiesTable.querySelector("th.name");
+    const cell = propertiesBody.querySelector("td.name");
+    if (!cell) { th.style.width = ""; return; }
+    nameMeasureCtx ??= document.createElement("canvas").getContext("2d");
+    // From its parts: Firefox can leave the "font" shorthand empty.
+    const cs = getComputedStyle(cell);
+    nameMeasureCtx.font = cs.fontStyle + " " + cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+    let widest = 0;
+    for (const info of savedInfo.values())
+      if (info.name) widest = Math.max(widest, nameMeasureCtx.measureText(info.name).width);
+    th.style.width = Math.ceil(widest) + "px";
+  }
+
+  function updateAllFactoryHint() {
+    // Only once enumeration is done (the switch appears then), not mid-load.
+    if (propertiesTable.hidden || propertiesShowAllLabel.hidden) { propertiesAllFactory.hidden = true; return; }
+    let anyShown = false;
+    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) { anyShown = true; break; }
+    propertiesAllFactory.hidden = anyShown || propertiesShowAll.checked;
+    alignSaveButton();
+  }
+
+  // Remembered per browser, like the collapsible cards; off until first set.
+  try { propertiesShowAll.checked = localStorage.getItem("propertiesShowAll") === "1"; } catch (_) {}
+  propertiesShowAll.addEventListener("change", () => {
+    try { localStorage.setItem("propertiesShowAll", propertiesShowAll.checked ? "1" : "0"); } catch (_) {}
+    for (const index of savedInfo.keys()) updateRowVisibility(index);
+  });
+
+  /* Set a table input from a value written elsewhere (graphs, buttons, the
+   * device's function buttons), unless it is the one being typed in. */
+  function syncTableValue(index, value) {
+    const info = savedInfo.get(index);
+    if (!info || !info.input || document.activeElement === info.input) return;
+    if (info.type === PROPERTY_TYPE_BOOL) info.input.checked = !!value;
+    else info.input.value = value;
+    renderValueCell(index);
+  }
+
+  /* The reverse: a table edit of a property that also has its own control
+   * (bellows and pedal graphs, keyboard system, table mode, bellows program)
+   * updates that control without writing to the device again. */
+  function setBellowField(obj, key, value) {
+    const m = /^(push|pull)([XY][12])$/.exec(key);
+    if (m) obj[m[1]][m[2].toLowerCase()] = value;
+    else obj[key] = value;
+  }
+
+  function syncControlsFromTable(index, value) {
+    if (bellowGraphLive) {
+      if (index === BELLOW_CENTER_PROP_INDEX) { bg.center = value; redrawGraph(); updateLiveDot(); return; }
+      for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
+        for (const key of Object.keys(PROP_INDEX[n])) {
+          if (PROP_INDEX[n][key] !== index) continue;
+          setBellowField(n === currentBellowProgram ? bg : bgPrograms[n], key, value);
+          redrawGraph();
+          updateLiveDot();
+          return;
+        }
+      }
+    }
+    if (bellowProgramLive && index === BELLOW_PROGRAM_PROP_INDEX) {
+      if (value < BELLOW_PROGRAM_COUNT) selectBellowProgram(value, { fromDevice: true });
+      return;
+    }
+    if (pedalGraphLive) {
+      for (const [key, idx] of Object.entries(PEDAL_PROP_INDEX)) {
+        if (idx !== index) continue;
+        const p = key.slice(0, 2), field = key.slice(2).toLowerCase();
+        pg[p][field] = value;
+        redrawPedalGraph(p);
+        return;
+      }
+    }
+    if (keyboardTuningLive && index === KEYBOARD_TUNING_PROP_INDEX) {
+      if (value < KBD_NOTE_TABLE.length) {
+        currentTuning = value;
+        syncTuningUi();
+        renderKeyboard("left");
+        renderKeyboard("right");
+      }
+      return;
+    }
+    if (tableModeLive && index === TABLE_MODE_PROP_INDEX) {
+      currentTableMode = !!value;
+      syncTableModeUi();
+      return;
+    }
+    if (tablemodeVelocityLive && index === TABLEMODE_VELOCITY_PROP_INDEX) currentTablemodeVelocity = value;
+  }
+
+  function setFromTable(index, value) {
+    queueSetProperty(index, value);
+    syncControlsFromTable(index, value);
+  }
+
+  function applySavedResponse(index, { status, value }) {
+    const info = savedInfo.get(index);
+    info.persistent = status !== SAVED_STATUS_TRANSIENT;
+    if (status === SAVED_STATUS_SAVED) info.savedValue = value;
+    else if (status === SAVED_STATUS_NONE) info.savedValue = null;
+    renderDefaultCell(index);
+  }
+
+  /* The link carries one request at a time and the live polls grab it every
+   * 100 ms, so a sequence of requests (Save, Factory reset) pauses them and
+   * waits for queued writes to drain first. */
+  async function withPollingPaused(fn) {
+    const wasPolling = peripheralsTimer !== null;
+    stopPeripheralPolling(); // also stops the keyboard-properties poll
+    try {
+      while (pending || writeInFlight || writeQueue.size > 0) await new Promise((r) => setTimeout(r, 20));
+      return await fn();
+    } finally {
+      if (wasPolling && activeOutput) { startPeripheralPolling(); startKeyboardPropsPolling(); }
+    }
+  }
+
+  /* The header arrows act on every row: Value resets every live value to its
+   * default, Default is the factory reset. Value is greyed when every value is
+   * its default, Default when nothing is saved, and Save as default when no
+   * persistent value differs from its default; all three while a Save or
+   * Factory reset is running. */
+  let propertiesBusy = false;
+  function updateHeaderButtons() {
+    let anyModified = false, anyToSave = false, anySaved = false;
+    for (const info of savedInfo.values()) {
+      if (!info.row) continue;
+      if (!info.resetBtn.disabled) {
+        anyModified = true;
+        if (info.persistent) anyToSave = true;
+      }
+      if (info.savedValue !== null) anySaved = true;
+    }
+    propertiesResetAllBtn.disabled = propertiesBusy || !anyModified;
+    propertiesFactoryResetBtn.disabled = propertiesBusy || !anySaved;
+    propertiesSaveBtn.disabled = propertiesBusy || !anyToSave;
+    updateSaveCenterButton();
+  }
+
+  function resetAllToDefault() {
+    if (!confirm("Reset every value to its default?")) return;
+    propertyResetRows.forEach(resetPropertyToDefault);
+  }
+
+  /* The Default column's arrow: the saved value goes back to the factory
+   * value (a CLEAR in the device's store). The live value is left alone, so
+   * it shows as changed if it was the saved value. */
+  async function clearSavedValue(index) {
+    const info = savedInfo.get(index);
+    info.factoryBtn.disabled = true;
+    try {
+      const r = await withPollingPaused(() => requestSetSavedValue(index, SAVED_OP_CLEAR, 0));
+      if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save " + info.name);
+      applySavedResponse(index, r);
+      log("saved value of " + info.name + " reset to factory (" + info.factoryValue + ")", "sysexSavedValue");
+    } catch (err) {
+      showToast("Reset of the saved value failed: " + err.message, { error: true });
+      renderDefaultCell(index);
+    }
+  }
+
+  /* Save as default: every persistent property whose live value differs from
+   * its default gets that value saved. Live values are read back first, as
+   * the function buttons and the console change them without this page
+   * writing them. Saving the factory value clears the saved value. */
+  async function saveCurrentAsDefaults() {
+    if (!confirm("Save the current values as defaults? The Bandolibre will start with them.")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const changed = await withPollingPaused(async () => {
+        let n = 0;
+        for (const [index, info] of savedInfo) {
+          if (!info.persistent) continue;
+          setPropertiesStatus("Saving… checking " + info.name);
+          const live = await requestPropertyValue(index);
+          if (live === effectiveDefault(index)) continue;
+          const op = live === info.factoryValue ? SAVED_OP_CLEAR : SAVED_OP_SET;
+          const r = await requestSetSavedValue(index, op, live);
+          if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save " + info.name);
+          applySavedResponse(index, r);
+          n++;
+        }
+        return n;
+      });
+      showToast(changed === 0 ? "Nothing to save: every value is already its default."
+                              : "Saved " + changed + " change" + (changed === 1 ? "" : "s") + " as default.");
+      log("save as default: " + changed + " change(s)", "sysexSavedValue");
+    } catch (err) {
+      showToast("Save failed: " + err.message, { error: true });
+      log("save as default failed: " + err.message, "sysexSavedValue");
+    } finally {
+      setPropertiesStatus(propertiesSummary);
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
+  }
+
+  async function factoryReset() {
+    if (!confirm("Factory reset: erase every saved value and return every setting to its factory value?")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const status = await withPollingPaused(async () => {
+        const st = await requestFactoryReset();
+        log("factory reset: " + (st === 0 ? "done" : "failed, status " + st), "sysexFactoryReset");
+        // Live values changed on the device: reload everything (table, graphs).
+        await enumerateProperties();
+        return st;
+      });
+      if (status !== 0) showToast("Factory reset failed: the device could not erase its saved values.", { error: true });
+      else showToast("Factory reset done: every setting is back to its factory value.");
+    } catch (err) {
+      showToast("Factory reset failed: " + err.message, { error: true });
+      log("factory reset failed: " + err.message, "sysexFactoryReset");
+    } finally {
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
   }
 
   /* Editable value cell: GET_PROPERTY_DESCRIPTION returns a property's type
@@ -1475,24 +2114,29 @@
    * graph drag never race. */
   // Rows currently in the table, so "Reset all to default" can walk every
   // input without re-deriving it from the DOM. Cleared in clearProperties().
-  const propertyResetRows = []; // { index, type, defaultValue, input }
+  const propertyResetRows = []; // { index, type, input }
 
-  function resetPropertyToDefault({ index, type, defaultValue, input }) {
+  function resetPropertyToDefault({ index, type, input }) {
+    const defaultValue = effectiveDefault(index);
     if (type === PROPERTY_TYPE_BOOL) {
       input.checked = !!defaultValue;
     } else {
       input.value = defaultValue;
     }
-    queueSetProperty(index, defaultValue);
+    setFromTable(index, defaultValue);
+    renderValueCell(index);
   }
 
-  function addPropertyValueInput(cell, index, type, value, defaultValue) {
+  function addPropertyValueInput(cell, index, type, value) {
     let input;
     if (type === PROPERTY_TYPE_BOOL) {
       input = document.createElement("input");
       input.type = "checkbox";
       input.checked = !!value;
-      input.addEventListener("change", () => queueSetProperty(index, input.checked ? 1 : 0));
+      input.addEventListener("change", () => {
+        setFromTable(index, input.checked ? 1 : 0);
+        renderValueCell(index);
+      });
     } else {
       input = document.createElement("input");
       input.type = "number";
@@ -1500,22 +2144,34 @@
       input.value = value;
       input.className = "prop-value-input";
       input.addEventListener("input", () => {
+        renderValueCell(index);
         if (input.value === "") return;
-        queueSetProperty(index, Math.max(0, Math.round(+input.value)));
+        setFromTable(index, Math.max(0, Math.round(+input.value)));
       });
     }
-    cell.appendChild(input);
+    // A checkbox has no background of its own, so its highlight goes on a wrapper.
+    let highlightEl = input;
+    if (type === PROPERTY_TYPE_BOOL) {
+      highlightEl = document.createElement("span");
+      highlightEl.className = "prop-check-wrap";
+      highlightEl.appendChild(input);
+    }
+    cell.appendChild(highlightEl);
 
-    const target = { index, type, defaultValue, input };
+    const target = { index, type, input };
     propertyResetRows.push(target);
+    const info = savedInfo.get(index);
+    info.type = type;
+    info.input = input;
+    info.highlightEl = highlightEl;
 
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className = "prop-reset-btn";
-    resetBtn.title = "Reset to default (" + defaultValue + ")";
-    resetBtn.textContent = "↺";
+    resetBtn.textContent = "↺"; // title set by renderDefaultCell
     resetBtn.addEventListener("click", () => resetPropertyToDefault(target));
-    return resetBtn;
+    cell.appendChild(resetBtn);
+    info.resetBtn = resetBtn;
   }
 
   function addPropertyRow(index, value, desc) {
@@ -1528,38 +2184,69 @@
     nameCell.textContent = desc.name || "?";
     const valueCell = document.createElement("td");
     valueCell.className = "value";
-    const resetBtn = addPropertyValueInput(valueCell, index, desc.type, value, desc.defaultValue);
+    addPropertyValueInput(valueCell, index, desc.type, value);
     const defaultCell = document.createElement("td");
     defaultCell.className = "default";
     const defaultValueSpan = document.createElement("span");
     defaultValueSpan.className = "default-value";
-    defaultValueSpan.textContent = desc.defaultValue;
-    defaultCell.append(defaultValueSpan, resetBtn);
+    // Same arrow, one column over: resets the saved value to the factory one.
+    const factoryBtn = document.createElement("button");
+    factoryBtn.type = "button";
+    factoryBtn.className = "prop-reset-btn";
+    factoryBtn.textContent = "↺"; // title and enabled state set by renderDefaultCell
+    factoryBtn.addEventListener("click", () => clearSavedValue(index));
+    defaultCell.append(defaultValueSpan, factoryBtn);
+    const info = savedInfo.get(index);
+    info.defaultEl = defaultValueSpan;
+    info.factoryBtn = factoryBtn;
+    renderDefaultCell(index);
     const descCell = document.createElement("td");
     descCell.textContent = desc.description;
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
+    row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
+    info.row = row;
     propertiesBody.appendChild(row);
+    updateRowVisibility(index);
   }
 
   async function enumerateProperties() {
     propertiesBody.innerHTML = "";
     propertyResetRows.length = 0;
+    savedInfo.clear();
+    savedValuesSupported = false;
     propertiesTable.hidden = true;
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
+    propertiesSaveBtn.hidden = true;
+    propertiesFactoryResetBtn.hidden = true;
+    propertiesShowAllLabel.hidden = true;
+    propertiesAllFactory.hidden = true;
+    // A newer enumeration (reconnect, retry) owns the link state: an older
+    // one failing late with "device disconnected" must not overwrite it.
+    const generation = ++enumGeneration;
     if (!activeInput || !activeOutput) {
       setPropertiesStatus("Properties need both a MIDI input and output on this device.");
+      setLinkState("noSysex");
       return;
     }
 
     setPropertiesStatus("Requesting property list…");
-    console.log("[enum start]", { timestamp: Date.now() });
+    setLinkState("checking");
     try {
-      const helloStart = Date.now();
-      const hello = await requestHello();
-      const helloTime = Date.now() - helloStart;
-      log("hello: " + hello.version + ", " + hello.count + " properties", "sysexHello");
-      console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
+      let hello;
+      try {
+        hello = await requestHello();
+      } catch (err) {
+        // No answer to HELLO: most likely another MIDI device was picked
+        // rather than the Bandolibre.
+        if (generation === enumGeneration) setLinkState("noSysex");
+        throw err;
+      }
+      if (generation === enumGeneration) setLinkState("ok");
+      log("hello: " + hello.version + ", " + hello.count + " properties" +
+          (hello.storeGeneration !== null ? ", store generation " + hello.storeGeneration : ""), "sysexHello");
+      // A firmware that reports a store generation answers GET_SAVED_VALUE.
+      savedValuesSupported = hello.storeGeneration !== null;
       if (hello.bellows !== null) {
         currentBellowsDirection = hello.bellows;
         updateKeyboardLighting("left");
@@ -1570,13 +2257,14 @@
       const byName = new Map(); // name -> index, for the live-editing controls below
       for (let i = 0; i < hello.count; i++) {
         setPropertiesStatus("Loading property " + (i + 1) + " / " + hello.count + "…");
-        const propStart = Date.now();
         try {
           const desc = await requestPropertyDescription(i);
           const value = await requestPropertyValue(i);
-          const propTime = Date.now() - propStart;
-          console.log("[property fetched]", { index: i, name: desc.name, desc: desc.description.substring(0, 50), value, elapsed: propTime });
-          if (!PROPS_EDITED_ELSEWHERE.has(desc.name)) addPropertyRow(i, value, desc);
+          savedInfo.set(i, { name: desc.name, factoryValue: desc.factoryValue, savedValue: null,
+                             persistent: savedValuesSupported, defaultEl: null, resetBtn: null, factoryBtn: null,
+                             type: desc.type, input: null, highlightEl: null, row: null });
+          if (savedValuesSupported) applySavedResponse(i, await requestSavedValue(i));
+          addPropertyRow(i, value, desc);
           fetched.set(i, { value, name: desc.name, description: desc.description });
           if (desc.name) byName.set(desc.name, i);
         } catch (err) {
@@ -1584,14 +2272,21 @@
           throw err;
         }
       }
-      setPropertiesStatus(hello.count + " propert" + (hello.count === 1 ? "y" : "ies"));
+      propertiesSummary = hello.count + " propert" + (hello.count === 1 ? "y" : "ies");
+      setPropertiesStatus(propertiesSummary);
       propertiesResetAllBtn.hidden = false;
+      updateHeaderButtons();
+      propertiesSaveBtn.hidden = !savedValuesSupported;
+      propertiesFactoryResetBtn.hidden = !savedValuesSupported;
+      propertiesShowAllLabel.hidden = false;
+      fitNameColumn();
+      updateAllFactoryHint();
 
       applyBellowGraphFromFetched(fetched, byName);
+      updateSaveCenterButton();
       applyPedalGraphFromFetched(fetched, byName);
       applyKeyboardTuningFromFetched(fetched, byName);
       applyTableModeFromFetched(fetched, byName);
-      applyBellowSensFromFetched(fetched, byName);
       applyTablemodeVelocityFromFetched(fetched, byName);
 
       try {
@@ -1615,12 +2310,14 @@
   }
 
   propertiesRetryBtn.addEventListener("click", enumerateProperties);
-  propertiesResetAllBtn.addEventListener("click", () => propertyResetRows.forEach(resetPropertyToDefault));
+  propertiesResetAllBtn.addEventListener("click", resetAllToDefault);
+  propertiesSaveBtn.addEventListener("click", saveCurrentAsDefaults);
+  propertiesFactoryResetBtn.addEventListener("click", factoryReset);
 
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
   // GET_PROPERTY_DESCRIPTION now returns a property's symbolic name (see
-  // midi.cc), so which index is "bellow_center" etc. is resolved by looking
+  // midi.cc), so which index is "bellow_p0_dead" etc. is resolved by looking
   // it up by name among the just-fetched properties (byName, built in
   // enumerateProperties) rather than assumed from property_table.def's
   // declaration order. PROP_INDEX starts empty and is filled in by
@@ -1628,13 +2325,33 @@
   // (an older firmware, say) leaves it unresolved, and bellowGraphLive stays
   // false - a local-only (read-only-to-the-device) graph instead of risking
   // a write to the wrong property.
-  const PROP_NAMES = {
-    center: "bellow_center", dead: "bellow_dead", fullPush: "bellow_full_push", fullPull: "bellow_full_pull",
-    pushX1: "bellow_push_curve_x1", pushY1: "bellow_push_curve_y1", pushX2: "bellow_push_curve_x2", pushY2: "bellow_push_curve_y2",
-    pullX1: "bellow_pull_curve_x1", pullY1: "bellow_pull_curve_y1", pullX2: "bellow_pull_curve_x2", pullY2: "bellow_pull_curve_y2",
+  //
+  // The firmware has BELLOW_PROGRAM_COUNT programs (bellow.h), each a full
+  // set of bellow_p<n>_* properties; bellow_program selects the active one
+  // (also cycled by FN1). The graph always shows and edits the active
+  // program, so PROP_INDEX is per program: PROP_INDEX[n][key]. The center
+  // (bellow_center) is shared by all programs and has its own index.
+  const BELLOW_PROGRAM_COUNT = 3;
+  const BELLOW_CENTER_PROP_NAME = "bellow_center";
+  const BELLOW_PROP_SUFFIX = {
+    dead: "dead", pushTravel: "push_travel", pullTravel: "pull_travel",
+    pushX1: "push_curve_x1", pushY1: "push_curve_y1", pushX2: "push_curve_x2", pushY2: "push_curve_y2",
+    pullX1: "pull_curve_x1", pullY1: "pull_curve_y1", pullX2: "pull_curve_x2", pullY2: "pull_curve_y2",
   };
-  const PROP_INDEX = {};
+  const bellowPropName = (n, key) => "bellow_p" + n + "_" + BELLOW_PROP_SUFFIX[key];
+  const PROP_INDEX = [];
+  let BELLOW_CENTER_PROP_INDEX = null;
   let bellowGraphLive = false;
+  let BELLOW_PROGRAM_PROP_INDEX = null;
+  let currentBellowProgram = 0; // matches bellow_program's factory_value
+  let bellowProgramLive = false; // true once bellow_program resolved on a connected device
+
+  // Writes one field of the active program (key as in BELLOW_PROP_SUFFIX),
+  // or the shared center for key "center".
+  function writeBellowProp(key, value) {
+    if (!bellowGraphLive) return;
+    queueSetProperty(key === "center" ? BELLOW_CENTER_PROP_INDEX : PROP_INDEX[currentBellowProgram][key], value);
+  }
   let liveAdcTotal = null;
 
   // Latest CC#11 (Expression, 14-bit MSB/LSB pair with CC#43) actually
@@ -1646,7 +2363,7 @@
   // shows "-" until a real message has actually arrived.
   let liveCcMsb = null, liveCcLsb = 0;
 
-  // Same name-lookup approach as PROP_NAMES/PROP_INDEX above, for the two
+  // Same name-lookup approach as PROP_INDEX above, for the two
   // pedal calibration ranges.
   const PEDAL_PROP_NAMES = { p1Min: "pedal1_min", p1Max: "pedal1_max", p2Min: "pedal2_min", p2Max: "pedal2_max" };
   const PEDAL_PROP_INDEX = {};
@@ -1655,16 +2372,6 @@
     p1: { min: 920, max: 3100, sample: null, connected: null },
     p2: { min: 920, max: 3100, sample: null, connected: null },
   };
-
-  // Properties already editable next to the bellows/pedal graphs (plus the
-  // Function buttons card further down) are left out of the generic
-  // Properties table below, so there's one place to edit each of them rather
-  // than two that could drift out of sync. Named rather than indexed, same
-  // reasoning as PROP_NAMES above.
-  const PROPS_EDITED_ELSEWHERE = new Set([
-    ...Object.values(PROP_NAMES), ...Object.values(PEDAL_PROP_NAMES),
-    "keyboard_tuning", "table_mode", "bellow_sens_level",
-  ]);
 
   // Exact port of bellow_curve_apply() (code/main-g474/app/bellow_curve.c):
   // Newton-Raphson + bisection solve for x(t)=x, then evaluate y(t).
@@ -1701,16 +2408,32 @@
     return y * 1024;
   }
 
-  const bg = {
-    center: 27800, dead: 32, fullPush: 23400, fullPull: 32000,
-    push: { x1: 85, y1: 85, x2: 171, y2: 171 },
-    pull: { x1: 85, y1: 85, x2: 171, y2: 171 },
-  };
+  // Per-program values, mirroring property_table.def's defaults until a
+  // device is read. bg is the program being shown and edited; it is copied
+  // back into bgPrograms when another program is selected. bg.center is
+  // shared by all programs, so it is kept across program switches.
+  // Travels are offsets from the center, as in the firmware: full push is at
+  // center - pushTravel, full pull at center + pullTravel.
+  const bgProgramDefault = (pushTravel, pullTravel) => ({
+    dead: 64, pushTravel, pullTravel,
+    push: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    pull: { x1: 10, y1: 0, x2: 245, y2: 256 },
+  });
+  const bgPrograms = [
+    bgProgramDefault(3123, 3028),
+    bgProgramDefault(2082, 2019),
+    bgProgramDefault(1562, 1514),
+  ];
+  const copyBellowProgram = (p) => ({ ...p, push: { ...p.push }, pull: { ...p.pull } });
+  const bg = { center: 28972, ...copyBellowProgram(bgPrograms[0]) };
+  // Cubic-Bezier control points /256, applied to both push and pull.
   const bgPresets = {
     linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
-    feather: { x1: 40, y1: 220, x2: 150, y2: 235 },
+    // The firmware's factory curve (BELLOW_PROGRAM in property_table.def).
+    normal: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    // Gentle at both ends, like CSS ease-in-out.
+    smooth: { x1: 108, y1: 0, x2: 148, y2: 256 },
     firm: { x1: 200, y1: 20, x2: 235, y2: 50 },
-    cliff: { x1: 245, y1: 8, x2: 250, y2: 25 },
   };
 
   const bp = (id) => document.getElementById(id);
@@ -1766,29 +2489,36 @@
     },
   };
 
-  // ---- Geometry: a plain linear ADC axis, 10% beyond bellow_full_push/pull
+  // ---- Geometry: a plain linear ADC axis, 10% beyond the full push/pull
   // on each side, and a CC (0..127) axis. ----
   const PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_TOP = 30, PLOT_BOTTOM = 340;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-  // Zoom toggle (top-right of the Bellow card): quarters BOTH the visible
+  // Zoom switch (top-right of the Bellow card): divides BOTH the visible
   // sensor span (re-centered on bg.center) and the CC axis (re-based at 0,
   // the value the deadzone always maps to), for a close look at the curve's
   // "knee" right where it leaves the deadzone - everything downstream
   // (ticks, curve paths, vlines, drag sensitivity) already derives from
   // axisRange()/yAxisRange(), so these are the only two places the zoom
   // state needs to plug in.
-  let zoomCenterActive = false;
+  const ZOOM_LEVELS = [1, 4, 8];
+  let zoomFactor = 1;
+  // Held while a vertical line is dragged: full push/pull follow the center,
+  // so without it dragging the center would scroll the axis under the line.
+  let frozenAxisRange = null;
+  const fullPush = () => bg.center - bg.pushTravel;
+  const fullPull = () => bg.center + bg.pullTravel;
   function axisRange() {
-    const lo = Math.min(bg.fullPush, bg.fullPull), hi = Math.max(bg.fullPush, bg.fullPull);
+    if (frozenAxisRange) return frozenAxisRange;
+    const lo = Math.min(fullPush(), fullPull()), hi = Math.max(fullPush(), fullPull());
     const margin = Math.max(1, (hi - lo) * 0.1);
     const fullMin = lo - margin, fullMax = hi + margin;
-    if (!zoomCenterActive) return { xMin: fullMin, xMax: fullMax };
-    const zoomSpan = (fullMax - fullMin) / 4;
+    if (zoomFactor === 1) return { xMin: fullMin, xMax: fullMax };
+    const zoomSpan = (fullMax - fullMin) / zoomFactor;
     return { xMin: bg.center - zoomSpan / 2, xMax: bg.center + zoomSpan / 2 };
   }
   function yAxisRange() {
-    return { yMin: 0, yMax: zoomCenterActive ? 127 / 4 : 127 };
+    return { yMin: 0, yMax: 127 / zoomFactor };
   }
   function adcToPx(adc) {
     const { xMin, xMax } = axisRange();
@@ -1804,21 +2534,19 @@
   }
 
   /* CC for a raw ADC total: 0 in the deadzone, saturating at 127 beyond
-   * bellow_full_push/pull (never negative, never implies the opposite
-   * direction), a cubic-Bezier ramp (bellow_push_curve/bellow_pull_curve) in
-   * between - mirrors bellow_classify() + bellow_curve_apply() in the
-   * firmware, at unity sensitivity (bellow_scale_* depends on the FN1
-   * button level, out of scope for this static graph). */
+   * the program's full push/pull (never negative, never implies the opposite
+   * direction), the program's cubic-Bezier push/pull curve in between -
+   * mirrors bellow_classify() + bellow_curve_apply() in the firmware. */
   function ccForAdc(adc) {
     const { pushEdge, pullEdge } = edges();
     if (adc >= Math.min(pushEdge, pullEdge) && adc <= Math.max(pushEdge, pullEdge)) return 0;
     if (adc < pushEdge) {
-      const span = pushEdge - bg.fullPush;
+      const span = pushEdge - fullPush();
       const d = pushEdge - adc;
       const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
       return curveApply(u, bg.push.x1, bg.push.y1, bg.push.x2, bg.push.y2) / 1024 * 127;
     } else {
-      const span = bg.fullPull - pullEdge;
+      const span = fullPull() - pullEdge;
       const d = adc - pullEdge;
       const u = span > 0 ? clamp(d / span, 0, 1) * 1024 : 1024;
       return curveApply(u, bg.pull.x1, bg.pull.y1, bg.pull.x2, bg.pull.y2) / 1024 * 127;
@@ -1826,11 +2554,11 @@
   }
   function pushRampPoint(xfrac, yfrac) {
     const { pushEdge } = edges();
-    return { adc: pushEdge + xfrac * (bg.fullPush - pushEdge), cc: yfrac * 127 };
+    return { adc: pushEdge + xfrac * (fullPush() - pushEdge), cc: yfrac * 127 };
   }
   function pullRampPoint(xfrac, yfrac) {
     const { pullEdge } = edges();
-    return { adc: pullEdge + xfrac * (bg.fullPull - pullEdge), cc: yfrac * 127 };
+    return { adc: pullEdge + xfrac * (fullPull() - pullEdge), cc: yfrac * 127 };
   }
   function toPx(pt) { return { x: adcToPx(pt.adc), y: ccToPx(pt.cc) }; }
   function setLine(el, x1, y1, x2, y2) {
@@ -1840,8 +2568,8 @@
   function placeCircle(el, x, y) { el.setAttribute("cx", x); el.setAttribute("cy", y); }
 
   function syncParamInputs() {
-    bp("num-full-push").value = bg.fullPush; bp("num-center").value = bg.center;
-    bp("num-full-pull").value = bg.fullPull;
+    bp("num-push-travel").value = bg.pushTravel; bp("num-center").value = bg.center;
+    bp("num-pull-travel").value = bg.pullTravel;
     bp("num-push-x1").value = bg.push.x1; bp("num-push-y1").value = bg.push.y1;
     bp("num-push-x2").value = bg.push.x2; bp("num-push-y2").value = bg.push.y2;
     bp("num-pull-x1").value = bg.pull.x1; bp("num-pull-y1").value = bg.pull.y1;
@@ -1934,7 +2662,7 @@
 
     const { pushEdge, pullEdge } = edges();
     const centerPx = adcToPx(bg.center);
-    const fullPushPx = adcToPx(bg.fullPush), fullPullPx = adcToPx(bg.fullPull);
+    const fullPushPx = adcToPx(fullPush()), fullPullPx = adcToPx(fullPull());
     const deadPushPx = adcToPx(pushEdge), deadPullPx = adcToPx(pullEdge);
 
     setLine(bpEls.vlineCenter, centerPx, PLOT_TOP, centerPx, PLOT_BOTTOM);
@@ -1946,9 +2674,9 @@
     setLine(bpEls.vlineDeadPush, deadPushPx, PLOT_TOP, deadPushPx, PLOT_BOTTOM);
     setLine(bpEls.vlineDeadPull, deadPullPx, PLOT_TOP, deadPullPx, PLOT_BOTTOM);
 
-    bpEls.lblFullPush.textContent = "full push " + Math.round(bg.fullPush);
+    bpEls.lblFullPush.textContent = "full push −" + Math.round(bg.pushTravel);
     bpEls.lblFullPush.setAttribute("x", fullPushPx);
-    bpEls.lblFullPull.textContent = "full pull " + Math.round(bg.fullPull);
+    bpEls.lblFullPull.textContent = "full pull +" + Math.round(bg.pullTravel);
     bpEls.lblFullPull.setAttribute("x", fullPullPx);
     bpEls.lblCenter.textContent = "center " + Math.round(bg.center) + "  ·  dead " + Math.round(bg.dead);
     bpEls.lblCenter.setAttribute("x", centerPx);
@@ -2011,6 +2739,7 @@
     hitEl.addEventListener("pointerdown", (e) => {
       dragging = true; hitEl.setPointerCapture(e.pointerId);
       lastClientX = e.clientX; value = getValue();
+      frozenAxisRange = axisRange();
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
@@ -2023,8 +2752,9 @@
       setValue(Math.round(value));
       redrawGraph();
     });
-    hitEl.addEventListener("pointerup", () => { dragging = false; });
-    hitEl.addEventListener("pointercancel", () => { dragging = false; });
+    const endDrag = () => { dragging = false; frozenAxisRange = null; redrawGraph(); };
+    hitEl.addEventListener("pointerup", endDrag);
+    hitEl.addEventListener("pointercancel", endDrag);
     hitEl.addEventListener("keydown", (e) => {
       let d = 0;
       if (e.key === "ArrowRight") d = step; else if (e.key === "ArrowLeft") d = -step;
@@ -2037,15 +2767,17 @@
   }
   makeDraggableVLine(bpEls.hitCenter, () => bg.center, (v) => {
     bg.center = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, v);
+    writeBellowProp("center", v);
   }, 17000, 34000, 20);
-  makeDraggableVLine(bpEls.hitFullPush, () => bg.fullPush, (v) => {
-    bg.fullPush = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPush, v);
+  // The full push/pull lines are dragged in sensor units like the center,
+  // then stored as the travel from it.
+  makeDraggableVLine(bpEls.hitFullPush, fullPush, (v) => {
+    bg.pushTravel = clamp(bg.center - v, 0, 17000);
+    writeBellowProp("pushTravel", bg.pushTravel);
   }, 0, 50000, 20);
-  makeDraggableVLine(bpEls.hitFullPull, () => bg.fullPull, (v) => {
-    bg.fullPull = v;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.fullPull, v);
+  makeDraggableVLine(bpEls.hitFullPull, fullPull, (v) => {
+    bg.pullTravel = clamp(v - bg.center, 0, 17000);
+    writeBellowProp("pullTravel", bg.pullTravel);
   }, 0, 50000, 20);
 
   /* Draggable Bezier control point: full 2D, within its own ramp's box.
@@ -2084,20 +2816,16 @@
       e.preventDefault();
       bg[side]["x" + cpNum] = clamp(bg[side]["x" + cpNum] + dx, 0, 256);
       bg[side]["y" + cpNum] = clamp(bg[side]["y" + cpNum] + dy, 0, 256);
-      if (bellowGraphLive) {
-        queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
-        queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
-      }
+      writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
+      writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
       redrawGraph();
     });
   }
   function applyCpFrac(side, cpNum, xfrac, yfrac) {
     bg[side]["x" + cpNum] = clamp(Math.round(xfrac * 256), 0, 256);
     bg[side]["y" + cpNum] = clamp(Math.round(yfrac * 256), 0, 256);
-    if (bellowGraphLive) {
-      queueSetProperty(PROP_INDEX[side + "X" + cpNum], bg[side]["x" + cpNum]);
-      queueSetProperty(PROP_INDEX[side + "Y" + cpNum], bg[side]["y" + cpNum]);
-    }
+    writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
+    writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
     redrawGraph();
   }
   makeDraggableCP(bpEls.hitCpPush1, bpEls.hCpPush1, "push", 1);
@@ -2111,7 +2839,7 @@
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), 0, 256);
       bg[side][axis] = v;
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX[side + axis[0].toUpperCase() + axis.slice(1)], v);
+      writeBellowProp(side + axis[0].toUpperCase() + axis.slice(1), v);
       redrawGraph();
     });
   }
@@ -2121,41 +2849,78 @@
     });
   });
 
-  // key doubles as both the bg[] field name and the PROP_INDEX lookup key
-  // (they're spelled the same for all three) - PROP_INDEX[key] is read
-  // lazily inside the listener, not captured here, since it's still empty
-  // at bind time and only resolved once a device connects (see
-  // applyBellowGraphFromFetched).
+  // key doubles as both the bg[] field name and the BELLOW_PROP_SUFFIX key
+  // (they're spelled the same for all three); writeBellowProp resolves the
+  // index lazily, at write time, for whichever program is active then.
   function bindRangeNum(id, key) {
     const input = bp(id);
     input.addEventListener("input", () => {
       if (input.value === "") return;
       const v = clamp(Math.round(+input.value), +input.min, +input.max);
       bg[key] = v;
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX[key], v);
+      writeBellowProp(key, v);
       redrawGraph();
     });
   }
-  bindRangeNum("num-full-push", "fullPush");
+  bindRangeNum("num-push-travel", "pushTravel");
   bindRangeNum("num-center", "center");
-  bindRangeNum("num-full-pull", "fullPull");
+  bindRangeNum("num-pull-travel", "pullTravel");
 
   /* Samples the live combined hall reading (liveAdcTotal, already kept
    * current by startPeripheralPolling() at 10 Hz) for one second and sets
-   * bellow_center to the average - an easy way to (re-)zero the rest
+   * the active program's center to the average - an easy way to (re-)zero the rest
    * position without reading the raw ADC value off the graph by eye. */
-  const zoomCenterToggle = document.getElementById("zoomCenterToggle");
-  zoomCenterToggle.addEventListener("change", () => {
-    zoomCenterActive = zoomCenterToggle.checked;
+  const zoomCenterSlider = document.getElementById("zoomCenterSlider");
+  zoomCenterSlider.addEventListener("input", () => {
+    const level = +zoomCenterSlider.value;
+    zoomFactor = ZOOM_LEVELS[level];
+    document.getElementById("zoomSwitch").dataset.level = level;
+    document.getElementById("zoomLevelLabel").textContent = "×" + zoomFactor;
     redrawGraph();
     updateLiveDot();
+  });
+
+  /* Save as default, for the center only: the bellows' rest position is a
+   * property of the instrument, so it is worth keeping on its own after a
+   * Calibrate. Enabled when the center differs from its default (the table
+   * row of bellow_center is kept in sync with every way of changing it). */
+  const btnSaveCenter = document.getElementById("btnSaveCenter");
+  function updateSaveCenterButton() {
+    const index = BELLOW_CENTER_PROP_INDEX;
+    const info = index !== null ? savedInfo.get(index) : undefined;
+    const ready = bellowGraphLive && savedValuesSupported && !propertiesBusy && !!info && !!info.input && info.persistent;
+    btnSaveCenter.disabled = !ready || Math.round(+info.input.value) === effectiveDefault(index);
+  }
+
+  btnSaveCenter.addEventListener("click", async () => {
+    const index = BELLOW_CENTER_PROP_INDEX;
+    const info = savedInfo.get(index);
+    if (!confirm("Save the bellows center (" + info.input.value + ") as default? The Bandolibre will start with it.")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const r = await withPollingPaused(async () => {
+        const live = await requestPropertyValue(index);
+        return requestSetSavedValue(index, live === info.factoryValue ? SAVED_OP_CLEAR : SAVED_OP_SET, live);
+      });
+      if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save it");
+      applySavedResponse(index, r);
+      showToast("Bellows center " + effectiveDefault(index) + " saved as default.");
+      log("bellows center saved as default: " + effectiveDefault(index), "sysexSavedValue");
+    } catch (err) {
+      showToast("Saving the bellows center failed: " + err.message, { error: true });
+    } finally {
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
   });
 
   const btnSampleCenter = document.getElementById("btnSampleCenter");
   btnSampleCenter.addEventListener("click", () => {
     btnSampleCenter.disabled = true;
-    const originalText = btnSampleCenter.textContent;
-    btnSampleCenter.textContent = "Sampling…";
+    const label = btnSampleCenter.querySelector(".btn-label");
+    const originalText = label.textContent;
+    label.textContent = "Sampling…";
     let sum = 0, count = 0;
     const sampleInterval = setInterval(() => {
       if (liveAdcTotal !== null) { sum += liveAdcTotal; count++; }
@@ -2163,7 +2928,7 @@
     setTimeout(() => {
       clearInterval(sampleInterval);
       btnSampleCenter.disabled = false;
-      btnSampleCenter.textContent = originalText;
+      label.textContent = originalText;
       if (count === 0) {
         log("bellow center sample failed: no live sensor reading (connect to the device first)", "other");
         return;
@@ -2171,14 +2936,14 @@
       bg.center = clamp(Math.round(sum / count), 17000, 34000);
       syncParamInputs();
       redrawGraph();
-      if (bellowGraphLive) queueSetProperty(PROP_INDEX.center, bg.center);
+      writeBellowProp("center", bg.center);
     }, 1000);
   });
 
   bpEls.sliderDead.addEventListener("input", () => {
     bg.dead = clamp(Math.round(+bpEls.sliderDead.value), +bpEls.sliderDead.min, +bpEls.sliderDead.max);
     bpEls.sliderDeadValue.textContent = bg.dead;
-    if (bellowGraphLive) queueSetProperty(PROP_INDEX.dead, bg.dead);
+    writeBellowProp("dead", bg.dead);
     redrawGraph();
   });
 
@@ -2186,48 +2951,83 @@
     btn.addEventListener("click", () => {
       const p = bgPresets[btn.dataset.preset];
       bg.push = { ...p }; bg.pull = { ...p };
-      if (bellowGraphLive) {
-        queueSetProperty(PROP_INDEX.pushX1, p.x1); queueSetProperty(PROP_INDEX.pushY1, p.y1);
-        queueSetProperty(PROP_INDEX.pushX2, p.x2); queueSetProperty(PROP_INDEX.pushY2, p.y2);
-        queueSetProperty(PROP_INDEX.pullX1, p.x1); queueSetProperty(PROP_INDEX.pullY1, p.y1);
-        queueSetProperty(PROP_INDEX.pullX2, p.x2); queueSetProperty(PROP_INDEX.pullY2, p.y2);
-      }
+      writeBellowProp("pushX1", p.x1); writeBellowProp("pushY1", p.y1);
+      writeBellowProp("pushX2", p.x2); writeBellowProp("pushY2", p.y2);
+      writeBellowProp("pullX1", p.x1); writeBellowProp("pullY1", p.y1);
+      writeBellowProp("pullX2", p.x2); writeBellowProp("pullY2", p.y2);
       redrawGraph();
     });
   });
 
+  /* Shows program n: stores the edited bg back into its slot, loads n's
+   * values, and highlights its button. fromDevice is set when the device
+   * itself changed program (FN1, or bellow_program edited elsewhere), so
+   * nothing is written back. */
+  const bellowProgramButtons = document.querySelectorAll("#bpPrograms button");
+  function selectBellowProgram(n, { fromDevice = false } = {}) {
+    if (n !== currentBellowProgram) {
+      const { center, ...program } = copyBellowProgram(bg);
+      bgPrograms[currentBellowProgram] = program;
+      Object.assign(bg, copyBellowProgram(bgPrograms[n]));
+      currentBellowProgram = n;
+    }
+    bellowProgramButtons.forEach((btn) =>
+      btn.setAttribute("aria-pressed", String(+btn.dataset.program === n)));
+    if (!fromDevice && bellowProgramLive) queueSetProperty(BELLOW_PROGRAM_PROP_INDEX, n);
+    redrawGraph();
+    updateLiveDot();
+  }
+  bellowProgramButtons.forEach((btn) =>
+    btn.addEventListener("click", () => selectBellowProgram(+btn.dataset.program)));
+
   function applyBellowGraphFromFetched(fetched, byName) {
-    let ok = true;
-    for (const [key, propName] of Object.entries(PROP_NAMES)) {
-      const index = byName.get(propName);
-      if (index === undefined) {
-        ok = false;
-        log("bellows graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing read values only where possible.", "sysexGetPropertyDescription");
-        break;
+    BELLOW_CENTER_PROP_INDEX = byName.get(BELLOW_CENTER_PROP_NAME) ?? null;
+    let ok = BELLOW_CENTER_PROP_INDEX !== null;
+    if (!ok) log("bellows graph: property \"" + BELLOW_CENTER_PROP_NAME + "\" not found on this device - live tuning disabled, showing defaults.", "sysexGetPropertyDescription");
+    for (let n = 0; n < BELLOW_PROGRAM_COUNT && ok; n++) {
+      PROP_INDEX[n] = {};
+      for (const key of Object.keys(BELLOW_PROP_SUFFIX)) {
+        const propName = bellowPropName(n, key);
+        const index = byName.get(propName);
+        if (index === undefined) {
+          ok = false;
+          log("bellows graph: property \"" + propName + "\" not found on this device - live tuning disabled, showing defaults.", "sysexGetPropertyDescription");
+          break;
+        }
+        PROP_INDEX[n][key] = index;
       }
-      PROP_INDEX[key] = index;
     }
     bellowGraphLive = ok;
     if (ok) {
-      bg.center = fetched.get(PROP_INDEX.center).value;
-      bg.dead = fetched.get(PROP_INDEX.dead).value;
-      bg.fullPush = fetched.get(PROP_INDEX.fullPush).value;
-      bg.fullPull = fetched.get(PROP_INDEX.fullPull).value;
-      bg.push = {
-        x1: fetched.get(PROP_INDEX.pushX1).value, y1: fetched.get(PROP_INDEX.pushY1).value,
-        x2: fetched.get(PROP_INDEX.pushX2).value, y2: fetched.get(PROP_INDEX.pushY2).value,
-      };
-      bg.pull = {
-        x1: fetched.get(PROP_INDEX.pullX1).value, y1: fetched.get(PROP_INDEX.pullY1).value,
-        x2: fetched.get(PROP_INDEX.pullX2).value, y2: fetched.get(PROP_INDEX.pullY2).value,
-      };
+      bg.center = fetched.get(BELLOW_CENTER_PROP_INDEX).value;
+      for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
+        const v = (key) => fetched.get(PROP_INDEX[n][key]).value;
+        bgPrograms[n] = {
+          dead: v("dead"), pushTravel: v("pushTravel"), pullTravel: v("pullTravel"),
+          push: { x1: v("pushX1"), y1: v("pushY1"), x2: v("pushX2"), y2: v("pushY2") },
+          pull: { x1: v("pullX1"), y1: v("pullY1"), x2: v("pullX2"), y2: v("pullY2") },
+        };
+      }
       bpEls.status.textContent = "Connected — live, dragging writes to the device.";
       bpEls.status.classList.add("live");
     } else {
       bpEls.status.textContent = "Connected, but this firmware's property layout doesn't match this page's build — showing defaults, editing is local-only.";
       bpEls.status.classList.remove("live");
     }
-    redrawGraph();
+
+    const programIndex = byName.get("bellow_program");
+    let program = 0;
+    if (ok && programIndex !== undefined) {
+      BELLOW_PROGRAM_PROP_INDEX = programIndex;
+      bellowProgramLive = true;
+      program = clamp(fetched.get(programIndex).value, 0, BELLOW_PROGRAM_COUNT - 1);
+    } else if (programIndex === undefined) {
+      log("bellows program: property \"bellow_program\" not found on this device - showing program 1.", "sysexGetPropertyDescription");
+    }
+    // Load the fetched values even if the program number didn't change.
+    Object.assign(bg, copyBellowProgram(bgPrograms[program]));
+    currentBellowProgram = program;
+    selectBellowProgram(program, { fromDevice: true });
   }
 
   function applyPedalGraphFromFetched(fetched, byName) {
@@ -2264,7 +3064,7 @@
 
   // The domain is fixed, so these are drawn once rather than on every
   // redraw (unlike the bellows graph's renderXTicks, whose range moves with
-  // bellow_full_push/pull).
+  // the full push/pull).
   const PEDAL_X_TICK_STEP = 1000;
   function renderPedalXTicks(group) {
     while (group.firstChild) group.removeChild(group.firstChild);
@@ -2419,6 +3219,7 @@
       liveAdcTotal = p.hall0 + p.hall1;
       updateLiveDot();
       updatePedalLiveState(p);
+      updateButtonSettingsFromDevice(p);
     } catch (err) {
       // Transient: another request may have been in flight. Retried next tick.
     }
@@ -2579,23 +3380,19 @@
   // assumed, same reasoning as PROP_INDEX above; null until a connected
   // device's property list has been searched for it.
   let KEYBOARD_TUNING_PROP_INDEX = null;
-  let currentTuning = 0; // matches keyboard_tuning's default_value
+  let currentTuning = 0; // matches keyboard_tuning's factory_value
   let keyboardTuningLive = false; // true once resolved against a connected device
 
   let TABLE_MODE_PROP_INDEX = null;
-  let currentTableMode = false; // matches table_mode's default_value
+  let currentTableMode = false; // matches table_mode's factory_value
   let tableModeLive = false; // same as keyboardTuningLive, for table_mode
-
-  let BELLOW_SENS_PROP_INDEX = null;
-  let currentBellowSens = 0; // matches bellow_sens_level's default_value
-  let bellowSensLive = false; // same as keyboardTuningLive, for bellow_sens_level
 
   // No dedicated control for this one (it stays editable in the generic
   // Properties table) - just tracked so clicking a key on the diagram below
   // can play it at the same velocity the device itself would use in table
   // mode, per tablemode_velocity's own description.
   let TABLEMODE_VELOCITY_PROP_INDEX = null;
-  let currentTablemodeVelocity = 80; // matches tablemode_velocity's default_value
+  let currentTablemodeVelocity = 80; // matches tablemode_velocity's factory_value
   let tablemodeVelocityLive = false; // same as keyboardTuningLive, for tablemode_velocity
 
   // MIDI channel (1-based) each wing's notes arrive on - L_MIDI_CH=0,
@@ -2827,7 +3624,6 @@
   const kbdVolume = { left: 100, right: 100 };
 
   const soundToggle = document.getElementById("soundToggle");
-  const soundStatus = document.getElementById("soundStatus");
   const kbdSoundEls = {
     left: {
       panel: document.getElementById("kbdSoundLeft"),
@@ -2841,9 +3637,13 @@
     },
   };
 
-  function setSoundStatus(text) {
-    soundStatus.textContent = text;
-    soundStatus.hidden = !text;
+  /* Sound engine progress and failures, as toasts so the Keyboards header
+   * never reflows: progress stays up until cleared with "", a failure until
+   * dismissed. */
+  let dismissSoundToast = null;
+  function setSoundStatus(text, { error = false } = {}) {
+    if (dismissSoundToast) { dismissSoundToast(); dismissSoundToast = null; }
+    if (text) dismissSoundToast = showToast(text, { error, sticky: true });
   }
 
   function patchKey(patch) {
@@ -2996,22 +3796,23 @@
     try {
       await ensureSoundEngine();
     } catch (err) {
-      setSoundStatus("Sound failed to load: " + err.message);
+      setSoundStatus("Sound failed to load: " + err.message, { error: true });
       log("sound engine failed to load: " + err.message, "other");
       soundEnabled = false;
       soundToggle.setAttribute("aria-pressed", "false");
     }
   }
 
-  const kbdTuningSelect = document.getElementById("kbdTuningSelect");
+  const kbdTuningButtons = document.querySelectorAll("#kbdTuningButtons button");
   const kbdTableModeToggle = document.getElementById("kbdTableModeToggle");
-  const bellowSensSelect = document.getElementById("bellowSensSelect");
 
-  function syncTuningUi() { kbdTuningSelect.value = String(currentTuning); }
+  function syncTuningUi() {
+    kbdTuningButtons.forEach((btn) =>
+      btn.setAttribute("aria-pressed", String(+btn.dataset.tuning === currentTuning)));
+  }
   function syncTableModeUi() { kbdTableModeToggle.checked = currentTableMode; }
-  function syncBellowSensUi() { bellowSensSelect.value = String(currentBellowSens); }
 
-  /* Reads keyboard_tuning/table_mode/bellow_sens_level from the initial
+  /* Reads keyboard_tuning/table_mode from the initial
    * property enumeration, resolving each one's index by name (byName, built
    * in enumerateProperties) the same way applyBellowGraphFromFetched/
    * applyPedalGraphFromFetched do - a firmware that doesn't have the
@@ -3025,7 +3826,7 @@
       currentTuning = fetched.get(index).value;
       keyboardTuningLive = true;
     } else {
-      log("keyboard tuning: property \"keyboard_tuning\" not found on this device - showing default tuning.", "sysexGetPropertyDescription");
+      log("keyboard system: property \"keyboard_tuning\" not found on this device - showing the default keyboard system.", "sysexGetPropertyDescription");
     }
     syncTuningUi();
     renderKeyboard("left");
@@ -3044,18 +3845,6 @@
     syncTableModeUi();
   }
 
-  function applyBellowSensFromFetched(fetched, byName) {
-    const index = byName.get("bellow_sens_level");
-    if (index !== undefined) {
-      BELLOW_SENS_PROP_INDEX = index;
-      currentBellowSens = fetched.get(index).value;
-      bellowSensLive = true;
-    } else {
-      log("bellows sensitivity: property \"bellow_sens_level\" not found on this device - showing default.", "sysexGetPropertyDescription");
-    }
-    syncBellowSensUi();
-  }
-
   function applyTablemodeVelocityFromFetched(fetched, byName) {
     const index = byName.get("tablemode_velocity");
     if (index !== undefined) {
@@ -3067,44 +3856,48 @@
     }
   }
 
+  /* Follows the function buttons on the instrument (or a console edit): the
+   * peripherals poll carries table_mode, keyboard_tuning and bellow_program.
+   * A setting is skipped while this page's own write is in flight or still
+   * queued (writeInFlight is a single slot, so it covers whichever write it
+   * is), so a reply from just before the write lands can't bounce the UI back. */
+  // No write of this property pending: a device reading isn't stale.
+  const settledIndex = (index) => !writeInFlight && !writeQueue.has(index);
+
+  function updateButtonSettingsFromDevice(p) {
+    if (p.tableMode === null || p.bellowProgram === null) return; // older firmware
+    const settled = settledIndex;
+    if (keyboardTuningLive && settled(KEYBOARD_TUNING_PROP_INDEX)
+        && p.tuning !== currentTuning && p.tuning < KBD_NOTE_TABLE.length) {
+      currentTuning = p.tuning;
+      syncTuningUi();
+      renderKeyboard("left");
+      renderKeyboard("right");
+      syncTableValue(KEYBOARD_TUNING_PROP_INDEX, p.tuning);
+    }
+    if (tableModeLive && settled(TABLE_MODE_PROP_INDEX) && !!p.tableMode !== currentTableMode) {
+      currentTableMode = !!p.tableMode;
+      syncTableModeUi();
+      syncTableValue(TABLE_MODE_PROP_INDEX, p.tableMode ? 1 : 0);
+    }
+    if (bellowProgramLive && settled(BELLOW_PROGRAM_PROP_INDEX)
+        && p.bellowProgram !== currentBellowProgram && p.bellowProgram < BELLOW_PROGRAM_COUNT) {
+      selectBellowProgram(p.bellowProgram, { fromDevice: true });
+      syncTableValue(BELLOW_PROGRAM_PROP_INDEX, p.bellowProgram);
+    }
+  }
+
   let keyboardPropsTimer = null;
   async function pollKeyboardPropsOnce() {
     if (!activeOutput) return;
-    if (keyboardTuningLive) try {
-      const value = await requestPropertyValue(KEYBOARD_TUNING_PROP_INDEX);
-      if (value !== currentTuning && value >= 0 && value < KBD_NOTE_TABLE.length) {
-        currentTuning = value;
-        syncTuningUi();
-        renderKeyboard("left");
-        renderKeyboard("right");
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
-    if (tableModeLive) try {
-      const value = await requestPropertyValue(TABLE_MODE_PROP_INDEX);
-      const boolValue = !!value;
-      if (boolValue !== currentTableMode) {
-        currentTableMode = boolValue;
-        syncTableModeUi();
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
-    if (bellowSensLive) try {
-      const value = await requestPropertyValue(BELLOW_SENS_PROP_INDEX);
-      if (value !== currentBellowSens && value >= 0 && value <= 2) {
-        currentBellowSens = value;
-        syncBellowSensUi();
-      }
-    } catch (err) {
-      // Transient: retried next tick.
-    }
-    // No UI to sync here - just keeps the cached value current in case
-    // tablemode_velocity is edited from the generic Properties table.
+    // Keeps the cached value (and its table row) current in case
+    // tablemode_velocity is changed from the console.
     if (tablemodeVelocityLive) try {
       const value = await requestPropertyValue(TABLEMODE_VELOCITY_PROP_INDEX);
-      if (value >= 1 && value <= 127) currentTablemodeVelocity = value;
+      if (value >= 1 && value <= 127 && settledIndex(TABLEMODE_VELOCITY_PROP_INDEX)) {
+        currentTablemodeVelocity = value;
+        syncTableValue(TABLEMODE_VELOCITY_PROP_INDEX, value);
+      }
     } catch (err) {
       // Transient: retried next tick.
     }
@@ -3117,20 +3910,17 @@
     if (keyboardPropsTimer) { clearInterval(keyboardPropsTimer); keyboardPropsTimer = null; }
   }
 
-  kbdTuningSelect.addEventListener("change", () => {
-    const value = +kbdTuningSelect.value;
+  kbdTuningButtons.forEach((btn) => btn.addEventListener("click", () => {
+    const value = +btn.dataset.tuning;
     currentTuning = value;
+    syncTuningUi();
     renderKeyboard("left");
     renderKeyboard("right");
     if (keyboardTuningLive) queueSetProperty(KEYBOARD_TUNING_PROP_INDEX, value);
-  });
+  }));
   kbdTableModeToggle.addEventListener("change", () => {
     currentTableMode = kbdTableModeToggle.checked;
     if (tableModeLive) queueSetProperty(TABLE_MODE_PROP_INDEX, currentTableMode ? 1 : 0);
-  });
-  bellowSensSelect.addEventListener("change", () => {
-    currentBellowSens = +bellowSensSelect.value;
-    if (bellowSensLive) queueSetProperty(BELLOW_SENS_PROP_INDEX, currentBellowSens);
   });
 
   const kbdNoteModeToggle = document.getElementById("kbdNoteModeToggle");
@@ -3173,6 +3963,15 @@
   let activeName = null;
   let activeInput = null;
   let activeOutput = null;
+  // Whether the connected device answers the configuration sysex:
+  // null (nothing connected), "checking", "ok" or "noSysex".
+  let linkState = null;
+  let enumGeneration = 0;
+
+  function setLinkState(state) {
+    linkState = state;
+    updateStatus();
+  }
 
   function isBandolibre(name) {
     return !!name && BANDOLIBRE_RE.test(name);
@@ -3297,7 +4096,9 @@
   function updateStatus() {
     if (!midiAccess) return;
     if (activeName) {
-      setStatus("ok", "Connected: " + activeName);
+      if (linkState === "noSysex") setStatus("bad", "Not responding — wrong device?");
+      else if (linkState === "checking") setStatus("warn", "Checking device…");
+      else setStatus("ok", "Connected");
     } else {
       const hasAnyDevice = collectDevices().length > 0;
       setStatus(hasAnyDevice ? "warn" : "", hasAnyDevice ? "Waiting for Bandolibre…" : "No MIDI devices found");
@@ -3308,7 +4109,6 @@
   // mirroring midi_input_process's byte-scanning in usb_app.cc.
   let sysexBuf = [];
   let inSysex = false;
-  let sysexStartTime = 0;
 
   function handleMidiMessage(event) {
     const bytes = Array.from(event.data);
@@ -3348,7 +4148,6 @@
     }
     if (!silentSysex) {
       log("« " + hex + (description ? "  (" + description + ")" : ""), messageKind(bytes, startingSysex));
-      console.log("[midi rx]", { bytes: bytes.length, inSysex, bufLen: sysexBuf.length, hex });
     }
 
     for (const b of bytes) {
@@ -3356,17 +4155,14 @@
         if (inSysex) console.log("[sysex warning] 0xF0 while already in sysex, resetting");
         inSysex = true;
         sysexBuf = [b];
-        sysexStartTime = Date.now();
       } else if (inSysex) {
         sysexBuf.push(b);
         if (b === 0xf7) {
-          const frameTime = Date.now() - sysexStartTime;
           inSysex = false;
           const payload = unpackSysexFrame(Uint8Array.from(sysexBuf));
           if (payload) {
             if (!silentSysex) {
               log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
-              console.log("[sysex complete]", { frameLen: sysexBuf.length, payloadLen: payload.length, frameTime });
             }
             // Device-initiated push, not a request/response - never has a
             // pending request to resolve (resolvePendingRequest below is a
@@ -3385,9 +4181,6 @@
         }
       }
     }
-    if (inSysex && sysexBuf.length > 0 && Date.now() - sysexStartTime > 100) {
-      console.log("[sysex partial]", { bufLen: sysexBuf.length, elapsed: Date.now() - sysexStartTime, pending: !!pending });
-    }
   }
 
   function disconnect() {
@@ -3396,6 +4189,8 @@
     activeName = null;
     activeInput = null;
     activeOutput = null;
+    linkState = null;
+    enumGeneration++; // the rejected HELLO below must not set linkState back
     // A sysex round-trip (eg. a GET_PERIPHERALS poll) can still be in flight
     // when the device drops off the bus - a fast device reset re-enumerates
     // well within the 1500ms sysex timeout. Left alone, `pending` would stay
@@ -3422,11 +4217,12 @@
     pedalGraphLive = false;
     keyboardTuningLive = false;
     tableModeLive = false;
-    bellowSensLive = false;
+    bellowProgramLive = false;
     tablemodeVelocityLive = false;
     KEYBOARD_TUNING_PROP_INDEX = null;
     TABLE_MODE_PROP_INDEX = null;
-    BELLOW_SENS_PROP_INDEX = null;
+    BELLOW_PROGRAM_PROP_INDEX = null;
+    BELLOW_CENTER_PROP_INDEX = null;
     TABLEMODE_VELOCITY_PROP_INDEX = null;
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");
@@ -3561,7 +4357,31 @@
 
   wireModal("infoBtn", "infoOverlay", "infoModalClose");
   wireModal("bwInfoBtn", "bwInfoOverlay", "bwInfoModalClose");
+  // The bandwidth info button lives inside the Activity <summary>: without
+  // this, opening the modal would also collapse the card.
+  document.getElementById("bwInfoBtn").addEventListener("click", (e) => e.preventDefault());
+
+  // The Keyboards summary holds the Solfège switch and the sound button. A
+  // click on their text or icon would also fold the card (only a click that
+  // lands on the form control itself is exempt), so cancel the fold and, for
+  // the switch's label, forward the click to its checkbox by hand.
+  document.getElementById("keyboardSummary").addEventListener("click", (e) => {
+    const ctl = e.target.closest("label, button, input, select");
+    if (!ctl || ctl.tagName === "INPUT" || ctl.tagName === "SELECT") return;
+    e.preventDefault();
+    if (ctl.tagName === "LABEL" && ctl.control) ctl.control.click();
+  });
+
+  // Collapsible cards remember their open/closed state per browser.
+  for (const card of document.querySelectorAll("details.collapsible[id]")) {
+    const key = "collapsed:" + card.id;
+    try { if (localStorage.getItem(key) === "1") card.open = false; } catch (_) {}
+    card.addEventListener("toggle", () => {
+      try { localStorage.setItem(key, card.open ? "0" : "1"); } catch (_) {}
+    });
+  }
 })();
 </script>
+<div class="toast-host" id="toastHost" aria-live="polite"></div>
 </body>
 </html>
