@@ -1613,16 +1613,30 @@
     propertiesTable.hidden = true;
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
+    // A newer enumeration (reconnect, retry) owns the link state: an older
+    // one failing late with "device disconnected" must not overwrite it.
+    const generation = ++enumGeneration;
     if (!activeInput || !activeOutput) {
       setPropertiesStatus("Properties need both a MIDI input and output on this device.");
+      setLinkState("noSysex");
       return;
     }
 
     setPropertiesStatus("Requesting property list…");
+    setLinkState("checking");
     console.log("[enum start]", { timestamp: Date.now() });
     try {
       const helloStart = Date.now();
-      const hello = await requestHello();
+      let hello;
+      try {
+        hello = await requestHello();
+      } catch (err) {
+        // No answer to HELLO: most likely another MIDI device was picked
+        // rather than the Bandolibre.
+        if (generation === enumGeneration) setLinkState("noSysex");
+        throw err;
+      }
+      if (generation === enumGeneration) setLinkState("ok");
       const helloTime = Date.now() - helloStart;
       log("hello: " + hello.version + ", " + hello.count + " properties", "sysexHello");
       console.log("[hello response]", { version: hello.version, count: hello.count, elapsed: helloTime });
@@ -3293,6 +3307,15 @@
   let activeName = null;
   let activeInput = null;
   let activeOutput = null;
+  // Whether the connected device answers the configuration sysex:
+  // null (nothing connected), "checking", "ok" or "noSysex".
+  let linkState = null;
+  let enumGeneration = 0;
+
+  function setLinkState(state) {
+    linkState = state;
+    updateStatus();
+  }
 
   function isBandolibre(name) {
     return !!name && BANDOLIBRE_RE.test(name);
@@ -3417,7 +3440,9 @@
   function updateStatus() {
     if (!midiAccess) return;
     if (activeName) {
-      setStatus("ok", "Connected");
+      if (linkState === "noSysex") setStatus("bad", "Not responding — wrong device?");
+      else if (linkState === "checking") setStatus("warn", "Checking device…");
+      else setStatus("ok", "Connected");
     } else {
       const hasAnyDevice = collectDevices().length > 0;
       setStatus(hasAnyDevice ? "warn" : "", hasAnyDevice ? "Waiting for Bandolibre…" : "No MIDI devices found");
@@ -3516,6 +3541,8 @@
     activeName = null;
     activeInput = null;
     activeOutput = null;
+    linkState = null;
+    enumGeneration++; // the rejected HELLO below must not set linkState back
     // A sysex round-trip (eg. a GET_PERIPHERALS poll) can still be in flight
     // when the device drops off the bus - a fast device reset re-enumerates
     // well within the 1500ms sysex timeout. Left alone, `pending` would stay
