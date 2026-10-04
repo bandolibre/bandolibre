@@ -247,6 +247,9 @@
     font-family: var(--mono);
     white-space: nowrap;
   }
+  /* th.name gets an inline width from fitNameColumn(): the longest name, so
+   * the columns stay put when "show all" hides most rows. A width on a table
+   * cell acts as its minimum. */
   table.properties-table td.value {
     font-family: var(--mono);
     white-space: nowrap;
@@ -349,10 +352,16 @@
   }
   .icon-btn:active:not(:disabled) { box-shadow: none; transform: translateY(1px); }
   .icon-btn:disabled { cursor: progress; opacity: 0.7; }
-  .icon-btn svg { width: 14px; height: 14px; flex: none; }
+  .icon-btn svg { width: 14px; height: 14px; flex: none; display: block; }
+  /* line-height 1: the default "normal" line box adds uneven space above and
+   * below the label, so the text sits off the icon's centre line. */
+  .icon-btn { line-height: 1; justify-content: center; padding-top: 5px; padding-bottom: 5px; }
+  /* The system font's capitals sit 1px above the line box's centre (measured
+   * in Chrome), so the label is nudged down to line up with the icon. */
+  .icon-btn .btn-label { position: relative; top: 1px; }
   .icon-btn[hidden] { display: none; }
   /* Nothing to save, rather than busy: greyed, not the progress cursor. */
-  #propertiesSaveBtn:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
+  #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
   /* ---- Bellows curve graph ---- */
   .bellow-header {
@@ -855,6 +864,14 @@
               </svg>
               <span class="btn-label">Calibrate</span>
             </button>
+            <button type="button" class="retry-btn icon-btn" id="btnSaveCenter" disabled title="Save the center as the value the device starts with">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"></path>
+                <path d="M8 3v5h7V3"></path>
+                <rect x="8" y="13" width="8" height="6" rx="1"></rect>
+              </svg>
+              <span class="btn-label">Save as default</span>
+            </button>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -1059,7 +1076,7 @@
           <path d="M8 3v5h7V3"></path>
           <rect x="8" y="13" width="8" height="6" rx="1"></rect>
         </svg>
-        Save as default
+        <span class="btn-label">Save as default</span>
       </button>
       <label class="kbd-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
         <span>show all</span>
@@ -1070,7 +1087,7 @@
       </label>
     </div>
     <table class="properties-table" id="propertiesTable" hidden>
-      <thead><tr><th>#</th><th>Name</th>
+      <thead><tr><th>#</th><th class="name">Name</th>
         <th><span class="th-label value">Value</span><button type="button" class="prop-reset-btn" id="propertiesResetAllBtn" hidden title="Reset every value to its default">↺</button></th>
         <th><span class="th-label default">Default</span><button type="button" class="prop-reset-btn" id="propertiesFactoryResetBtn" hidden title="Factory reset: erase every saved value and return every setting to its factory value">↺</button></th>
         <th>Description</th></tr></thead>
@@ -1764,6 +1781,7 @@
     propertiesFactoryResetBtn.hidden = true;
     propertiesShowAllLabel.hidden = true;
     propertiesAllFactory.hidden = true;
+    updateSaveCenterButton();
     setPropertiesStatus("Not connected.");
   }
 
@@ -1817,6 +1835,7 @@
       el.title = "Changed from the default (" + def + ")\nNot saved: Save as default keeps it";
     else el.title = "Changed from the default (" + def + ")";
     updateRowVisibility(index);
+    if (index === BELLOW_CENTER_PROP_INDEX) updateSaveCenterButton();
   }
 
   /* With "show all" off the table lists only what differs from the firmware:
@@ -1858,6 +1877,23 @@
   window.addEventListener("resize", alignSaveButton);
   // A collapsed card has no layout to measure: realign when it opens.
   document.getElementById("propertiesCard").addEventListener("toggle", alignSaveButton);
+
+  /* Minimum Name column width = the longest property name, measured with the
+   * name cells' font (hidden rows count too: a canvas needs no layout). */
+  let nameMeasureCtx = null;
+  function fitNameColumn() {
+    const th = propertiesTable.querySelector("th.name");
+    const cell = propertiesBody.querySelector("td.name");
+    if (!cell) { th.style.width = ""; return; }
+    nameMeasureCtx ??= document.createElement("canvas").getContext("2d");
+    // From its parts: Firefox can leave the "font" shorthand empty.
+    const cs = getComputedStyle(cell);
+    nameMeasureCtx.font = cs.fontStyle + " " + cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily;
+    let widest = 0;
+    for (const info of savedInfo.values())
+      if (info.name) widest = Math.max(widest, nameMeasureCtx.measureText(info.name).width);
+    th.style.width = Math.ceil(widest) + "px";
+  }
 
   function updateAllFactoryHint() {
     // Only once enumeration is done (the switch appears then), not mid-load.
@@ -1983,6 +2019,7 @@
     propertiesResetAllBtn.disabled = propertiesBusy || !anyModified;
     propertiesFactoryResetBtn.disabled = propertiesBusy || !anySaved;
     propertiesSaveBtn.disabled = propertiesBusy || !anyToSave;
+    updateSaveCenterButton();
   }
 
   function resetAllToDefault() {
@@ -2242,9 +2279,11 @@
       propertiesSaveBtn.hidden = !savedValuesSupported;
       propertiesFactoryResetBtn.hidden = !savedValuesSupported;
       propertiesShowAllLabel.hidden = false;
+      fitNameColumn();
       updateAllFactoryHint();
 
       applyBellowGraphFromFetched(fetched, byName);
+      updateSaveCenterButton();
       applyPedalGraphFromFetched(fetched, byName);
       applyKeyboardTuningFromFetched(fetched, byName);
       applyTableModeFromFetched(fetched, byName);
@@ -2839,6 +2878,41 @@
     document.getElementById("zoomLevelLabel").textContent = "×" + zoomFactor;
     redrawGraph();
     updateLiveDot();
+  });
+
+  /* Save as default, for the center only: the bellows' rest position is a
+   * property of the instrument, so it is worth keeping on its own after a
+   * Calibrate. Enabled when the center differs from its default (the table
+   * row of bellow_center is kept in sync with every way of changing it). */
+  const btnSaveCenter = document.getElementById("btnSaveCenter");
+  function updateSaveCenterButton() {
+    const index = BELLOW_CENTER_PROP_INDEX;
+    const info = index !== null ? savedInfo.get(index) : undefined;
+    const ready = bellowGraphLive && savedValuesSupported && !propertiesBusy && !!info && !!info.input && info.persistent;
+    btnSaveCenter.disabled = !ready || Math.round(+info.input.value) === effectiveDefault(index);
+  }
+
+  btnSaveCenter.addEventListener("click", async () => {
+    const index = BELLOW_CENTER_PROP_INDEX;
+    const info = savedInfo.get(index);
+    if (!confirm("Save the bellows center (" + info.input.value + ") as default? The Bandolibre will start with it.")) return;
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const r = await withPollingPaused(async () => {
+        const live = await requestPropertyValue(index);
+        return requestSetSavedValue(index, live === info.factoryValue ? SAVED_OP_CLEAR : SAVED_OP_SET, live);
+      });
+      if (r.status === SAVED_STATUS_ERROR) throw new Error("the device could not save it");
+      applySavedResponse(index, r);
+      showToast("Bellows center " + effectiveDefault(index) + " saved as default.");
+      log("bellows center saved as default: " + effectiveDefault(index), "sysexSavedValue");
+    } catch (err) {
+      showToast("Saving the bellows center failed: " + err.message, { error: true });
+    } finally {
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
   });
 
   const btnSampleCenter = document.getElementById("btnSampleCenter");
