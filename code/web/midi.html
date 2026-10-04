@@ -293,6 +293,23 @@
   .retry-btn:hover {
     border-color: var(--muted);
   }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    /* Raised rather than filled: a filled button reads as the pressed state
+     * of the choice buttons. */
+    font-weight: 600;
+    border-color: color-mix(in srgb, var(--fg) 35%, var(--card));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  }
+  .icon-btn:hover:not(:disabled) {
+    border-color: var(--fg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+  }
+  .icon-btn:active:not(:disabled) { box-shadow: none; transform: translateY(1px); }
+  .icon-btn:disabled { cursor: progress; opacity: 0.7; }
+  .icon-btn svg { width: 14px; height: 14px; flex: none; }
 
   /* ---- Bellows curve graph ---- */
   .bellow-header {
@@ -386,7 +403,8 @@
   .bp-swatch.push { background: var(--push); }
   .bp-swatch.pull { background: var(--pull); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
-  .bp-center-row { display: flex; align-items: center; gap: 8px; }
+  /* stretch: the Calibrate button takes the center box's height. */
+  .bp-center-row { display: flex; align-items: stretch; gap: 8px; }
   .bp-center-row .bp-x { flex: 1; max-width: 12em; }
   .bp-cp-row-label { font-size: 0.72rem; color: var(--muted); }
   .bp-x, .bp-xy, .bp-xyz { display: grid; gap: 6px; }
@@ -731,7 +749,17 @@
             <div class="bp-x">
               <label><span>center</span><input type="number" id="num-center" min="17000" max="34000" value="27800"></label>
             </div>
-            <button type="button" class="retry-btn" id="btnSampleCenter">Set from current (1s average)</button>
+            <button type="button" class="retry-btn icon-btn" id="btnSampleCenter" title="Set the center from the current sensor reading, averaged over 1 s. Leave the bellows at rest.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="7"></circle>
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="5" y2="12"></line>
+                <line x1="19" y1="12" x2="22" y2="12"></line>
+              </svg>
+              <span class="btn-label">Calibrate</span>
+            </button>
           </div>
         </div>
         <div class="bp-cp-row">
@@ -2275,8 +2303,9 @@
   const btnSampleCenter = document.getElementById("btnSampleCenter");
   btnSampleCenter.addEventListener("click", () => {
     btnSampleCenter.disabled = true;
-    const originalText = btnSampleCenter.textContent;
-    btnSampleCenter.textContent = "Sampling…";
+    const label = btnSampleCenter.querySelector(".btn-label");
+    const originalText = label.textContent;
+    label.textContent = "Sampling…";
     let sum = 0, count = 0;
     const sampleInterval = setInterval(() => {
       if (liveAdcTotal !== null) { sum += liveAdcTotal; count++; }
@@ -2284,7 +2313,7 @@
     setTimeout(() => {
       clearInterval(sampleInterval);
       btnSampleCenter.disabled = false;
-      btnSampleCenter.textContent = originalText;
+      label.textContent = originalText;
       if (count === 0) {
         log("bellow center sample failed: no live sensor reading (connect to the device first)", "other");
         return;
