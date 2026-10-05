@@ -197,7 +197,13 @@ En la lista de ajustes de la herramienta, los valores guardados aparecen
 resaltados; pasa el cursor sobre uno para ver el valor de fábrica. Actualizar
 el firmware conserva tus ajustes guardados.
 
-Para volver a los ajustes de fábrica del instrumento, pulsa **Factory reset**.
+Para volver a los ajustes de fábrica del instrumento, abre el menú **⋮** encima
+de la lista de ajustes y elige **Factory reset**.
+
+El mismo menú guarda tus ajustes en un archivo: **Save to file** los descarga,
+**Load from file** los recupera, por ejemplo tras un restablecimiento de fábrica
+o en otro Bandolibre. Los ajustes cargados se aplican al instante; pulsa
+**Save as default** para conservarlos.
 
 ---
 

@@ -187,7 +187,13 @@ Table mode always starts off.
 In the tool's list of settings, saved values are highlighted; hover over one to
 see the factory value. Updating the firmware keeps your saved settings.
 
-To go back to the settings the instrument came with, click **Factory reset**.
+To go back to the settings the instrument came with, open the **⋮** menu above
+the list of settings and choose **Factory reset**.
+
+The same menu keeps your settings in a file: **Save to file** downloads them,
+**Load from file** brings them back, for example after a factory reset or on
+another Bandolibre. Loaded settings apply at once; click **Save as default** to
+keep them.
 
 ---
 

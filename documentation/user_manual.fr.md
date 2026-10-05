@@ -203,8 +203,13 @@ Dans la liste des réglages de l'outil, les valeurs enregistrées sont mises en
 évidence ; survolez-en une pour voir la valeur d'usine. Mettre à jour le
 firmware conserve vos réglages enregistrés.
 
-Pour revenir aux réglages d'origine de l'instrument, cliquez sur
-**Factory reset**.
+Pour revenir aux réglages d'origine de l'instrument, ouvrez le menu **⋮**
+au-dessus de la liste des réglages et choisissez **Factory reset**.
+
+Le même menu conserve vos réglages dans un fichier : **Save to file** les
+télécharge, **Load from file** les rétablit, par exemple après un retour aux
+réglages d'usine ou sur un autre Bandolibre. Les réglages chargés s'appliquent
+tout de suite ; cliquez sur **Save as default** pour les garder.
 
 ---
 
