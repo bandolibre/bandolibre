@@ -573,7 +573,7 @@
     border: 1px solid var(--border); border-radius: 8px; padding: 12px;
     display: flex; flex-direction: column; gap: 8px;
   }
-  svg.kbd-plot { width: 100%; height: auto; display: block; }
+  svg.kbd-plot { width: 100%; height: auto; display: block; margin-inline: auto; }
   .kbd-key-circle { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
   .kbd-key-label { font-family: var(--mono); font-size: 9.9px; fill: var(--fg); text-anchor: middle; pointer-events: none; }
   .kbd-key-label.push { fill: var(--push); }
@@ -1100,11 +1100,11 @@
     <div class="kbd-grid">
       <div class="kbd-panel">
         <div class="kbd-panel-header">
-          <div class="pedal-title">Left wing</div>
+          <div class="pedal-title">Left</div>
           <div class="kbd-sound-controls" id="kbdSoundLeft" hidden>
-            <select class="kbd-instrument-select" id="kbdInstrumentLeft" aria-label="Left wing instrument"></select>
+            <select class="kbd-instrument-select" id="kbdInstrumentLeft" aria-label="Left keyboard instrument"></select>
             <div class="knob" id="kbdKnobLeft" title="Volume">
-              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Left wing volume" aria-valuemin="0" aria-valuemax="127">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Left keyboard volume" aria-valuemin="0" aria-valuemax="127">
                 <path class="knob-track" d=""></path>
                 <path class="knob-fill" d=""></path>
                 <circle class="knob-face" cx="20" cy="20" r="11"></circle>
@@ -1114,15 +1114,15 @@
             </div>
           </div>
         </div>
-        <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left wing keyboard, key positions and notes"></svg>
+        <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left keyboard, key positions and notes"></svg>
       </div>
       <div class="kbd-panel">
         <div class="kbd-panel-header">
-          <div class="pedal-title">Right wing</div>
+          <div class="pedal-title">Right</div>
           <div class="kbd-sound-controls" id="kbdSoundRight" hidden>
-            <select class="kbd-instrument-select" id="kbdInstrumentRight" aria-label="Right wing instrument"></select>
+            <select class="kbd-instrument-select" id="kbdInstrumentRight" aria-label="Right keyboard instrument"></select>
             <div class="knob" id="kbdKnobRight" title="Volume">
-              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Right wing volume" aria-valuemin="0" aria-valuemax="127">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Right keyboard volume" aria-valuemin="0" aria-valuemax="127">
                 <path class="knob-track" d=""></path>
                 <path class="knob-fill" d=""></path>
                 <circle class="knob-face" cx="20" cy="20" r="11"></circle>
@@ -1132,7 +1132,7 @@
             </div>
           </div>
         </div>
-        <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
+        <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right keyboard, key positions and notes"></svg>
       </div>
     </div>
   </details>
@@ -3792,7 +3792,14 @@
     const xs = positions.map((p) => p.x);
     return Math.max(...xs) - Math.min(...xs);
   }
-  const KBD_SCALE = (KBD_PLOT_W - 2 * KBD_PAD) / Math.max(kbdXRange(KEY_POS_LEFT), kbdXRange(KEY_POS_RIGHT));
+  // KBD_PLOT_W sets the size of the keys and labels on screen (the svg would
+  // be the panel's width at 300); KBD_SPREAD then packs the keys closer than
+  // that, and the svg narrows by as much, so the diagram is smaller but the
+  // keys and their text are not. At 0.8 the closest keys (14.6 mm apart,
+  // 10.5 mm wide at this scale) keep a small gap.
+  const KBD_SPREAD = 0.8;
+  const KBD_SCALE = KBD_SPREAD * (KBD_PLOT_W - 2 * KBD_PAD) / Math.max(kbdXRange(KEY_POS_LEFT), kbdXRange(KEY_POS_RIGHT));
+  const KBD_VIEW_W = KBD_SPREAD * (KBD_PLOT_W - 2 * KBD_PAD) + 2 * KBD_PAD;
 
   // Note display on the keyboard diagrams only - the activity log always
   // uses noteName() (English letters), regardless of this toggle.
@@ -3822,8 +3829,9 @@
     // Center this wing's (possibly narrower) span within the shared width,
     // and mirror X within that span (outward edge stays on the panel's
     // outer side, closest to the screen edge on its own side).
-    const xOffset = KBD_PAD + ((KBD_PLOT_W - 2 * KBD_PAD) - (xMax - xMin) * scale) / 2;
-    svg.setAttribute("viewBox", "0 0 " + KBD_PLOT_W + " " + plotH);
+    const xOffset = KBD_PAD + ((KBD_VIEW_W - 2 * KBD_PAD) - (xMax - xMin) * scale) / 2;
+    svg.setAttribute("viewBox", "0 0 " + KBD_VIEW_W + " " + plotH);
+    svg.style.width = (100 * KBD_VIEW_W / KBD_PLOT_W) + "%";
     svg.innerHTML = "";
 
     const tuning = KBD_NOTE_TABLE[currentTuning][side];
