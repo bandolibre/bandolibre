@@ -398,7 +398,7 @@
   #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
   /* Properties card menu (⋮): show all, save to / load from a JSON file,
-   * factory reset. Show all is a switch, so picking it leaves the menu open. */
+   * factory reset. */
   .props-menu { position: relative; flex: none; margin-left: auto; }
   .props-menu[hidden] { display: none; }
   .props-menu-btn {
@@ -2060,6 +2060,11 @@
   propertiesShowAll.addEventListener("change", () => {
     try { localStorage.setItem("propertiesShowAll", propertiesShowAll.checked ? "1" : "0"); } catch (_) {}
     for (const index of savedInfo.keys()) updateRowVisibility(index);
+    // A pick like the other menu items; focus goes back to the ⋮ button
+    // rather than staying on the now hidden switch.
+    const hadFocus = propertiesMenuList.contains(document.activeElement);
+    closePropertiesMenu();
+    if (hadFocus) propertiesMenuBtn.focus();
   });
 
   /* Set a table input from a value written elsewhere (graphs, buttons, the
@@ -2404,9 +2409,9 @@
     }
   }
 
-  /* The ⋮ menu: opens below its button, closes on a pick (but not on the Show
-   * all switch), Escape, Tab or a click elsewhere. Arrow keys move between the
-   * enabled items. */
+  /* The ⋮ menu: opens below its button, closes on a pick (Show all included),
+   * Escape, Tab or a click elsewhere. Arrow keys move between the enabled
+   * items. */
   function propertiesMenuItems() {
     return [...propertiesMenuList.querySelectorAll("button, input")]
       .filter((el) => !el.disabled && !el.closest("[hidden]"));
