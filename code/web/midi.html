@@ -335,6 +335,28 @@
   .th-label { display: inline-block; box-sizing: border-box; vertical-align: middle; }
   .th-label.value { width: var(--prop-value-w); }
   .th-label.default { width: var(--prop-default-w); text-align: right; padding-right: 3px; }
+  /* Placeholder rows while the properties load with "show all" on: as many
+   * rows as last time, so the card keeps its height through a reload. The
+   * Value and Default boxes match the real inputs and leave room for the ↺
+   * buttons. The shimmer is one gradient fixed to the viewport, so it sweeps
+   * across every bar together. */
+  .sk {
+    display: inline-block; height: 0.75em; border-radius: 4px; vertical-align: middle;
+    --sk-base: color-mix(in srgb, var(--fg) 9%, var(--card));
+    --sk-shine: color-mix(in srgb, var(--fg) 3%, var(--card));
+    background: linear-gradient(100deg, var(--sk-base) 40%, var(--sk-shine) 50%, var(--sk-base) 60%) fixed;
+    background-size: 200vw 100%;
+    animation: sk-shimmer 1.5s linear infinite;
+  }
+  .sk.box { height: 22px; margin-right: 26px; }
+  .sk.box.value { width: var(--prop-value-w); }
+  .sk.box.default { width: var(--prop-default-w); }
+  /* The description takes what the other columns leave, as long real
+   * descriptions do; its bar is a share of that. */
+  tr.skeleton td.desc { width: 100%; }
+  tr.skeleton td.desc .sk { display: block; }
+  @keyframes sk-shimmer { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
+  @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -1991,8 +2013,43 @@
     alignSaveButton();
   }
 
+  /* Placeholder rows (see .sk) while the properties load with "show all" on,
+   * one per property the device had last time; addPropertyRow() replaces
+   * them from the top as the real rows arrive. */
+  const PROPERTIES_COUNT_KEY = "propertiesCount";
+  function showPropertySkeleton() {
+    if (!propertiesShowAll.checked) return;
+    let count = 0;
+    try { count = Math.min(Number(localStorage.getItem(PROPERTIES_COUNT_KEY)) || 0, 512); } catch (_) {}
+    for (let i = 0; i < count; i++) {
+      const row = document.createElement("tr");
+      row.className = "skeleton";
+      row.setAttribute("aria-hidden", "true");
+      // Fixed pseudo-random lengths, so the rows don't look cloned.
+      const bars = [["index", "1.5ch"], ["name", 10 + (i * 7) % 12 + "ch"], ["value", null],
+                    ["default", null], ["desc", 40 + (i * 37) % 55 + "%"]];
+      for (const [cls, width] of bars) {
+        const cell = document.createElement("td");
+        cell.className = cls;
+        const bar = document.createElement("span");
+        bar.className = width ? "sk" : "sk box " + cls;
+        if (width) bar.style.width = width;
+        cell.appendChild(bar);
+        row.appendChild(cell);
+      }
+      propertiesBody.appendChild(row);
+    }
+    if (count > 0) propertiesTable.hidden = false;
+  }
+
+  function removePropertySkeleton() {
+    for (const row of propertiesBody.querySelectorAll("tr.skeleton")) row.remove();
+    if (savedInfo.size === 0) propertiesTable.hidden = true;
+  }
+
   // Remembered per browser, like the collapsible cards; off until first set.
   try { propertiesShowAll.checked = localStorage.getItem("propertiesShowAll") === "1"; } catch (_) {}
+  showPropertySkeleton(); // until init() connects, or finds no device
   propertiesShowAll.addEventListener("change", () => {
     try { localStorage.setItem("propertiesShowAll", propertiesShowAll.checked ? "1" : "0"); } catch (_) {}
     for (const index of savedInfo.keys()) updateRowVisibility(index);
@@ -2485,7 +2542,9 @@
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
     row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
     info.row = row;
-    propertiesBody.appendChild(row);
+    const placeholder = propertiesBody.querySelector("tr.skeleton");
+    if (placeholder) placeholder.replaceWith(row);
+    else propertiesBody.appendChild(row);
     updateRowVisibility(index);
   }
 
@@ -2511,6 +2570,7 @@
       return;
     }
 
+    showPropertySkeleton();
     setPropertiesStatus("Requesting property list…");
     setLinkState("checking");
     try {
@@ -2555,6 +2615,8 @@
           throw err;
         }
       }
+      removePropertySkeleton();
+      try { localStorage.setItem(PROPERTIES_COUNT_KEY, String(hello.count)); } catch (_) {}
       propertiesSummary = hello.count + " propert" + (hello.count === 1 ? "y" : "ies");
       setPropertiesStatus(propertiesSummary);
       propertiesResetAllBtn.hidden = false;
@@ -2586,6 +2648,7 @@
         console.log("[peripherals error]", { error: err.message });
       }
     } catch (err) {
+      if (generation === enumGeneration) removePropertySkeleton();
       const enumTime = Date.now();
       setPropertiesStatus("Failed to load properties: " + err.message);
       log("property enumeration failed: " + err.message, "sysexOther");
@@ -4681,12 +4744,14 @@
 
   async function init() {
     if (!navigator.requestMIDIAccess) {
+      clearProperties(); // drops the placeholder rows
       setStatus("bad", "Web MIDI is not supported in this browser (try Chrome or Edge).");
       return;
     }
     try {
       midiAccess = await navigator.requestMIDIAccess({ sysex: true });
     } catch (err) {
+      clearProperties();
       setStatus("bad", "MIDI access denied: " + err.message);
       return;
     }
@@ -4694,6 +4759,7 @@
     midiAccess.onstatechange = onStateChange;
     renderSelector();
     maybeAutoConnect();
+    if (!activeKey) clearProperties(); // no instrument to load from: drop the placeholder rows
     updateStatus();
     // Fallback poll: catches disconnect/reconnect on browsers that miss the
     // statechange event (see reconcileDevices above). 750ms is fast enough
