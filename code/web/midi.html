@@ -200,7 +200,9 @@
     transform: rotate(-45deg);
     transition: transform 0.15s;
   }
-  .collapsible[open] .summary-title::before { transform: rotate(45deg); }
+  /* Pointing down, the two borders sit ~0.16em below the box's centre: lifted
+   * by as much, the chevron centres on the text. */
+  .collapsible[open] .summary-title::before { transform: translateY(-0.16em) rotate(45deg); }
   .collapsible > summary:hover .summary-title { color: var(--fg); }
   .bw-wrap {
     display: flex;
