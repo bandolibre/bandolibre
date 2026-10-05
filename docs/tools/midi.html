@@ -200,8 +200,11 @@
     transform: rotate(-45deg);
     transition: transform 0.15s;
   }
-  .collapsible[open] .summary-title::before { transform: rotate(45deg); }
-  .collapsible > summary:hover .summary-title { color: var(--fg); }
+  /* Pointing down, the two borders sit ~0.16em below the box's centre: lifted
+   * by as much, the chevron centres on the text. */
+  .collapsible[open] .summary-title::before { transform: translateY(-0.16em) rotate(45deg); }
+  .collapsible > summary:not(.fold-off):hover .summary-title { color: var(--fg); }
+  .collapsible > summary.fold-off { cursor: default; }
   .bw-wrap {
     display: flex;
     align-items: center;
@@ -243,7 +246,7 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    /* Keeps the Value/Default header arrows on the label's line. */
+    /* Keeps the Value header arrow on the label's line. */
     white-space: nowrap;
     vertical-align: middle;
   }
@@ -332,6 +335,28 @@
   .th-label { display: inline-block; box-sizing: border-box; vertical-align: middle; }
   .th-label.value { width: var(--prop-value-w); }
   .th-label.default { width: var(--prop-default-w); text-align: right; padding-right: 3px; }
+  /* Placeholder rows while the properties load: as many rows as the table
+   * showed last time, so the card keeps its height through a reload. The
+   * Value and Default boxes match the real inputs and leave room for the ↺
+   * buttons. The shimmer is one gradient fixed to the viewport, so it sweeps
+   * across every bar together. */
+  .sk {
+    display: inline-block; height: 0.75em; border-radius: 4px; vertical-align: middle;
+    --sk-base: color-mix(in srgb, var(--fg) 9%, var(--card));
+    --sk-shine: color-mix(in srgb, var(--fg) 3%, var(--card));
+    background: linear-gradient(100deg, var(--sk-base) 40%, var(--sk-shine) 50%, var(--sk-base) 60%) fixed;
+    background-size: 200vw 100%;
+    animation: sk-shimmer 1.5s linear infinite;
+  }
+  .sk.box { height: 22px; margin-right: 26px; }
+  .sk.box.value { width: var(--prop-value-w); }
+  .sk.box.default { width: var(--prop-default-w); }
+  /* The description takes what the other columns leave, as long real
+   * descriptions do; its bar is a share of that. */
+  tr.skeleton td.desc { width: 100%; }
+  tr.skeleton td.desc .sk { display: block; }
+  @keyframes sk-shimmer { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
+  @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -371,6 +396,39 @@
   .icon-btn[hidden] { display: none; }
   /* Nothing to save, rather than busy: greyed, not the progress cursor. */
   #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
+
+  /* Properties card menu (⋮): show all, save to / load from a JSON file,
+   * factory reset. */
+  .props-menu { position: relative; flex: none; margin-left: auto; }
+  .props-menu[hidden] { display: none; }
+  .props-menu-btn {
+    width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--fg); cursor: pointer;
+  }
+  .props-menu-btn:hover:not(:disabled), .props-menu-btn[aria-expanded="true"] { border-color: var(--muted); }
+  .props-menu-btn:disabled { opacity: 0.45; cursor: progress; }
+  .props-menu-btn svg { width: 16px; height: 16px; }
+  .props-menu-list {
+    position: absolute; right: 0; top: calc(100% + 4px); z-index: 100;
+    min-width: 13em; padding: 4px; display: flex; flex-direction: column;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+  .props-menu-list[hidden] { display: none; }
+  .props-menu-list button {
+    text-align: left; padding: 7px 10px; border: none; border-radius: 6px;
+    background: transparent; color: var(--fg); font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+  }
+  .props-menu-list button:hover:not(:disabled), .props-menu-list button:focus-visible { background: var(--bg); outline: none; }
+  .props-menu-list button:disabled { opacity: 0.4; cursor: default; }
+  .props-menu-list button[hidden] { display: none; }
+  .props-menu-list button.danger { color: var(--bad); }
+  .props-menu-list .props-menu-toggle {
+    margin: 0; padding: 7px 10px; justify-content: space-between; gap: 16px;
+    border-radius: 6px; font-size: 0.85rem;
+  }
+  .props-menu-list .props-menu-toggle:hover { background: var(--bg); }
+  .props-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
   /* ---- Bellows curve graph ---- */
   .bellow-header {
@@ -515,7 +573,7 @@
     border: 1px solid var(--border); border-radius: 8px; padding: 12px;
     display: flex; flex-direction: column; gap: 8px;
   }
-  svg.kbd-plot { width: 100%; height: auto; display: block; }
+  svg.kbd-plot { width: 100%; height: auto; display: block; margin-inline: auto; }
   .kbd-key-circle { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
   .kbd-key-label { font-family: var(--mono); font-size: 9.9px; fill: var(--fg); text-anchor: middle; pointer-events: none; }
   .kbd-key-label.push { fill: var(--push); }
@@ -1042,11 +1100,11 @@
     <div class="kbd-grid">
       <div class="kbd-panel">
         <div class="kbd-panel-header">
-          <div class="pedal-title">Left wing</div>
+          <div class="pedal-title">Left</div>
           <div class="kbd-sound-controls" id="kbdSoundLeft" hidden>
-            <select class="kbd-instrument-select" id="kbdInstrumentLeft" aria-label="Left wing instrument"></select>
+            <select class="kbd-instrument-select" id="kbdInstrumentLeft" aria-label="Left keyboard instrument"></select>
             <div class="knob" id="kbdKnobLeft" title="Volume">
-              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Left wing volume" aria-valuemin="0" aria-valuemax="127">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Left keyboard volume" aria-valuemin="0" aria-valuemax="127">
                 <path class="knob-track" d=""></path>
                 <path class="knob-fill" d=""></path>
                 <circle class="knob-face" cx="20" cy="20" r="11"></circle>
@@ -1056,15 +1114,15 @@
             </div>
           </div>
         </div>
-        <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left wing keyboard, key positions and notes"></svg>
+        <svg class="kbd-plot" id="kbd-left" role="img" aria-label="Left keyboard, key positions and notes"></svg>
       </div>
       <div class="kbd-panel">
         <div class="kbd-panel-header">
-          <div class="pedal-title">Right wing</div>
+          <div class="pedal-title">Right</div>
           <div class="kbd-sound-controls" id="kbdSoundRight" hidden>
-            <select class="kbd-instrument-select" id="kbdInstrumentRight" aria-label="Right wing instrument"></select>
+            <select class="kbd-instrument-select" id="kbdInstrumentRight" aria-label="Right keyboard instrument"></select>
             <div class="knob" id="kbdKnobRight" title="Volume">
-              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Right wing volume" aria-valuemin="0" aria-valuemax="127">
+              <svg class="knob-svg" viewBox="0 0 40 40" role="slider" tabindex="0" aria-label="Right keyboard volume" aria-valuemin="0" aria-valuemax="127">
                 <path class="knob-track" d=""></path>
                 <path class="knob-fill" d=""></path>
                 <circle class="knob-face" cx="20" cy="20" r="11"></circle>
@@ -1074,7 +1132,7 @@
             </div>
           </div>
         </div>
-        <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right wing keyboard, key positions and notes"></svg>
+        <svg class="kbd-plot" id="kbd-right" role="img" aria-label="Right keyboard, key positions and notes"></svg>
       </div>
     </div>
   </details>
@@ -1092,22 +1150,37 @@
         </svg>
         <span class="btn-label">Save as default</span>
       </button>
-      <label class="kbd-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
-        <span>show all</span>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="propertiesShowAll">
-          <span class="kbd-toggle-track"></span>
-        </span>
-      </label>
+      <div class="props-menu" id="propertiesMenu" hidden>
+        <button type="button" class="props-menu-btn" id="propertiesMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="propertiesMenuList" aria-label="Properties menu" title="Show all, save to file, load from file, factory reset">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle>
+          </svg>
+        </button>
+        <div class="props-menu-list" id="propertiesMenuList" role="menu" hidden>
+          <label class="kbd-toggle props-menu-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
+            <span>Show all</span>
+            <span class="kbd-toggle-switch">
+              <input type="checkbox" role="menuitemcheckbox" id="propertiesShowAll">
+              <span class="kbd-toggle-track"></span>
+            </span>
+          </label>
+          <div class="props-menu-sep" role="separator"></div>
+          <button type="button" role="menuitem" id="propertiesSaveFileBtn" title="Download every current value and the firmware version as a JSON file">Save to file…</button>
+          <button type="button" role="menuitem" id="propertiesLoadFileBtn" title="Set the values from a JSON file saved here before">Load from file…</button>
+          <div class="props-menu-sep" role="separator" id="propertiesMenuSep"></div>
+          <button type="button" role="menuitem" class="danger" id="propertiesFactoryResetBtn" title="Erase every saved value and return every setting to its factory value">Factory reset…</button>
+        </div>
+        <input type="file" id="propertiesLoadFileInput" accept=".json,application/json" hidden>
+      </div>
     </div>
     <table class="properties-table" id="propertiesTable" hidden>
       <thead><tr><th>#</th><th class="name">Name</th>
         <th><span class="th-label value">Value</span><button type="button" class="prop-reset-btn" id="propertiesResetAllBtn" hidden title="Reset every value to its default">↺</button></th>
-        <th><span class="th-label default">Default</span><button type="button" class="prop-reset-btn" id="propertiesFactoryResetBtn" hidden title="Factory reset: erase every saved value and return every setting to its factory value">↺</button></th>
+        <th><span class="th-label default">Default</span></th>
         <th>Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
-    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>show all</em> to see them.</p>
+    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>Show all</em> in the ⋮ menu to see them.</p>
   </details>
 
   <details class="card collapsible" id="activityCard" open>
@@ -1182,6 +1255,13 @@
   const propertiesResetAllBtn = document.getElementById("propertiesResetAllBtn");
   const propertiesSaveBtn = document.getElementById("propertiesSaveBtn");
   const propertiesFactoryResetBtn = document.getElementById("propertiesFactoryResetBtn");
+  const propertiesMenu = document.getElementById("propertiesMenu");
+  const propertiesMenuBtn = document.getElementById("propertiesMenuBtn");
+  const propertiesMenuList = document.getElementById("propertiesMenuList");
+  const propertiesMenuSep = document.getElementById("propertiesMenuSep");
+  const propertiesSaveFileBtn = document.getElementById("propertiesSaveFileBtn");
+  const propertiesLoadFileBtn = document.getElementById("propertiesLoadFileBtn");
+  const propertiesLoadFileInput = document.getElementById("propertiesLoadFileInput");
   const propertiesShowAllLabel = document.getElementById("propertiesShowAllLabel");
   const propertiesShowAll = document.getElementById("propertiesShowAll");
   const propertiesAllFactory = document.getElementById("propertiesAllFactory");
@@ -1806,7 +1886,7 @@
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
     propertiesSaveBtn.hidden = true;
-    propertiesFactoryResetBtn.hidden = true;
+    hidePropertiesMenu();
     propertiesShowAllLabel.hidden = true;
     propertiesAllFactory.hidden = true;
     updateSaveCenterButton();
@@ -1821,6 +1901,7 @@
    * persistent, type, and the row's elements once it is built }. */
   const savedInfo = new Map();
   let savedValuesSupported = false; // false on a firmware without GET_SAVED_VALUE
+  let firmwareVersion = null; // HELLO's version string, written into saved files
 
   function effectiveDefault(index) {
     const info = savedInfo.get(index);
@@ -1926,17 +2007,64 @@
   function updateAllFactoryHint() {
     // Only once enumeration is done (the switch appears then), not mid-load.
     if (propertiesTable.hidden || propertiesShowAllLabel.hidden) { propertiesAllFactory.hidden = true; return; }
-    let anyShown = false;
-    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) { anyShown = true; break; }
-    propertiesAllFactory.hidden = anyShown || propertiesShowAll.checked;
+    let shown = 0;
+    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) shown++;
+    propertiesAllFactory.hidden = shown > 0 || propertiesShowAll.checked;
+    rememberShownRows(shown);
     alignSaveButton();
+  }
+
+  /* Placeholder rows (see .sk) while the properties load: as many as the
+   * table showed last time, so the card keeps its height through a reload.
+   * addPropertyRow() replaces one, from the top, with each real row shown. */
+  const SHOWN_ROWS_KEY = "propertiesShownRows";
+  let lastShownRows = null;
+  function rememberShownRows(count) {
+    if (count === lastShownRows) return;
+    lastShownRows = count;
+    try { localStorage.setItem(SHOWN_ROWS_KEY, String(count)); } catch (_) {}
+  }
+
+  function showPropertySkeleton() {
+    let count = 0;
+    try { count = Math.min(Number(localStorage.getItem(SHOWN_ROWS_KEY)) || 0, 512); } catch (_) {}
+    for (let i = 0; i < count; i++) {
+      const row = document.createElement("tr");
+      row.className = "skeleton";
+      row.setAttribute("aria-hidden", "true");
+      // Fixed pseudo-random lengths, so the rows don't look cloned.
+      const bars = [["index", "1.5ch"], ["name", 10 + (i * 7) % 12 + "ch"], ["value", null],
+                    ["default", null], ["desc", 40 + (i * 37) % 55 + "%"]];
+      for (const [cls, width] of bars) {
+        const cell = document.createElement("td");
+        cell.className = cls;
+        const bar = document.createElement("span");
+        bar.className = width ? "sk" : "sk box " + cls;
+        if (width) bar.style.width = width;
+        cell.appendChild(bar);
+        row.appendChild(cell);
+      }
+      propertiesBody.appendChild(row);
+    }
+    if (count > 0) propertiesTable.hidden = false;
+  }
+
+  function removePropertySkeleton() {
+    for (const row of propertiesBody.querySelectorAll("tr.skeleton")) row.remove();
+    if (savedInfo.size === 0) propertiesTable.hidden = true;
   }
 
   // Remembered per browser, like the collapsible cards; off until first set.
   try { propertiesShowAll.checked = localStorage.getItem("propertiesShowAll") === "1"; } catch (_) {}
+  showPropertySkeleton(); // until init() connects, or finds no device
   propertiesShowAll.addEventListener("change", () => {
     try { localStorage.setItem("propertiesShowAll", propertiesShowAll.checked ? "1" : "0"); } catch (_) {}
     for (const index of savedInfo.keys()) updateRowVisibility(index);
+    // A pick like the other menu items; focus goes back to the ⋮ button
+    // rather than staying on the now hidden switch.
+    const hadFocus = propertiesMenuList.contains(document.activeElement);
+    closePropertiesMenu();
+    if (hadFocus) propertiesMenuBtn.focus();
   });
 
   /* Set a table input from a value written elsewhere (graphs, buttons, the
@@ -2048,10 +2176,10 @@
     }
   }
 
-  /* The header arrows act on every row: Value resets every live value to its
-   * default, Default is the factory reset. Value is greyed when every value is
-   * its default, Default when nothing is saved, and Save as default when no
-   * persistent value differs from its default; all three while a Save or
+  /* The Value header arrow resets every live value to its default; it is
+   * greyed when every value is its default, Save as default when no
+   * persistent value differs from its default, the menu's Factory reset when
+   * nothing is saved, and all of them (the whole menu) while a Save, Load or
    * Factory reset is running. */
   let propertiesBusy = false;
   function updateHeaderButtons() {
@@ -2067,6 +2195,8 @@
     propertiesResetAllBtn.disabled = propertiesBusy || !anyModified;
     propertiesFactoryResetBtn.disabled = propertiesBusy || !anySaved;
     propertiesSaveBtn.disabled = propertiesBusy || !anyToSave;
+    propertiesMenuBtn.disabled = propertiesBusy;
+    if (propertiesBusy) closePropertiesMenu();
     updateSaveCenterButton();
   }
 
@@ -2151,6 +2281,177 @@
       updateHeaderButtons();
     }
   }
+
+  /* Save to file / Load from file: every property's live value, keyed by
+   * name rather than index so a file still loads after a firmware update that
+   * added or reordered properties, plus the firmware version it came from:
+   *   { "format": "bandolibre-properties", "formatVersion": 1,
+   *     "firmware": "Bandolibre v1.2-alpha", "date": "<ISO 8601>",
+   *     "properties": { "key_press": 120, "table_mode": false, ... } }
+   * Loading sets live values only, like any other edit: Save as default
+   * keeps them. */
+  const PROPERTIES_FILE_FORMAT = "bandolibre-properties";
+  const PROPERTIES_FILE_FORMAT_VERSION = 1;
+
+  function shortFirmwareVersion(version) {
+    return typeof version === "string" ? version.replace(/^Bandolibre /, "") : "an unknown firmware";
+  }
+
+  /* Live values are read back from the device first, as the function buttons
+   * and the console change them without this page writing them. */
+  async function savePropertiesToFile() {
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const properties = await withPollingPaused(async () => {
+        const out = {};
+        for (const [index, info] of savedInfo) {
+          if (!info.name) continue;
+          setPropertiesStatus("Reading " + info.name + "…");
+          const value = await requestPropertyValue(index);
+          out[info.name] = info.type === PROPERTY_TYPE_BOOL ? !!value : value;
+        }
+        return out;
+      });
+      const now = new Date();
+      const data = { format: PROPERTIES_FILE_FORMAT, formatVersion: PROPERTIES_FILE_FORMAT_VERSION,
+                     firmware: firmwareVersion, date: now.toISOString(), properties };
+      const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" });
+      const filename = "bandolibre-settings-" + now.toISOString().slice(0, 10) + ".json";
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      const count = Object.keys(properties).length;
+      showToast("Saved " + count + " settings to " + filename + ".");
+      log("save to file: " + count + " properties, firmware " + shortFirmwareVersion(firmwareVersion), "sysexGetProperty");
+    } catch (err) {
+      showToast("Save to file failed: " + err.message, { error: true });
+      log("save to file failed: " + err.message, "sysexGetProperty");
+    } finally {
+      setPropertiesStatus(propertiesSummary);
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
+  }
+
+  /* A property the file names but this firmware lacks is skipped; a value out
+   * of range is clamped by the device, which answers with the value in effect. */
+  async function loadPropertiesFromFile(file) {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch (_) {
+      showToast("Load failed: " + file.name + " is not a JSON file.", { error: true });
+      return;
+    }
+    const props = data && data.format === PROPERTIES_FILE_FORMAT ? data.properties : null;
+    if (!props || typeof props !== "object") {
+      showToast("Load failed: " + file.name + " is not a Bandolibre settings file.", { error: true });
+      return;
+    }
+    const indexByName = new Map();
+    for (const [index, info] of savedInfo) if (info.name) indexByName.set(info.name, index);
+    const writes = []; // [index, value], in index order
+    const skipped = [];
+    for (const [name, raw] of Object.entries(props)) {
+      const index = indexByName.get(name);
+      const value = typeof raw === "boolean" ? +raw : raw;
+      if (index === undefined || !Number.isInteger(value) || value < 0 || value > 0xFFFF) skipped.push(name);
+      else writes.push([index, value]);
+    }
+    writes.sort((a, b) => a[0] - b[0]);
+    if (writes.length === 0) {
+      showToast("Load failed: no setting in " + file.name + " matches this firmware.", { error: true });
+      return;
+    }
+
+    let question = "Load " + writes.length + " settings from " + file.name + "?";
+    if (data.firmware !== firmwareVersion)
+      question += "\n\nThe file comes from firmware " + shortFirmwareVersion(data.firmware) +
+                  "; this instrument has " + shortFirmwareVersion(firmwareVersion) + ".";
+    if (skipped.length > 0)
+      question += "\n\n" + skipped.length + " unknown or invalid setting" + (skipped.length === 1 ? "" : "s") +
+                  " will be skipped: " + skipped.join(", ") + ".";
+    question += "\n\nThe values apply now; click Save as default to keep them.";
+    if (!confirm(question)) return;
+
+    propertiesBusy = true;
+    updateHeaderButtons();
+    try {
+      const clamped = await withPollingPaused(async () => {
+        const out = [];
+        for (const [index, value] of writes) {
+          const name = savedInfo.get(index).name;
+          setPropertiesStatus("Loading… " + name);
+          const actual = (await requestSetProperty(index, value)) ?? value;
+          if (actual !== value) out.push(name);
+          syncTableValue(index, actual);
+          syncControlsFromTable(index, actual);
+        }
+        return out;
+      });
+      let text = "Loaded " + writes.length + " settings from " + file.name + ".";
+      if (skipped.length > 0) text += " Skipped " + skipped.length + " unknown.";
+      if (clamped.length > 0) text += " Out of range, limited: " + clamped.join(", ") + ".";
+      showToast(text + " Click Save as default to keep them.");
+      log("load from file " + file.name + " (firmware " + shortFirmwareVersion(data.firmware) + "): " +
+          writes.length + " set" + (skipped.length ? ", skipped " + skipped.join(" ") : "") +
+          (clamped.length ? ", clamped " + clamped.join(" ") : ""), "sysexSetProperty");
+    } catch (err) {
+      showToast("Load from file failed: " + err.message, { error: true });
+      log("load from file failed: " + err.message, "sysexSetProperty");
+    } finally {
+      setPropertiesStatus(propertiesSummary);
+      propertiesBusy = false;
+      updateHeaderButtons();
+    }
+  }
+
+  /* The ⋮ menu: opens below its button, closes on a pick (Show all included),
+   * Escape, Tab or a click elsewhere. Arrow keys move between the enabled
+   * items. */
+  function propertiesMenuItems() {
+    return [...propertiesMenuList.querySelectorAll("button, input")]
+      .filter((el) => !el.disabled && !el.closest("[hidden]"));
+  }
+  function openPropertiesMenu() {
+    propertiesMenuList.hidden = false;
+    propertiesMenuBtn.setAttribute("aria-expanded", "true");
+    propertiesMenuItems()[0]?.focus();
+  }
+  function closePropertiesMenu() {
+    propertiesMenuList.hidden = true;
+    propertiesMenuBtn.setAttribute("aria-expanded", "false");
+  }
+  function hidePropertiesMenu() {
+    closePropertiesMenu();
+    propertiesMenu.hidden = true;
+  }
+  propertiesMenuBtn.addEventListener("click", () => {
+    if (propertiesMenuList.hidden) openPropertiesMenu();
+    else closePropertiesMenu();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!propertiesMenuList.hidden && !propertiesMenu.contains(e.target)) closePropertiesMenu();
+  });
+  propertiesMenu.addEventListener("keydown", (e) => {
+    if (propertiesMenuList.hidden) return;
+    if (e.key === "Escape") {
+      closePropertiesMenu();
+      propertiesMenuBtn.focus();
+    } else if (e.key === "Tab") {
+      closePropertiesMenu();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const items = propertiesMenuItems();
+      if (items.length === 0) return;
+      const i = items.indexOf(document.activeElement);
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      items[(i + step + items.length) % items.length].focus();
+      e.preventDefault();
+    }
+  });
 
   /* Editable value cell: GET_PROPERTY_DESCRIPTION returns a property's type
    * and name/description, but not its min/max, so these inputs can't be
@@ -2253,8 +2554,12 @@
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
     row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
     info.row = row;
-    propertiesBody.appendChild(row);
+    // Above the placeholders, in index order; a row that is shown takes the
+    // place of one, a hidden row (show all off) leaves them as they are.
+    const placeholder = propertiesBody.querySelector("tr.skeleton");
+    propertiesBody.insertBefore(row, placeholder);
     updateRowVisibility(index);
+    if (placeholder && !row.hidden) placeholder.remove();
   }
 
   async function enumerateProperties() {
@@ -2266,9 +2571,10 @@
     propertiesRetryBtn.hidden = true;
     propertiesResetAllBtn.hidden = true;
     propertiesSaveBtn.hidden = true;
-    propertiesFactoryResetBtn.hidden = true;
+    hidePropertiesMenu();
     propertiesShowAllLabel.hidden = true;
     propertiesAllFactory.hidden = true;
+    firmwareVersion = null;
     // A newer enumeration (reconnect, retry) owns the link state: an older
     // one failing late with "device disconnected" must not overwrite it.
     const generation = ++enumGeneration;
@@ -2278,6 +2584,7 @@
       return;
     }
 
+    showPropertySkeleton();
     setPropertiesStatus("Requesting property list…");
     setLinkState("checking");
     try {
@@ -2294,6 +2601,7 @@
       log("hello: " + hello.version + ", " + hello.count + " properties" +
           (hello.storeGeneration !== null ? ", store generation " + hello.storeGeneration : ""), "sysexHello");
       checkFirmwareVersion(hello.version, generation); // not awaited: the network must not hold up the properties
+      firmwareVersion = hello.version;
       // A firmware that reports a store generation answers GET_SAVED_VALUE.
       savedValuesSupported = hello.storeGeneration !== null;
       if (hello.bellows !== null) {
@@ -2321,12 +2629,15 @@
           throw err;
         }
       }
+      removePropertySkeleton();
       propertiesSummary = hello.count + " propert" + (hello.count === 1 ? "y" : "ies");
       setPropertiesStatus(propertiesSummary);
       propertiesResetAllBtn.hidden = false;
       updateHeaderButtons();
       propertiesSaveBtn.hidden = !savedValuesSupported;
       propertiesFactoryResetBtn.hidden = !savedValuesSupported;
+      propertiesMenuSep.hidden = !savedValuesSupported;
+      propertiesMenu.hidden = false;
       propertiesShowAllLabel.hidden = false;
       fitNameColumn();
       updateAllFactoryHint();
@@ -2350,6 +2661,7 @@
         console.log("[peripherals error]", { error: err.message });
       }
     } catch (err) {
+      if (generation === enumGeneration) removePropertySkeleton();
       const enumTime = Date.now();
       setPropertiesStatus("Failed to load properties: " + err.message);
       log("property enumeration failed: " + err.message, "sysexOther");
@@ -2361,7 +2673,14 @@
   propertiesRetryBtn.addEventListener("click", enumerateProperties);
   propertiesResetAllBtn.addEventListener("click", resetAllToDefault);
   propertiesSaveBtn.addEventListener("click", saveCurrentAsDefaults);
-  propertiesFactoryResetBtn.addEventListener("click", factoryReset);
+  propertiesFactoryResetBtn.addEventListener("click", () => { closePropertiesMenu(); factoryReset(); });
+  propertiesSaveFileBtn.addEventListener("click", () => { closePropertiesMenu(); savePropertiesToFile(); });
+  propertiesLoadFileBtn.addEventListener("click", () => { closePropertiesMenu(); propertiesLoadFileInput.click(); });
+  propertiesLoadFileInput.addEventListener("change", () => {
+    const file = propertiesLoadFileInput.files[0];
+    propertiesLoadFileInput.value = ""; // picking the same file again fires change again
+    if (file) loadPropertiesFromFile(file);
+  });
 
   // ==== Bellows curve graph: live ADC->CC conversion, editable in place ====
   //
@@ -3473,7 +3792,14 @@
     const xs = positions.map((p) => p.x);
     return Math.max(...xs) - Math.min(...xs);
   }
-  const KBD_SCALE = (KBD_PLOT_W - 2 * KBD_PAD) / Math.max(kbdXRange(KEY_POS_LEFT), kbdXRange(KEY_POS_RIGHT));
+  // KBD_PLOT_W sets the size of the keys and labels on screen (the svg would
+  // be the panel's width at 300); KBD_SPREAD then packs the keys closer than
+  // that, and the svg narrows by as much, so the diagram is smaller but the
+  // keys and their text are not. At 0.8 the closest keys (14.6 mm apart,
+  // 10.5 mm wide at this scale) keep a small gap.
+  const KBD_SPREAD = 0.8;
+  const KBD_SCALE = KBD_SPREAD * (KBD_PLOT_W - 2 * KBD_PAD) / Math.max(kbdXRange(KEY_POS_LEFT), kbdXRange(KEY_POS_RIGHT));
+  const KBD_VIEW_W = KBD_SPREAD * (KBD_PLOT_W - 2 * KBD_PAD) + 2 * KBD_PAD;
 
   // Note display on the keyboard diagrams only - the activity log always
   // uses noteName() (English letters), regardless of this toggle.
@@ -3503,8 +3829,9 @@
     // Center this wing's (possibly narrower) span within the shared width,
     // and mirror X within that span (outward edge stays on the panel's
     // outer side, closest to the screen edge on its own side).
-    const xOffset = KBD_PAD + ((KBD_PLOT_W - 2 * KBD_PAD) - (xMax - xMin) * scale) / 2;
-    svg.setAttribute("viewBox", "0 0 " + KBD_PLOT_W + " " + plotH);
+    const xOffset = KBD_PAD + ((KBD_VIEW_W - 2 * KBD_PAD) - (xMax - xMin) * scale) / 2;
+    svg.setAttribute("viewBox", "0 0 " + KBD_VIEW_W + " " + plotH);
+    svg.style.width = (100 * KBD_VIEW_W / KBD_PLOT_W) + "%";
     svg.innerHTML = "";
 
     const tuning = KBD_NOTE_TABLE[currentTuning][side];
@@ -4438,12 +4765,14 @@
 
   async function init() {
     if (!navigator.requestMIDIAccess) {
+      clearProperties(); // drops the placeholder rows
       setStatus("bad", "Web MIDI is not supported in this browser (try Chrome or Edge).");
       return;
     }
     try {
       midiAccess = await navigator.requestMIDIAccess({ sysex: true });
     } catch (err) {
+      clearProperties();
       setStatus("bad", "MIDI access denied: " + err.message);
       return;
     }
@@ -4451,6 +4780,7 @@
     midiAccess.onstatechange = onStateChange;
     renderSelector();
     maybeAutoConnect();
+    if (!activeKey) clearProperties(); // no instrument to load from: drop the placeholder rows
     updateStatus();
     // Fallback poll: catches disconnect/reconnect on browsers that miss the
     // statechange event (see reconcileDevices above). 750ms is fast enough
@@ -4505,6 +4835,22 @@
     e.preventDefault();
     if (ctl.tagName === "LABEL" && ctl.control) ctl.control.click();
   });
+
+  // Only the left two thirds of a card's summary bar fold it: a click on the
+  // empty right side, near the card's own controls, would fold it by surprise.
+  // Keyboard activation (detail 0) and the controls in the bar are untouched.
+  // .fold-off drops the pointer cursor and hover color over the right third.
+  function inFoldDeadZone(summary, e) {
+    const box = summary.getBoundingClientRect();
+    return e.clientX > box.left + box.width * 2 / 3 && !e.target.closest("label, button, input, select");
+  }
+  for (const summary of document.querySelectorAll(".collapsible > summary")) {
+    summary.addEventListener("click", (e) => {
+      if (e.detail > 0 && inFoldDeadZone(summary, e)) e.preventDefault();
+    });
+    summary.addEventListener("pointermove", (e) => summary.classList.toggle("fold-off", inFoldDeadZone(summary, e)));
+    summary.addEventListener("pointerleave", () => summary.classList.remove("fold-off"));
+  }
 
   // Collapsible cards remember their open/closed state per browser.
   for (const card of document.querySelectorAll("details.collapsible[id]")) {
