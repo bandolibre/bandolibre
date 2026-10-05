@@ -203,7 +203,8 @@
   /* Pointing down, the two borders sit ~0.16em below the box's centre: lifted
    * by as much, the chevron centres on the text. */
   .collapsible[open] .summary-title::before { transform: translateY(-0.16em) rotate(45deg); }
-  .collapsible > summary:hover .summary-title { color: var(--fg); }
+  .collapsible > summary:not(.fold-off):hover .summary-title { color: var(--fg); }
+  .collapsible > summary.fold-off { cursor: default; }
   .bw-wrap {
     display: flex;
     align-items: center;
@@ -4747,6 +4748,22 @@
     e.preventDefault();
     if (ctl.tagName === "LABEL" && ctl.control) ctl.control.click();
   });
+
+  // Only the left two thirds of a card's summary bar fold it: a click on the
+  // empty right side, near the card's own controls, would fold it by surprise.
+  // Keyboard activation (detail 0) and the controls in the bar are untouched.
+  // .fold-off drops the pointer cursor and hover color over the right third.
+  function inFoldDeadZone(summary, e) {
+    const box = summary.getBoundingClientRect();
+    return e.clientX > box.left + box.width * 2 / 3 && !e.target.closest("label, button, input, select");
+  }
+  for (const summary of document.querySelectorAll(".collapsible > summary")) {
+    summary.addEventListener("click", (e) => {
+      if (e.detail > 0 && inFoldDeadZone(summary, e)) e.preventDefault();
+    });
+    summary.addEventListener("pointermove", (e) => summary.classList.toggle("fold-off", inFoldDeadZone(summary, e)));
+    summary.addEventListener("pointerleave", () => summary.classList.remove("fold-off"));
+  }
 
   // Collapsible cards remember their open/closed state per browser.
   for (const card of document.querySelectorAll("details.collapsible[id]")) {
