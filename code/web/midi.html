@@ -335,8 +335,8 @@
   .th-label { display: inline-block; box-sizing: border-box; vertical-align: middle; }
   .th-label.value { width: var(--prop-value-w); }
   .th-label.default { width: var(--prop-default-w); text-align: right; padding-right: 3px; }
-  /* Placeholder rows while the properties load with "show all" on: as many
-   * rows as last time, so the card keeps its height through a reload. The
+  /* Placeholder rows while the properties load: as many rows as the table
+   * showed last time, so the card keeps its height through a reload. The
    * Value and Default boxes match the real inputs and leave room for the ↺
    * buttons. The shimmer is one gradient fixed to the viewport, so it sweeps
    * across every bar together. */
@@ -2007,20 +2007,27 @@
   function updateAllFactoryHint() {
     // Only once enumeration is done (the switch appears then), not mid-load.
     if (propertiesTable.hidden || propertiesShowAllLabel.hidden) { propertiesAllFactory.hidden = true; return; }
-    let anyShown = false;
-    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) { anyShown = true; break; }
-    propertiesAllFactory.hidden = anyShown || propertiesShowAll.checked;
+    let shown = 0;
+    for (const info of savedInfo.values()) if (info.row && !info.row.hidden) shown++;
+    propertiesAllFactory.hidden = shown > 0 || propertiesShowAll.checked;
+    rememberShownRows(shown);
     alignSaveButton();
   }
 
-  /* Placeholder rows (see .sk) while the properties load with "show all" on,
-   * one per property the device had last time; addPropertyRow() replaces
-   * them from the top as the real rows arrive. */
-  const PROPERTIES_COUNT_KEY = "propertiesCount";
+  /* Placeholder rows (see .sk) while the properties load: as many as the
+   * table showed last time, so the card keeps its height through a reload.
+   * addPropertyRow() replaces one, from the top, with each real row shown. */
+  const SHOWN_ROWS_KEY = "propertiesShownRows";
+  let lastShownRows = null;
+  function rememberShownRows(count) {
+    if (count === lastShownRows) return;
+    lastShownRows = count;
+    try { localStorage.setItem(SHOWN_ROWS_KEY, String(count)); } catch (_) {}
+  }
+
   function showPropertySkeleton() {
-    if (!propertiesShowAll.checked) return;
     let count = 0;
-    try { count = Math.min(Number(localStorage.getItem(PROPERTIES_COUNT_KEY)) || 0, 512); } catch (_) {}
+    try { count = Math.min(Number(localStorage.getItem(SHOWN_ROWS_KEY)) || 0, 512); } catch (_) {}
     for (let i = 0; i < count; i++) {
       const row = document.createElement("tr");
       row.className = "skeleton";
@@ -2542,10 +2549,12 @@
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
     row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
     info.row = row;
+    // Above the placeholders, in index order; a row that is shown takes the
+    // place of one, a hidden row (show all off) leaves them as they are.
     const placeholder = propertiesBody.querySelector("tr.skeleton");
-    if (placeholder) placeholder.replaceWith(row);
-    else propertiesBody.appendChild(row);
+    propertiesBody.insertBefore(row, placeholder);
     updateRowVisibility(index);
+    if (placeholder && !row.hidden) placeholder.remove();
   }
 
   async function enumerateProperties() {
@@ -2616,7 +2625,6 @@
         }
       }
       removePropertySkeleton();
-      try { localStorage.setItem(PROPERTIES_COUNT_KEY, String(hello.count)); } catch (_) {}
       propertiesSummary = hello.count + " propert" + (hello.count === 1 ? "y" : "ies");
       setPropertiesStatus(propertiesSummary);
       propertiesResetAllBtn.hidden = false;
