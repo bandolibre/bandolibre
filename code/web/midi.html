@@ -372,8 +372,9 @@
   /* Nothing to save, rather than busy: greyed, not the progress cursor. */
   #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
-  /* Properties card menu (⋮): save to / load from a JSON file, factory reset. */
-  .props-menu { position: relative; flex: none; }
+  /* Properties card menu (⋮): show all, save to / load from a JSON file,
+   * factory reset. Show all is a switch, so picking it leaves the menu open. */
+  .props-menu { position: relative; flex: none; margin-left: auto; }
   .props-menu[hidden] { display: none; }
   .props-menu-btn {
     width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;
@@ -397,6 +398,11 @@
   .props-menu-list button:disabled { opacity: 0.4; cursor: default; }
   .props-menu-list button[hidden] { display: none; }
   .props-menu-list button.danger { color: var(--bad); }
+  .props-menu-list .props-menu-toggle {
+    margin: 0; padding: 7px 10px; justify-content: space-between; gap: 16px;
+    border-radius: 6px; font-size: 0.85rem;
+  }
+  .props-menu-list .props-menu-toggle:hover { background: var(--bg); }
   .props-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
   /* ---- Bellows curve graph ---- */
@@ -1119,20 +1125,21 @@
         </svg>
         <span class="btn-label">Save as default</span>
       </button>
-      <label class="kbd-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
-        <span>show all</span>
-        <span class="kbd-toggle-switch">
-          <input type="checkbox" id="propertiesShowAll">
-          <span class="kbd-toggle-track"></span>
-        </span>
-      </label>
       <div class="props-menu" id="propertiesMenu" hidden>
-        <button type="button" class="props-menu-btn" id="propertiesMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="propertiesMenuList" aria-label="Properties menu" title="Save to file, load from file, factory reset">
+        <button type="button" class="props-menu-btn" id="propertiesMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="propertiesMenuList" aria-label="Properties menu" title="Show all, save to file, load from file, factory reset">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle>
           </svg>
         </button>
         <div class="props-menu-list" id="propertiesMenuList" role="menu" hidden>
+          <label class="kbd-toggle props-menu-toggle" id="propertiesShowAllLabel" hidden title="Off: only the properties whose value or saved value differs from the factory value">
+            <span>Show all</span>
+            <span class="kbd-toggle-switch">
+              <input type="checkbox" role="menuitemcheckbox" id="propertiesShowAll">
+              <span class="kbd-toggle-track"></span>
+            </span>
+          </label>
+          <div class="props-menu-sep" role="separator"></div>
           <button type="button" role="menuitem" id="propertiesSaveFileBtn" title="Download every current value and the firmware version as a JSON file">Save to file…</button>
           <button type="button" role="menuitem" id="propertiesLoadFileBtn" title="Set the values from a JSON file saved here before">Load from file…</button>
           <div class="props-menu-sep" role="separator" id="propertiesMenuSep"></div>
@@ -1148,7 +1155,7 @@
         <th>Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
-    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>show all</em> to see them.</p>
+    <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>Show all</em> in the ⋮ menu to see them.</p>
   </details>
 
   <details class="card collapsible" id="activityCard" open>
@@ -2330,10 +2337,12 @@
     }
   }
 
-  /* The ⋮ menu: opens below its button, closes on a pick, Escape, Tab or a
-   * click elsewhere. Arrow keys move between the enabled items. */
+  /* The ⋮ menu: opens below its button, closes on a pick (but not on the Show
+   * all switch), Escape, Tab or a click elsewhere. Arrow keys move between the
+   * enabled items. */
   function propertiesMenuItems() {
-    return [...propertiesMenuList.querySelectorAll("button")].filter((b) => !b.hidden && !b.disabled);
+    return [...propertiesMenuList.querySelectorAll("button, input")]
+      .filter((el) => !el.disabled && !el.closest("[hidden]"));
   }
   function openPropertiesMenu() {
     propertiesMenuList.hidden = false;
