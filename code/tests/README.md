@@ -1,0 +1,1 @@
+Python `unittest` consistency checks across the firmware's `.ioc` files, linker scripts, USB ids and DFU memory map (run with `just test`); tests that need no hardware and no HAL belong here, while C unit tests live in `code/main-g474`.
