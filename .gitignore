@@ -4,6 +4,11 @@
 boards/bandolibre_backup
 CLAUDE.md
 datasheets
-export
+export/
 keyboard_picture/*.xcf
 tools/panelize/out
+code/*/.cache
+code/*/.settings
+code/*/build
+code/*/compile_commands.json
+code/*/STM32CubeIDE
