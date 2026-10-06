@@ -18,7 +18,7 @@ three boards aren't the same width and one connector spanning the whole row
 wouldn't fit correctly for all of them.
 
 Pick-and-place data gets EasyEDA's centroid bug fixed inline
-(fix_pnp_centroids(), ported from export/fix_pnp.py), and gets filtered to
+(fix_pnp_centroids()), and gets filtered to
 designators that actually appear in the merged BOM (mounting holes,
 hand-soldered headers and silkscreen badges never have a BOM entry, and
 JLCPCB's assembly check errors on a placement that references one). Writes
@@ -739,7 +739,7 @@ def format_mm(value):
 
 
 # EasyEDA computes an incorrect Mid X/Y for components with non-90-degree
-# rotations. Ported from export/fix_pnp.py: overwrite Mid X/Y with Ref X/Y
+# rotations: overwrite Mid X/Y with Ref X/Y
 # for those, and treat a 90-degree-multiple rotation whose Mid X/Y already
 # disagrees with Ref X/Y as a hard error (would mean something other than
 # this known bug is going on).
