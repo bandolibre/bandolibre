@@ -292,7 +292,10 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
   {
     velocity = (uint8_t)(1.0f + bellow_intensity() * 126.0f);
   }
-  printf("NOTE ON  %s wing=%u key=%2d note=%3u vel=%3u\r\n", b->name, wing_id, k, note, velocity);
+  if (g_properties->log_midi_notes)
+  {
+    printf("NOTE ON  %s wing=%u key=%2d note=%3u vel=%3u\r\n", b->name, wing_id, k, note, velocity);
+  }
   usb_app_midi_note_on(b->midi_ch, note, velocity);
 }
 
@@ -302,7 +305,10 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
 static void bus_note_off(SPIBus *b, uint8_t wing_id, int k)
 {
   if (b->sounding_note[k] == NOTE_NONE) return;
-  printf("NOTE OFF %s wing=%u key=%2d note=%3u\r\n", b->name, wing_id, k, b->sounding_note[k]);
+  if (g_properties->log_midi_notes)
+  {
+    printf("NOTE OFF %s wing=%u key=%2d note=%3u\r\n", b->name, wing_id, k, b->sounding_note[k]);
+  }
   usb_app_midi_note_off(b->midi_ch, b->sounding_note[k]);
   b->sounding_note[k] = NOTE_NONE;
 }

@@ -195,3 +195,6 @@ PROPERTY(70, uint16_t, pedal2_1e_mincutoff,
 PROPERTY(71, uint16_t, pedal2_1e_beta,
          .factory_value = 459, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
+PROPERTY(72, bool, log_midi_notes,
+         .factory_value = 0,
+         .description = "Log MIDI note on and off")
