@@ -102,8 +102,6 @@ El fuelle es reemplazado por una **lámina de resorte equipada con dos sensores 
 
 Un botón de programa de fuelle permite pasar por tres programas, cada uno con su posición de reposo, zona muerta, recorrido máximo y curvas de respuesta, ajustados en la herramienta de configuración. Por defecto, necesitan cada vez menos recorrido de fuelle para alcanzar la máxima expresión — útil para tocar suave o con una lámina más rígida.
 
-Para un desglose detallado del comportamiento del firmware y los controles, ver [`documentation/features.md`](documentation/features.md).
-
 ---
 
 ## El sonido

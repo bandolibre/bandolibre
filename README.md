@@ -103,8 +103,6 @@ The bellows is replaced by a **blade spring instrumented with two Hall-effect se
 
 A bellows program button cycles through three bellows programs, each with its own rest position, dead zone, full travel and response curves, tuned in the configuration tool. By default they need less and less bellows travel to reach full expression — useful for quiet practice or a stiffer spring.
 
-For a detailed breakdown of the firmware behavior and controls, see [`documentation/features.md`](documentation/features.md).
-
 ---
 
 ## Sound

@@ -102,8 +102,6 @@ Le soufflet est remplacé par une **lame-ressort instrumentée de deux capteurs 
 
 Un bouton de programme de soufflet permet de cycler entre trois programmes, chacun avec sa position de repos, sa zone morte, sa course maximale et ses courbes de réponse, réglés dans l'outil de configuration. Par défaut, ils demandent de moins en moins de course de soufflet pour atteindre l'expression maximale — utile pour jouer doucement ou avec une lame plus rigide.
 
-Pour un détail du comportement du firmware et des commandes, voir [`documentation/features.md`](documentation/features.md).
-
 ---
 
 ## Le son
