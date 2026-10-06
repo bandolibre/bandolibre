@@ -19,3 +19,9 @@ plotjuggler_bridge:
 
 plotjuggler:
     ~/bin/plotjuggler -l tools/bellow_layout.xml --start_streamer -n
+
+# Build and run all tests: main-board host unit tests, Python consistency tests, web tool syntax check
+test:
+    cd code/main-g474 && just test
+    cd code/tests && just test
+    cd code/web && just test
