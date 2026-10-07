@@ -7,13 +7,18 @@
 
 set -u
 
-CLIENT="${1:-L\'Atelier du Bandonéon Libre}"
+CLIENT="${1:-Bandolibre}"
 POLL_INTERVAL="${POLL_INTERVAL:-0.5}"
 
 # Print the ALSA port (e.g. "20:0") for the named client, empty if absent.
+# The name is compared literally against the whole fixed-width "Client name"
+# column (32 chars), so "Bandolibre" does not match the "Bandolibre DFU"
+# bootloader client.
 find_port() {
     aseqdump -l 2>/dev/null | awk -v c="$CLIENT" '
-        $0 ~ c { print $1; exit }'
+        { port = $1; sub(/^ *[0-9]+:[0-9]+ +/, ""); name = substr($0, 1, 32)
+          sub(/ +$/, "", name) }
+        name == c { print port; exit }'
 }
 
 wait_for_port() {
