@@ -57,6 +57,17 @@ extern char ** console_complete(int argc, const char * const *argv) __attribute_
 
 void console_rx_callback(uint8_t ch)
 {
+  /* Ctrl-L brings the prompt back for a terminal attached after it was drawn
+   * (a UART has no connect event to trigger this). The typed line is kept, and
+   * the key is not passed to microrl, which would insert it as text. */
+  if (ch == 0x0C)
+  {
+    console_internal_depth++;
+    printf("\r\n");
+    console_internal_depth--;
+    console_redraw_prompt();
+    return;
+  }
   /* microrl echoes the char and may redraw the line; that output is not async. */
   console_internal_depth++;
   microrl_insert_char(&console_rl, ch);

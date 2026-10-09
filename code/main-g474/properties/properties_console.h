@@ -19,17 +19,15 @@ extern "C" {
  * Names may glob ('*'/'?'), e.g. `get log_*` addresses a whole family.
  *
  *   show                 list all properties with current value
- *   get   <name>         show value, min, max and default
+ *   get   <name>         table of value, [min, max], default, firmware value, description
  *   set   <name> <value> set a property, clamped to [min,max]
  *   reset <name>         restore default(s)
  */
 bool   properties_execute(int argc, const char *const *argv);
 
-/* With pattern NULL, lists the property command usage only (the full property
- * table is not printed here; use 'show' or 'help <pattern>' for that). With a
- * pattern, lists the properties whose name matches it instead (pattern may
- * glob, '*'/'?'). */
-void   properties_help(const char *pattern);
+/* Lists the property command usage. The property table itself is not printed
+ * here; use 'show' or 'get *' for that. */
+void   properties_help(void);
 
 /* Fill out[] with up to cap property names starting with prefix (prefix may be
  * NULL/"" to match all); returns the count. Backs a completion callback. */

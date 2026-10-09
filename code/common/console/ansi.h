@@ -30,6 +30,7 @@
 // Colors (SGR)
 #define ANSI_RESET            ANSI_CSI "0m"
 #define ANSI_FG_GREEN         ANSI_CSI "32m"
+#define ANSI_BOLD             ANSI_CSI "1m"
 #define ANSI_FG_GREY          ANSI_CSI "90m"       // bright black, for de-emphasized text
 #define ANSI_BG_GREY236       ANSI_CSI "48;5;236m" // 256-color palette, dark grey
 #define ANSI_BG_RGB_FMT       ANSI_CSI "48;2;%d;%d;%dm" // 24-bit background; args are r, g, b

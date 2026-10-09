@@ -22,7 +22,10 @@
 #define _USE_LIBC_STDIO
 #define _USE_CTLR_C
 #define _ENABLE_INIT_PROMPT
+/* The terminal sends CR on Enter (_ENDL_CR), but output must end lines with
+ * CR LF: with a bare CR the Tab-completion list is printed on the prompt row
+ * and the prompt redraw erases it. */
 #define _ENDL_CR
-#define ENDL "\r"
+#define ENDL "\r\n"
 
 #endif

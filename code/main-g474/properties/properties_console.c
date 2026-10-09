@@ -65,20 +65,34 @@ static bool has_wildcard(const char *s)
   return strchr(s, '*') || strchr(s, '?');
 }
 
+/* One row of the `get` table; `row` alternates the background. The default
+ * column is the saved value, starred, if there is one, else the firmware's
+ * factory value. */
+static void print_row(size_t index, size_t row)
+{
+  const property_desc_t *d = property_at(index);
+  uint16_t saved;
+  bool has = property_get_saved(index, &saved);
+  char range[16];
+  snprintf(range, sizeof range, "[%u, %u]", d->min, d->max);
+  printf("%s%-28s %5s %-12s %6u %7u%c %8u  %s" ANSI_RESET "\r\n", (row & 1) ? ANSI_BG_GREY236 : "",
+         d->name, type_name(d->type), range, current_value(index),
+         has ? saved : d->factory_value, has ? '*' : ' ', d->factory_value, d->description);
+}
+
 static bool property_cmd_get(int argc, const char *const *argv)
 {
   if (argc < 2) { printf("usage: get <name>\r\n"); return false; }
-  if (has_wildcard(argv[1]))
+  size_t matched = 0;
+  for (size_t i = 0; i < property_count(); i++)
   {
-    size_t matched = 0;
-    for (size_t i = 0; i < property_count(); i++)
-      if (name_match(argv[1], property_at(i)->name)) { print_one(i); matched++; }
-    if (!matched) { printf("no property matches: %s\r\n", argv[1]); return false; }
-    return true;
+    if (!name_match(argv[1], property_at(i)->name)) continue;
+    if (!matched)
+      printf(ANSI_BOLD ANSI_FG_GREEN "%-28s %5s %-12s %6s %8s %8s  %s" ANSI_RESET "\r\n", "name", "type", "range", "value", "default",
+             "firmware", "description");
+    print_row(i, matched++);
   }
-  size_t i;
-  if (!property_by_name(argv[1], &i)) { printf("unknown property: %s\r\n", argv[1]); return false; }
-  print_one(i);
+  if (!matched) { printf("no property matches: %s\r\n", argv[1]); return false; }
   return true;
 }
 
@@ -201,32 +215,18 @@ bool properties_execute(int argc, const char *const *argv)
   return false;
 }
 
-void properties_help(const char *pattern)
+void properties_help(void)
 {
-  if (!pattern)
-  {
-    printf("Property commands:\r\n");
-    printf("  show                 list all properties with current value (* = saved default)\r\n");
-    printf("  get <name>           show value, min, max and default (name may glob, e.g. log_*)\r\n");
-    printf("  set <name> <value>   set a property, clamped to [min,max] (name may glob, e.g. log_*)\r\n");
-    printf("  reset <name>         restore default(s): saved value, else factory (name may glob)\r\n");
-    printf("  save                 save current values as defaults, in flash\r\n");
-    printf("  factory_reset        erase saved values, restore every factory value\r\n");
-    printf("  store                state of the saved-values flash store\r\n");
-    printf("  help [name]          this help, or details of matching properties (name may glob)\r\n");
-    return;
-  }
-  printf("Properties:\r\n");
-  printf("%-28s %5s %6s %6s  %s\r\n", "name", "type", "min", "max", "description");
-  size_t matched = 0;
-  for (size_t i = 0; i < property_count(); i++)
-  {
-    const property_desc_t *d = property_at(i);
-    if (!name_match(pattern, d->name)) continue;
-    const char *bg = (matched++ & 1) ? ANSI_BG_GREY236 : "";
-    printf("%s%-28s %5s %6u %6u  %s" ANSI_RESET "\r\n", bg, d->name, type_name(d->type), d->min, d->max, d->description);
-  }
-  if (!matched) printf("no property matches: %s\r\n", pattern);
+  printf("Property commands:\r\n");
+  printf("  show                 list all properties with current value (* = saved default)\r\n");
+  printf("  get <name>           table of value, range, default, firmware value and description\r\n");
+  printf("                       (name may glob, e.g. log_* or *)\r\n");
+  printf("  set <name> <value>   set a property, clamped to its range (name may glob, e.g. log_*)\r\n");
+  printf("  reset <name>         restore default(s): saved value, else factory (name may glob)\r\n");
+  printf("  save                 save current values as defaults, in flash\r\n");
+  printf("  factory_reset        erase saved values, restore every factory value\r\n");
+  printf("  store                state of the saved-values flash store\r\n");
+  printf("  help                 this help\r\n");
 }
 
 size_t properties_complete(const char *prefix, const char **out, size_t cap)
