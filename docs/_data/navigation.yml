@@ -1,7 +1,7 @@
 main:
   - title: "L'Atelier"
-    url: /
+    url: https://bandolibre.github.io/
   - title: "Le Bandolibre"
-    url: /bandolibre
+    url: /
   - title: "Guide"
     url: /guide/
