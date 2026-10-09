@@ -28,9 +28,17 @@
 #define DFU_BUTTON_PORT   GPIOB
 #define DFU_BUTTON_PIN    GPIO_PIN_4
 
-/* LED_FN2, above that button. */
+/* LED_FN2, above that button. PB5 is TIM3_CH2 (AF2), so the LED is dimmed and
+ * ramped in hardware PWM rather than switched. HAL's timer module is not built
+ * into the bootloader (flash budget), hence the CMSIS registers. */
 #define DFU_LED_PORT      GPIOB
 #define DFU_LED_PIN       GPIO_PIN_5
+
+/* Timer period in counts (about 94 kHz at the 96 MHz bus clock, far above any
+ * flicker rate), and the duty at the peak of a pulse. At full duty the LED is
+ * much brighter than wanted, so the peak is capped. */
+#define LED_PWM_TOP       1023U
+#define LED_PEAK_DUTY     120U
 
 static volatile uint32_t *const boot_flag = (volatile uint32_t *) BOOT_FLAG_ADDR;
 
@@ -116,14 +124,30 @@ static void gpio_init(void)
   };
   HAL_GPIO_Init(DFU_BUTTON_PORT, &in);
 
+  __HAL_RCC_TIM3_CLK_ENABLE();
+  TIM3->PSC   = 0;
+  TIM3->ARR   = LED_PWM_TOP;
+  TIM3->CCR2  = 0;
+  TIM3->CCMR1 = TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;  /* PWM mode 1 */
+  TIM3->CCER  = TIM_CCER_CC2E;
+  TIM3->CR1   = TIM_CR1_ARPE;
+  TIM3->EGR   = TIM_EGR_UG;
+  TIM3->CR1  |= TIM_CR1_CEN;
+
   GPIO_InitTypeDef out = {
     .Pin = DFU_LED_PIN,
-    .Mode = GPIO_MODE_OUTPUT_PP,
+    .Mode = GPIO_MODE_AF_PP,
     .Pull = GPIO_NOPULL,
     .Speed = GPIO_SPEED_FREQ_LOW,
+    .Alternate = GPIO_AF2_TIM3,
   };
   HAL_GPIO_Init(DFU_LED_PORT, &out);
-  HAL_GPIO_WritePin(DFU_LED_PORT, DFU_LED_PIN, GPIO_PIN_RESET);
+}
+
+/* Sets the LED to a duty of 0..LED_PWM_TOP. */
+static void led_set(uint32_t duty)
+{
+  TIM3->CCR2 = duty;
 }
 
 static bool dfu_button_pressed(void)
@@ -214,12 +238,36 @@ static void usb_init(void)
   tusb_init(0, &dev_init);
 }
 
-/* Slow blink while waiting, fast blink while blocks are arriving. */
+/* Smoothstep 3x^2 - 2x^3 on 0..1024, so a ramp eases in and out instead of
+ * starting and stopping at a constant slope. */
+static uint32_t smoothstep(uint32_t x)
+{
+  return (x * x * (3U * 1024U - 2U * x)) >> 20;
+}
+
+/* One pulse per `period` ms: a quick swell over the first quarter, then a
+ * longer fade, both eased. The ramp is in perceived brightness, so it is
+ * squared into a duty (about gamma 2); a linear duty would seem to jump on and
+ * hang near full. The slower fade after a fast swell is what reads as a pulse
+ * rather than a blink. */
+static uint32_t pulse_duty(uint32_t now_ms, uint32_t period)
+{
+  uint32_t const attack = period / 4U;
+  uint32_t const phase = now_ms % period;
+  uint32_t level;   /* perceived brightness, 0..1024 */
+
+  if (phase < attack)
+    level = smoothstep(phase * 1024U / attack);
+  else
+    level = 1024U - smoothstep((phase - attack) * 1024U / (period - attack));
+
+  return (level * level >> 10) * LED_PEAK_DUTY >> 10;
+}
+
+/* Pulse at 2 Hz while waiting, 5 Hz while blocks are arriving. */
 static void led_task(void)
 {
-  uint32_t const period = uf2_receiving() ? 100U : 500U;
-  HAL_GPIO_WritePin(DFU_LED_PORT, DFU_LED_PIN,
-                    ((HAL_GetTick() / period) & 1U) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  led_set(pulse_duty(HAL_GetTick(), uf2_receiving() ? 200U : 500U));
 }
 
 static void dfu_mode(void)
@@ -237,7 +285,7 @@ static void dfu_mode(void)
       uint32_t const settle = HAL_GetTick();
       while (HAL_GetTick() - settle < 100U) tud_task();
 
-      HAL_GPIO_WritePin(DFU_LED_PORT, DFU_LED_PIN, GPIO_PIN_SET);
+      led_set(LED_PEAK_DUTY);
 
       printf("dfu: all blocks received, committing to flash...\r\n");
       if (uf2_commit()) {
@@ -249,7 +297,7 @@ static void dfu_mode(void)
        * app_valid() will keep the board here after a reset — stay put and let
        * the user retry the copy rather than rebooting into nothing. */
       printf("dfu: commit FAILED, staying in DFU mode\r\n");
-      HAL_GPIO_WritePin(DFU_LED_PORT, DFU_LED_PIN, GPIO_PIN_RESET);
+      led_set(0);
     }
   }
 }

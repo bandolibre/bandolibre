@@ -11,6 +11,86 @@
  * advance the bellows program. */
 #define FN1_LONG_PRESS_MS 1000
 
+/* The three LEDs are dimmed with hardware PWM, never switched: at full duty
+ * they are far too bright. LED_MAX_DUTY (counts out of LED_PWM_TOP) is the
+ * brightness of a "100%" LED; every level below is a share of it.
+ *   LED_FN0  PB9  TIM4_CH4 (AF2)
+ *   LED_FN1  PB7  TIM4_CH2 (AF2)
+ *   LED_FN2  PB5  TIM3_CH2 (AF2)
+ * HAL's timer module is not built and main.c is CubeMX-generated, so the timers
+ * are set up here with CMSIS registers, after MX_GPIO_Init() made the pins
+ * plain outputs. LED_PWM_TOP+1 counts per period is far above any flicker rate
+ * at the bus clock. */
+#define LED_PWM_TOP   1023U
+#define LED_MAX_DUTY  1023U
+
+static void led_pwm_init(void)
+{
+  __HAL_RCC_TIM3_CLK_ENABLE();
+  __HAL_RCC_TIM4_CLK_ENABLE();
+
+  GPIO_InitTypeDef gpio = {0};
+  gpio.Mode      = GPIO_MODE_AF_PP;
+  gpio.Pull      = GPIO_NOPULL;
+  gpio.Speed     = GPIO_SPEED_FREQ_LOW;
+  gpio.Pin       = LED_FN0_Pin | LED_FN1_Pin;
+  gpio.Alternate = GPIO_AF2_TIM4;
+  HAL_GPIO_Init(GPIOB, &gpio);
+  gpio.Pin       = LED_FN2_Pin;
+  gpio.Alternate = GPIO_AF2_TIM3;
+  HAL_GPIO_Init(GPIOB, &gpio);
+
+  TIM4->PSC   = 0;
+  TIM4->ARR   = LED_PWM_TOP;
+  TIM4->CCR2  = 0;
+  TIM4->CCR4  = 0;
+  TIM4->CCMR1 = TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;  /* PWM mode 1 */
+  TIM4->CCMR2 = TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE;
+  TIM4->CCER  = TIM_CCER_CC2E | TIM_CCER_CC4E;
+  TIM4->CR1   = TIM_CR1_ARPE;
+  TIM4->EGR   = TIM_EGR_UG;
+  TIM4->CR1  |= TIM_CR1_CEN;
+
+  TIM3->PSC   = 0;
+  TIM3->ARR   = LED_PWM_TOP;
+  TIM3->CCR2  = 0;
+  TIM3->CCMR1 = TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE;
+  TIM3->CCER  = TIM_CCER_CC2E;
+  TIM3->CR1   = TIM_CR1_ARPE;
+  TIM3->EGR   = TIM_EGR_UG;
+  TIM3->CR1  |= TIM_CR1_CEN;
+}
+
+/* An intermediate state is not a steady glow (a half-duty LED looks nearly as
+ * bright as a full one) but a slow pulse between these shares of LED_MAX_DUTY,
+ * eased at both ends so it breathes rather than ramps. */
+#define LED_PULSE_MIN_PCT  3U
+#define LED_PULSE_MAX_PCT  34U
+#define LED_PULSE_MS       2000U
+
+/* Smoothstep 3x^2 - 2x^3 on 0..1024. */
+static uint32_t smoothstep(uint32_t x)
+{
+  return (x * x * (3U * 1024U - 2U * x)) >> 20;
+}
+
+/* Duty for `state` out of `states` ordered states: the first is off, the last
+ * is LED_MAX_DUTY and every state between pulses. With three states that is
+ * off, pulsing, full. */
+static uint32_t led_level(uint32_t state, uint32_t states, uint32_t now_ms)
+{
+  if (state >= states) state = states - 1;
+  if (state == 0) return 0;
+  if (state == states - 1) return LED_MAX_DUTY;
+
+  uint32_t phase = now_ms % LED_PULSE_MS;
+  uint32_t half  = LED_PULSE_MS / 2U;
+  uint32_t tri   = (phase < half ? phase : LED_PULSE_MS - phase) * 1024U / half;
+  uint32_t pct   = LED_PULSE_MIN_PCT +
+                   (LED_PULSE_MAX_PCT - LED_PULSE_MIN_PCT) * smoothstep(tri) / 1024U;
+  return LED_MAX_DUTY * pct / 100U;
+}
+
 bool buttons_table_mode(void)
 {
   return g_properties->table_mode;
@@ -95,7 +175,20 @@ void buttons_poll(void)
     fn1_armed = false;
     cycle_bellow_program();
   }
-  HAL_GPIO_WritePin(LED_FN1_GPIO_Port, LED_FN1_Pin, bellow_calibrating() ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  /* Each LED shows its property: FN0 table_mode off/on (0%, 100%), FN1 the
+   * bellows program and FN2 the keyboard tuning (off, pulsing, 100% for their
+   * three values). FN1 is at 100% while calibrating, whatever the program. */
+  static bool led_pwm_ready;
+  if (!led_pwm_ready)
+  {
+    led_pwm_init();
+    led_pwm_ready = true;
+  }
+  uint32_t now = HAL_GetTick();
+  TIM4->CCR4 = led_level(g_properties->table_mode ? 1 : 0, 2, now);
+  TIM4->CCR2 = bellow_calibrating() ? LED_MAX_DUTY
+                                    : led_level(g_properties->bellow_program, BELLOW_PROGRAM_COUNT, now);
+  TIM3->CCR2 = led_level(g_properties->keyboard_tuning, NUM_TUNINGS, now);
 
   if (fn != fn_prev)
   {
