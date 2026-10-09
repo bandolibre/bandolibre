@@ -101,7 +101,7 @@ connaissance technique n'est nécessaire.
 
 <a href="{{ '/guide/user_manual.fr.html' | relative_url }}" class="btn btn--primary btn--large"><i class="fas fa-book-open"></i> Lire le manuel d'utilisation</a>
 
-<small>Également disponible en [English]({{ '/guide/user_manual.html' | relative_url }}) et en [Español]({{ '/guide/user_manual.es.html' | relative_url }}).</small>
+Également disponible en [English]({{ '/guide/user_manual.html' | relative_url }}) et en [Español]({{ '/guide/user_manual.es.html' | relative_url }}).
 
 ## Configurer votre Bandolibre
 
