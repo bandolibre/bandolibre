@@ -12,8 +12,9 @@
 #define FN1_LONG_PRESS_MS 1000
 
 /* The three LEDs are dimmed with hardware PWM, never switched: at full duty
- * they are far too bright. LED_MAX_DUTY (counts out of LED_PWM_TOP) is the
- * brightness of a "100%" LED; every level below is a share of it.
+ * they are far too bright. The led_max_duty property (counts out of
+ * LED_PWM_TOP) is the brightness of a "100%" LED; every level below is a share
+ * of it.
  *   LED_FN0  PB9  TIM4_CH4 (AF2)
  *   LED_FN1  PB7  TIM4_CH2 (AF2)
  *   LED_FN2  PB5  TIM3_CH2 (AF2)
@@ -22,7 +23,6 @@
  * plain outputs. LED_PWM_TOP+1 counts per period is far above any flicker rate
  * at the bus clock. */
 #define LED_PWM_TOP   1023U
-#define LED_MAX_DUTY  1023U
 
 static void led_pwm_init(void)
 {
@@ -62,7 +62,7 @@ static void led_pwm_init(void)
 }
 
 /* An intermediate state is not a steady glow (a half-duty LED looks nearly as
- * bright as a full one) but a slow pulse between these shares of LED_MAX_DUTY,
+ * bright as a full one) but a slow pulse between these shares of led_max_duty,
  * eased at both ends so it breathes rather than ramps. */
 #define LED_PULSE_MIN_PCT  3U
 #define LED_PULSE_MAX_PCT  34U
@@ -75,20 +75,20 @@ static uint32_t smoothstep(uint32_t x)
 }
 
 /* Duty for `state` out of `states` ordered states: the first is off, the last
- * is LED_MAX_DUTY and every state between pulses. With three states that is
+ * is led_max_duty and every state between pulses. With three states that is
  * off, pulsing, full. */
 static uint32_t led_level(uint32_t state, uint32_t states, uint32_t now_ms)
 {
   if (state >= states) state = states - 1;
   if (state == 0) return 0;
-  if (state == states - 1) return LED_MAX_DUTY;
+  if (state == states - 1) return g_properties->led_max_duty;
 
   uint32_t phase = now_ms % LED_PULSE_MS;
   uint32_t half  = LED_PULSE_MS / 2U;
   uint32_t tri   = (phase < half ? phase : LED_PULSE_MS - phase) * 1024U / half;
   uint32_t pct   = LED_PULSE_MIN_PCT +
                    (LED_PULSE_MAX_PCT - LED_PULSE_MIN_PCT) * smoothstep(tri) / 1024U;
-  return LED_MAX_DUTY * pct / 100U;
+  return g_properties->led_max_duty * pct / 100U;
 }
 
 bool buttons_table_mode(void)
@@ -186,7 +186,7 @@ void buttons_poll(void)
   }
   uint32_t now = HAL_GetTick();
   TIM4->CCR4 = led_level(g_properties->table_mode ? 1 : 0, 2, now);
-  TIM4->CCR2 = bellow_calibrating() ? LED_MAX_DUTY
+  TIM4->CCR2 = bellow_calibrating() ? g_properties->led_max_duty
                                     : led_level(g_properties->bellow_program, BELLOW_PROGRAM_COUNT, now);
   TIM3->CCR2 = led_level(g_properties->keyboard_tuning, NUM_TUNINGS, now);
 

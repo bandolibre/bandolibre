@@ -35,7 +35,7 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 72);
+  CHECK(property_count() == 73);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);

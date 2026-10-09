@@ -198,3 +198,6 @@ PROPERTY(71, uint16_t, pedal2_1e_beta,
 PROPERTY(72, bool, log_midi_notes,
          .factory_value = 0,
          .description = "Log MIDI note on and off")
+PROPERTY(73, uint16_t, led_max_duty,
+         .factory_value = 1023, .min = 0, .max = 1023,
+         .description = "Function button LED peak PWM duty, out of 1023")
