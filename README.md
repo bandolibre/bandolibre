@@ -1,4 +1,4 @@
-![Bandolibre keyboard](documentation/images/3dmodel_keyboard_tilt.webp)
+![Bandolibre keyboard](docs/guide/images/3dmodel_keyboard_tilt.webp)
 
 🇬🇧 **English** | 🇫🇷 [Français](README.fr.md) | 🇪🇸 [Español](README.es.md)
 
@@ -49,7 +49,7 @@ Watch the demos: [with a clarinet virtual instrument](https://youtu.be/6s1wlRKlA
 
 **Adaptable** — standard USB-MIDI is compatible with the whole adapter ecosystem: plug in a USB Bluetooth MIDI adapter to play wirelessly, or a USB-to-DIN-5 adapter to drive vintage hardware synths.
 
-<a href="documentation/user_manual.md"><img width="208" alt="User manual" src="https://img.shields.io/badge/User_manual-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
+<a href="docs/guide/user_manual.md"><img width="208" alt="User manual" src="https://img.shields.io/badge/User_manual-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
 
 ---
 
@@ -62,7 +62,7 @@ Building one costs about as much as a decent MIDI keyboard or a good pair of stu
 
 The parts list, tools, consumables and step-by-step assembly are in the assembly instructions:
 
-<a href="documentation/assembly_instructions.md"><img width="320" alt="Assembly instructions" src="https://img.shields.io/badge/Assembly_instructions-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU3MS4zMSAxOTMuOTRsLTIyLjYzLTIyLjYzYy02LjI1LTYuMjUtMTYuMzgtNi4yNS0yMi42MyAwbC0xMS4zMSAxMS4zMS0yOC45LTI4LjljNS42My0yMS4zMS4zNi00NC45LTE2LjM1LTYxLjYxbC00NS4yNS00NS4yNWMtNjIuNDgtNjIuNDgtMTYzLjc5LTYyLjQ4LTIyNi4yOCAwbDkwLjUxIDQ1LjI1djE4Ljc1YzAgMTYuOTcgNi43NCAzMy4yNSAxOC43NSA0NS4yNWw0OS4xNCA0OS4xNGMxNi43MSAxNi43MSA0MC4zIDIxLjk4IDYxLjYxIDE2LjM1bDI4LjkgMjguOS0xMS4zMSAxMS4zMWMtNi4yNSA2LjI1LTYuMjUgMTYuMzggMCAyMi42M2wyMi42MyAyMi42M2M2LjI1IDYuMjUgMTYuMzggNi4yNSAyMi42MyAwbDkwLjUxLTkwLjUxYzYuMjMtNi4yNCA2LjIzLTE2LjM3LS4wMi0yMi42MnptLTI4Ni43Mi0xNS4yYy0zLjctMy43LTYuODQtNy43OS05Ljg1LTExLjk1TDE5LjY0IDQwNC45NmMtMjUuNTcgMjMuODgtMjYuMjYgNjQuMTktMS41MyA4OC45M3M2NS4wNSAyNC4wNSA4OC45My0xLjUzbDIzOC4xMy0yNTUuMDdjLTMuOTYtMi45MS03LjktNS44Ny0xMS40NC05LjQxbC00OS4xNC00OS4xNHoiLz48L3N2Zz4="></a>
+<a href="docs/guide/assembly_instructions.md"><img width="320" alt="Assembly instructions" src="https://img.shields.io/badge/Assembly_instructions-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU3MS4zMSAxOTMuOTRsLTIyLjYzLTIyLjYzYy02LjI1LTYuMjUtMTYuMzgtNi4yNS0yMi42MyAwbC0xMS4zMSAxMS4zMS0yOC45LTI4LjljNS42My0yMS4zMS4zNi00NC45LTE2LjM1LTYxLjYxbC00NS4yNS00NS4yNWMtNjIuNDgtNjIuNDgtMTYzLjc5LTYyLjQ4LTIyNi4yOCAwbDkwLjUxIDQ1LjI1djE4Ljc1YzAgMTYuOTcgNi43NCAzMy4yNSAxOC43NSA0NS4yNWw0OS4xNCA0OS4xNGMxNi43MSAxNi43MSA0MC4zIDIxLjk4IDYxLjYxIDE2LjM1bDI4LjkgMjguOS0xMS4zMSAxMS4zMWMtNi4yNSA2LjI1LTYuMjUgMTYuMzggMCAyMi42M2wyMi42MyAyMi42M2M2LjI1IDYuMjUgMTYuMzggNi4yNSAyMi42MyAwbDkwLjUxLTkwLjUxYzYuMjMtNi4yNCA2LjIzLTE2LjM3LS4wMi0yMi42MnptLTI4Ni43Mi0xNS4yYy0zLjctMy43LTYuODQtNy43OS05Ljg1LTExLjk1TDE5LjY0IDQwNC45NmMtMjUuNTcgMjMuODgtMjYuMjYgNjQuMTktMS41MyA4OC45M3M2NS4wNSAyNC4wNSA4OC45My0xLjUzbDIzOC4xMy0yNTUuMDdjLTMuOTYtMi45MS03LjktNS44Ny0xMS40NC05LjQxbC00OS4xNC00OS4xNHoiLz48L3N2Zz4="></a>
 
 They are best built in batches of five — JLCPCB minimum orders make that the natural unit. Team up with friends or reach out to [L'Atelier du bandonéon libre](https://github.com/bandolibre) to express interest in a community build.
 
@@ -80,26 +80,26 @@ The configuration tool is a web page that displays and changes the instrument's 
 <a href="https://bandolibre.github.io/tools/midi.html"><img width="385" alt="Open the configuration tool" src="https://img.shields.io/badge/Open_the_configuration_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
-  <img src="documentation/images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
-  <img src="documentation/images/configuration_tool_keyboard.webp" alt="Configuration tool, live keyboards" width="49%">
+  <img src="docs/guide/images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
+  <img src="docs/guide/images/configuration_tool_keyboard.webp" alt="Configuration tool, live keyboards" width="49%">
 </p>
 
 ---
 
 ## Design
 
-![overview](documentation/images/3dmodel_overview.webp)
+![overview](docs/guide/images/3dmodel_overview.webp)
 
 The mechanical parts are modeled in Onshape — [the full 3D model](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/v/5c5fbc4088ac379c1bd1b53a/e/c6a89cb028bdc195ff70596f?showReturnToWorkspaceLink=tru) is public and interactive. Reference [photography](keyboard_picture/) of real instruments was used to accurately reproduce the shape, key placement, and keyboard tilt of both hands.
-![handle_layout](documentation/images/3dmodel_handle.webp)
-![keyboard_layout](documentation/images/3dmodel_keyboard_layout.webp)
+![handle_layout](docs/guide/images/3dmodel_handle.webp)
+![keyboard_layout](docs/guide/images/3dmodel_keyboard_layout.webp)
 
 The PCBs are designed with EasyEDA.
-![3d_pcb](documentation/images/pcb_main_board_3d.png)
+![3d_pcb](docs/guide/images/pcb_main_board_3d.png)
 
 The bellows is replaced by a **blade spring instrumented with two Hall-effect sensors** that read its flexion. Load cell solutions were ruled out early — they are too rigid and remove the tactile feedback players rely on to feel and modulate their effort — it plays like pressing on a wall. The blade spring preserves that proprioceptive feedback while being simple and durable. Blade thickness can be chosen to tune the instrument's stiffness, from light to firm.
 
-![blade spring](documentation/images/bandolibre_blade.webp)
+![blade spring](docs/guide/images/bandolibre_blade.webp)
 
 A bellows program button cycles through three bellows programs, each with its own rest position, dead zone, full travel and response curves, tuned in the configuration tool. By default they need less and less bellows travel to reach full expression — useful for quiet practice or a stiffer spring.
 
@@ -120,8 +120,8 @@ So we are actively looking for virtual instruments with deep expressive support 
 ## Where we are
 
 <p>
-  <img src="documentation/images/bandolibre_overview.webp" alt="Bandolibre overview" width="49%">
-  <img src="documentation/images/bandolibre_main_module.webp" alt="Bandolibre main module" width="49%">
+  <img src="docs/guide/images/bandolibre_overview.webp" alt="Bandolibre overview" width="49%">
+  <img src="docs/guide/images/bandolibre_main_module.webp" alt="Bandolibre main module" width="49%">
 </p>
 
 Five units are built and working. The firmware handles all 142 keys, bellows push/pull, pedals, and MIDI output reliably. These instruments are currently on loan to bandoneon teachers who are giving us hands-on feedback while we polish the software.
@@ -161,7 +161,7 @@ Working on something similar? Let the association know — we'd love to connect.
 
 ## Further readings
 
-- [Other electronic bandoneon projects](documentation/other-projects.md)
+- [Other electronic bandoneon projects](docs/guide/other-projects.md)
 
 ---
 

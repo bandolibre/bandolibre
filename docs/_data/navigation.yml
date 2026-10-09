@@ -3,3 +3,5 @@ main:
     url: /
   - title: "Le Bandolibre"
     url: /bandolibre
+  - title: "Guide"
+    url: /guide/

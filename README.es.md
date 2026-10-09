@@ -1,4 +1,4 @@
-![Bandolibre keyboard](documentation/images/3dmodel_keyboard_tilt.webp)
+![Bandolibre keyboard](docs/guide/images/3dmodel_keyboard_tilt.webp)
 
 🇬🇧 [English](README.md) | 🇫🇷 [Français](README.fr.md) | 🇪🇸 **Español**
 
@@ -49,7 +49,7 @@ Mira las demos: [con un clarinete virtual](https://youtu.be/6s1wlRKlAk4) · [con
 
 **Adaptable** — el estándar USB-MIDI es compatible con todo el ecosistema de adaptadores: conecta un adaptador USB Bluetooth MIDI para tocar de forma inalámbrica, o un adaptador USB a DIN-5 para controlar sintetizadores de hardware vintage.
 
-<a href="documentation/user_manual.es.md"><img width="277" alt="Manual de usuario" src="https://img.shields.io/badge/Manual_de_usuario-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
+<a href="docs/guide/user_manual.es.md"><img width="277" alt="Manual de usuario" src="https://img.shields.io/badge/Manual_de_usuario-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU0Mi4yMiAzMi4wNWMtNTQuOCAzLjExLTE2My43MiAxNC40My0yMzAuOTYgNTUuNTktNC42NCAyLjg0LTcuMjcgNy44OS03LjI3IDEzLjE3djM2My44N2MwIDExLjU1IDEyLjYzIDE4Ljg1IDIzLjI4IDEzLjQ5IDY5LjE4LTM0LjgyIDE2OS4yMy00NC4zMiAyMTguNy00Ni45MiAxNi44OS0uODkgMzAuMDItMTQuNDMgMzAuMDItMzAuNjZWNjIuNzVjLjAxLTE3LjcxLTE1LjM1LTMxLjc0LTMzLjc3LTMwLjd6TTI2NC43MyA4Ny42NEMxOTcuNSA0Ni40OCA4OC41OCAzNS4xNyAzMy43OCAzMi4wNSAxNS4zNiAzMS4wMSAwIDQ1LjA0IDAgNjIuNzVWNDAwLjZjMCAxNi4yNCAxMy4xMyAyOS43OCAzMC4wMiAzMC42NiA0OS40OSAyLjYgMTQ5LjU5IDEyLjExIDIxOC43NyA0Ni45NSAxMC42MiA1LjM1IDIzLjIxLTEuOTQgMjMuMjEtMTMuNDZWMTAwLjYzYzAtNS4yOS0yLjYyLTEwLjE0LTcuMjctMTIuOTl6Ii8+PC9zdmc+"></a>
 
 ---
 
@@ -61,7 +61,7 @@ Construir un Bandolibre cuesta aproximadamente lo mismo que un buen teclado MIDI
 
 La lista de materiales, las herramientas, los consumibles y el montaje paso a paso están en las instrucciones de montaje:
 
-<a href="documentation/assembly_instructions.md"><img width="363" alt="Instrucciones de montaje" src="https://img.shields.io/badge/Instrucciones_de_montaje-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU3MS4zMSAxOTMuOTRsLTIyLjYzLTIyLjYzYy02LjI1LTYuMjUtMTYuMzgtNi4yNS0yMi42MyAwbC0xMS4zMSAxMS4zMS0yOC45LTI4LjljNS42My0yMS4zMS4zNi00NC45LTE2LjM1LTYxLjYxbC00NS4yNS00NS4yNWMtNjIuNDgtNjIuNDgtMTYzLjc5LTYyLjQ4LTIyNi4yOCAwbDkwLjUxIDQ1LjI1djE4Ljc1YzAgMTYuOTcgNi43NCAzMy4yNSAxOC43NSA0NS4yNWw0OS4xNCA0OS4xNGMxNi43MSAxNi43MSA0MC4zIDIxLjk4IDYxLjYxIDE2LjM1bDI4LjkgMjguOS0xMS4zMSAxMS4zMWMtNi4yNSA2LjI1LTYuMjUgMTYuMzggMCAyMi42M2wyMi42MyAyMi42M2M2LjI1IDYuMjUgMTYuMzggNi4yNSAyMi42MyAwbDkwLjUxLTkwLjUxYzYuMjMtNi4yNCA2LjIzLTE2LjM3LS4wMi0yMi42MnptLTI4Ni43Mi0xNS4yYy0zLjctMy43LTYuODQtNy43OS05Ljg1LTExLjk1TDE5LjY0IDQwNC45NmMtMjUuNTcgMjMuODgtMjYuMjYgNjQuMTktMS41MyA4OC45M3M2NS4wNSAyNC4wNSA4OC45My0xLjUzbDIzOC4xMy0yNTUuMDdjLTMuOTYtMi45MS03LjktNS44Ny0xMS40NC05LjQxbC00OS4xNC00OS4xNHoiLz48L3N2Zz4="></a>
+<a href="docs/guide/assembly_instructions.md"><img width="363" alt="Instrucciones de montaje" src="https://img.shields.io/badge/Instrucciones_de_montaje-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTU3MS4zMSAxOTMuOTRsLTIyLjYzLTIyLjYzYy02LjI1LTYuMjUtMTYuMzgtNi4yNS0yMi42MyAwbC0xMS4zMSAxMS4zMS0yOC45LTI4LjljNS42My0yMS4zMS4zNi00NC45LTE2LjM1LTYxLjYxbC00NS4yNS00NS4yNWMtNjIuNDgtNjIuNDgtMTYzLjc5LTYyLjQ4LTIyNi4yOCAwbDkwLjUxIDQ1LjI1djE4Ljc1YzAgMTYuOTcgNi43NCAzMy4yNSAxOC43NSA0NS4yNWw0OS4xNCA0OS4xNGMxNi43MSAxNi43MSA0MC4zIDIxLjk4IDYxLjYxIDE2LjM1bDI4LjkgMjguOS0xMS4zMSAxMS4zMWMtNi4yNSA2LjI1LTYuMjUgMTYuMzggMCAyMi42M2wyMi42MyAyMi42M2M2LjI1IDYuMjUgMTYuMzggNi4yNSAyMi42MyAwbDkwLjUxLTkwLjUxYzYuMjMtNi4yNCA2LjIzLTE2LjM3LS4wMi0yMi42MnptLTI4Ni43Mi0xNS4yYy0zLjctMy43LTYuODQtNy43OS05Ljg1LTExLjk1TDE5LjY0IDQwNC45NmMtMjUuNTcgMjMuODgtMjYuMjYgNjQuMTktMS41MyA4OC45M3M2NS4wNSAyNC4wNSA4OC45My0xLjUzbDIzOC4xMy0yNTUuMDdjLTMuOTYtMi45MS03LjktNS44Ny0xMS40NC05LjQxbC00OS4xNC00OS4xNHoiLz48L3N2Zz4="></a>
 
 Lo ideal es construirlos por lotes de cinco — los pedidos mínimos de JLCPCB hacen de esta la cantidad mas conveniente. Únete a amigos o contacta a [L'Atelier du bandonéon libre](https://github.com/bandolibre) para expresar interés en una construcción colectiva.
 
@@ -79,26 +79,26 @@ La herramienta de configuración es una página web que muestra y modifica los p
 <a href="https://bandolibre.github.io/tools/midi.html"><img width="505" alt="Abrir la herramienta de configuración" src="https://img.shields.io/badge/Abrir_la_herramienta_de_configuraci%C3%B3n-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
-  <img src="documentation/images/configuration_tool.webp" alt="Herramienta de configuración, curva del fuelle" width="49%">
-  <img src="documentation/images/configuration_tool_keyboard.webp" alt="Herramienta de configuración, teclados en vivo" width="49%">
+  <img src="docs/guide/images/configuration_tool.webp" alt="Herramienta de configuración, curva del fuelle" width="49%">
+  <img src="docs/guide/images/configuration_tool_keyboard.webp" alt="Herramienta de configuración, teclados en vivo" width="49%">
 </p>
 
 ---
 
 ## Diseño
 
-![overview](documentation/images/3dmodel_overview.webp)
+![overview](docs/guide/images/3dmodel_overview.webp)
 
 Las piezas mecánicas están modeladas en Onshape — [el modelo 3D completo](https://cad.onshape.com/documents/313e70e978bf056a8dd7d76c/v/5c5fbc4088ac379c1bd1b53a/e/c6a89cb028bdc195ff70596f?showReturnToWorkspaceLink=tru) es público e interactivo. Se utilizó [fotografía de referencia](keyboard_picture/) de instrumentos reales para reproducir con precisión la forma, la disposición de teclas y la inclinación del teclado de ambas manos.
-![handle_layout](documentation/images/3dmodel_handle.webp)
-![keyboard_layout](documentation/images/3dmodel_keyboard_layout.webp)
+![handle_layout](docs/guide/images/3dmodel_handle.webp)
+![keyboard_layout](docs/guide/images/3dmodel_keyboard_layout.webp)
 
 Los PCB están diseñados con EasyEDA.
-![3d_pcb](documentation/images/pcb_main_board_3d.png)
+![3d_pcb](docs/guide/images/pcb_main_board_3d.png)
 
 El fuelle es reemplazado por una **lámina de resorte equipada con dos sensores de efecto Hall** que leen su flexión. Las soluciones basadas en celdas de carga fueron descartadas — demasiado rígidas, eliminan el feedback táctil que los bandoneonistas necesitan para sentir y modular su esfuerzo — es como presionar contra una pared. La lámina resorte preserva ese feedback propioceptivo siendo a la vez simple y duradera. El grosor de la lámina puede elegirse para ajustar la rigidez del instrumento, de suave a firme.
 
-![lámina resorte](documentation/images/bandolibre_blade.webp)
+![lámina resorte](docs/guide/images/bandolibre_blade.webp)
 
 Un botón de programa de fuelle permite pasar por tres programas, cada uno con su posición de reposo, zona muerta, recorrido máximo y curvas de respuesta, ajustados en la herramienta de configuración. Por defecto, necesitan cada vez menos recorrido de fuelle para alcanzar la máxima expresión — útil para tocar suave o con una lámina más rígida.
 
@@ -119,8 +119,8 @@ Por eso estamos buscando activamente instrumentos virtuales con soporte expresiv
 ## ¿Cómo queda?
 
 <p>
-  <img src="documentation/images/bandolibre_overview.webp" alt="Bandolibre overview" width="49%">
-  <img src="documentation/images/bandolibre_main_module.webp" alt="Bandolibre main module" width="49%">
+  <img src="docs/guide/images/bandolibre_overview.webp" alt="Bandolibre overview" width="49%">
+  <img src="docs/guide/images/bandolibre_main_module.webp" alt="Bandolibre main module" width="49%">
 </p>
 
 Cinco unidades fueron construidas y están funcionando. El firmware maneja las 142 teclas, el fuelle empuje/tracción, los pedales y la salida MIDI de forma confiable. Estos cinco instrumentos están actualmente prestados a profesores de bandoneón que nos dan retroalimentación práctica mientras pulimos el software.
@@ -160,7 +160,7 @@ La placa principal se comunica digitalmente con las placas wing y puede soportar
 
 ## Lecturas adicionales
 
-- [Otros proyectos de bandoneón electrónico](documentation/other-projects.md)
+- [Otros proyectos de bandoneón electrónico](docs/guide/other-projects.md)
 
 ---
 

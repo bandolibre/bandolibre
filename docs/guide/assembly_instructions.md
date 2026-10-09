@@ -1,3 +1,5 @@
+---
+---
 # Assembly instructions
 
 
@@ -30,7 +32,7 @@ planet.
 
 | Part | Qty | Notes |
 |------|-----|-------|
-| Main PCB | 1 | [EasyEDA design](../boards), [Production files](https://github.com/bandolibre/bandolibre/releases) |
+| Main PCB | 1 | [EasyEDA design](https://github.com/bandolibre/bandolibre/tree/main/boards), [Production files](https://github.com/bandolibre/bandolibre/releases) |
 | Left wing PCB | 1 | idem |
 | Right wing PCB | 1 | idem |
 

@@ -1,3 +1,5 @@
+---
+---
 # Updating the firmware
 
 The main board can be updated over the same USB cable it uses for MIDI. No
@@ -76,4 +78,4 @@ that the Debug build is ~116 KB — too large to fit above a bootloader in the
 128 KB this chip has.
 
 The full picture, including the flash layout and why the format is UF2, is in
-[code/boot-g474/README.md](../code/boot-g474/README.md).
+[code/boot-g474/README.md](https://github.com/bandolibre/bandolibre/blob/main/code/boot-g474/README.md).

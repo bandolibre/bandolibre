@@ -7,7 +7,7 @@ Hold **FN2** (the leftmost function button) while powering the instrument on,
 and a drive called `BANDOLIBRE` appears. Drop `main-g474.uf2` on it; when the
 copy finishes the drive disappears and the instrument restarts on the new
 firmware. End-user instructions are in
-[documentation/firmware_update.md](../../documentation/firmware_update.md).
+[docs/guide/firmware_update.md](../../docs/guide/firmware_update.md).
 
 ## Flash layout
 

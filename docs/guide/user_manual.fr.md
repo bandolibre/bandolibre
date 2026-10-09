@@ -1,3 +1,6 @@
+---
+title: "Manuel d'utilisation du Bandolibre"
+---
 🇬🇧 [English](user_manual.md) | 🇫🇷 **Français** | 🇪🇸 [Español](user_manual.es.md)
 
 # Manuel d'utilisation du Bandolibre
@@ -13,7 +16,7 @@ outil ni connaissance technique n'est nécessaire.
 
 ## Un instrument partagé
 
-[![CC BY-NC-SA 4.0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg)](../LICENSE.md)
+[![CC BY-NC-SA 4.0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc-sa.eu.svg)](https://github.com/bandolibre/bandolibre/blob/main/LICENSE.md)
 
 Le Bandolibre est publié sous licence
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr) :

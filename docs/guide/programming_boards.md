@@ -1,3 +1,5 @@
+---
+---
 
 ## Connecting the debugger probe
 
@@ -16,7 +18,7 @@ sudo apt remove stlink-tools
 sudo apt install build-essential cmake libusb-1.0-0-dev
 git clone --depth 1 --branch testing https://github.com/stlink-org/stlink
 cd stlink
-git apply ../bandolibre/documentation/0001-fix-st-trace-fix-SWO-trace-on-STLINK-V3-HS-bulk-endp.patch
+git apply ../bandolibre/docs/guide/0001-fix-st-trace-fix-SWO-trace-on-STLINK-V3-HS-bulk-endp.patch
 make release && sudo make install && sudo ldconfig
 ```
 
@@ -100,7 +102,7 @@ The same recipe apply in `code/wing-g474`.
 The main board carries a UF2 bootloader at `0x08000000` so it can be updated by
 copying a file onto a USB drive — see
 [firmware_update.md](firmware_update.md) and
-[code/boot-g474/README.md](../code/boot-g474/README.md). That splits its 128 KB
+[code/boot-g474/README.md](https://github.com/bandolibre/bandolibre/blob/main/code/boot-g474/README.md). That splits its 128 KB
 of flash, and the Debug build does not fit in the application's share of it:
 at `-O0` it is ~116 KB against the 92 KB available above the bootloader. So the
 two configurations link differently, and the recipes differ accordingly:

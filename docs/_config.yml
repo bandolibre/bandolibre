@@ -50,6 +50,24 @@ plugins:
   - jekyll-include-cache
   - jekyll-paginate
   - jekyll-redirect-from
+  - jekyll-relative-links
   - jekyll-remote-theme
   - jekyll-sitemap
   - jemoji
+
+# Turns [text](page.md) links in the guide into links to the rendered page, so
+# the same Markdown reads correctly on GitHub and on the site.
+relative_links:
+  enabled: true
+  collections: false
+
+defaults:
+  - scope:
+      path: "guide"
+      type: pages
+    values:
+      layout: single
+      classes: wide
+      toc: true
+      toc_sticky: true
+      toc_label: "Contents"

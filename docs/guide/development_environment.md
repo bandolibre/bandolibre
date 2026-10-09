@@ -1,3 +1,5 @@
+---
+---
 # Development environment
 
 For development I use VSCode with `clangd` rather than `intelliSenseEngine` because it reads `compile_commands.json` directly — correct ARM toolchain headers, exact build flags, no manual config.
