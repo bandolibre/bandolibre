@@ -9,9 +9,9 @@ header:
 excerpt: Un instrument MIDI pour les bandonéonistes
 comments: true
 author_profile: true
-# toc: true
-# toc_label: "Sur cette page"
-# toc_icon: "columns"
+toc: true
+toc_label: "Sur cette page"
+toc_icon: "columns"
 ---
 
 Le **Bandolibre** est un contrôleur MIDI conçu pour les passionnés, qui recrée
@@ -23,7 +23,7 @@ fidèlement la disposition du mythique bandonéon argentin et son clavier
 </figure>
 
 Grâce à ses capteurs magnétiques à **effet Hall**, la position de chaque touche
-est mesurée **1000 fois par seconde**, offrant une précision et une réactivité
+est mesurée **2400 fois par seconde**, offrant une précision et une réactivité
 exceptionnelles, sans aucune usure mécanique.
 
 Il se connecte en **USB-MIDI** (connecteur Type-B), directement alimenté
