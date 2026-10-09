@@ -1,9 +1,8 @@
 ---
-title: "Bandolibre user manual"
 ---
-🇬🇧 **English** | 🇫🇷 [Français](user_manual.fr.md) | 🇪🇸 [Español](user_manual.es.md)
-
 # Bandolibre user manual
+
+🇬🇧 **English** | 🇫🇷 [Français](user_manual.fr.md) | 🇪🇸 [Español](user_manual.es.md)
 
 This manual is for players. It explains how to connect the Bandolibre, set up
 your music software, use the function buttons and pedals, tune the feel of the
