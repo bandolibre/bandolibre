@@ -45,7 +45,7 @@ followed by the payload, then repacked into 7-bit groups: each run of up to 7
 bytes becomes 8, a leading byte holding the seven bit-7s, then the bytes with
 bit 7 cleared. ALSA and Web MIDI read any byte with bit 7 set as a new status
 byte, so escaping only 0xF0/0xF7 is not enough. `CFG_TUD_MIDI_TX_BUFSIZE` is
-sized to hold one full encoded response. `code/web/midi.html` implements the
+sized to hold one full encoded response. `docs/tools/midi.html` implements the
 host side; change both together.
 
 The TinyUSB sources, include paths, and the `CFG_TUSB_MCU=OPT_MCU_STM32G4`
