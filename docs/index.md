@@ -1,6 +1,7 @@
 ---
 title: Bandolibre
 layout: single
+classes: wide
 permalink: /
 hidden: true
 header:
