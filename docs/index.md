@@ -92,6 +92,17 @@ Cela nous aide aussi à voir combien de personnes sont intéressées et ce
 qu'elles aimeraient en jouer. Vos réponses restent au sein de l'association et
 servent uniquement à vous recontacter au sujet de Bandolibre.
 
+## Le Manuel d'Utilisation
+
+Tout ce qu'il faut savoir pour jouer : brancher le Bandolibre, régler votre
+logiciel de musique, utiliser les boutons de fonction et les pédales, ajuster
+la sensation du soufflet et mettre à jour le firmware. Aucun outil, aucune
+connaissance technique n'est nécessaire.
+
+<a href="{{ '/guide/user_manual.fr.html' | relative_url }}" class="btn btn--primary btn--large"><i class="fas fa-book-open"></i> Lire le manuel d'utilisation</a>
+
+<small>Également disponible en [English]({{ '/guide/user_manual.html' | relative_url }}) et en [Español]({{ '/guide/user_manual.es.html' | relative_url }}).</small>
+
 ## Configurer votre Bandolibre
 
 Un outil web permet de connecter le Bandolibre en USB-MIDI depuis votre
