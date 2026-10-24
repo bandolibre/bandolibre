@@ -112,6 +112,18 @@ installer.
 
 <a href="{{ '/tools/midi.html' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-sliders-h"></i> Ouvrir l'outil de configuration</a>
 
+## Jouer avec BandoPM, le synthétiseur en ligne
+
+**BandoPM** est un synthétiseur de bandonéon en **modélisation physique**,
+conçu pour exploiter les capteurs du Bandolibre : la vitesse des touches donne
+l'attaque, la pression du soufflet pilote le souffle sur les anches.
+
+Il tourne dans le navigateur, sans installation : branchez le Bandolibre, il
+est détecté automatiquement. Le code est libre.
+
+<a href="https://bandolibre.github.io/bandopm/" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-music"></i> Ouvrir BandoPM</a>
+<a href="https://github.com/bandolibre/bandopm" class="btn btn--primary btn--large" target="_blank"><i class="fab fa-github"></i> Code source de BandoPM</a>
+
 ## Mettre à Jour le Firmware
 
 La mise à jour se fait par glisser-déposer : placez la carte en mode DFU, elle
