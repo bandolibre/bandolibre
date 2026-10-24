@@ -1316,7 +1316,17 @@
     bwBytesSinceTick = 0;
   }, 1000);
 
-  const BANDOLIBRE_RE = /bandolibre/i;
+  // The firmware's USB strings (code/main-g474/usb/usb_descriptors.c) are
+  // product "Bandolibre" and manufacturer "L'Atelier du Bandonéon Libre".
+  // Linux/macOS name the MIDI port after the product, Windows after the
+  // manufacturer, so a board is recognised by either string. Compared
+  // lowercased, without accents or punctuation. Keep identical to the copy in
+  // bandopm/docs/app.js.
+  const BANDOLIBRE_RE = /bandolibre|bandoneonlibre/;
+  function normalizeUsbString(s) {
+    return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
   const MAX_LOG_LINES = 200;
 
   // ---- Persisted UI preferences (solfège, sound on/off, per-keyboard
@@ -4384,8 +4394,10 @@
     updateStatus();
   }
 
-  function isBandolibre(name) {
-    return !!name && BANDOLIBRE_RE.test(name);
+  // device: an entry of collectDevices() (name + manufacturer of its ports).
+  function isBandolibre(device) {
+    return !!device && [device.name, device.manufacturer]
+      .some((s) => BANDOLIBRE_RE.test(normalizeUsbString(s)));
   }
 
   // Firmware update notice. HELLO's version string is "Bandolibre " + the
@@ -4553,7 +4565,8 @@
         const input = ins[i] || null;
         const output = outs[i] || null;
         const key = (input && input.id) || (output && output.id);
-        devices.push({ key, name, input, output, index: i, total: count });
+        const manufacturer = (input && input.manufacturer) || (output && output.manufacturer) || "";
+        devices.push({ key, name, manufacturer, input, output, index: i, total: count });
       }
     }
     return devices;
@@ -4576,7 +4589,7 @@
     for (const device of devices) {
       const opt = document.createElement("option");
       opt.value = device.key;
-      opt.textContent = deviceLabel(device) + (isBandolibre(device.name) ? " — Bandolibre" : "");
+      opt.textContent = deviceLabel(device) + (isBandolibre(device) ? " — Bandolibre" : "");
       select.appendChild(opt);
     }
     select.value = previousValue;
@@ -4762,7 +4775,7 @@
     // connected, this function is a no-op (activeKey is set), so the other
     // port's later "connected" event would otherwise be silently ignored
     // and enumerateProperties() would never see an output to talk to.
-    const device = collectDevices().find((d) => isBandolibre(d.name) && d.input && d.output);
+    const device = collectDevices().find((d) => isBandolibre(d) && d.input && d.output);
     if (device) connectTo(device.key);
   }
 
