@@ -1,6 +1,6 @@
 // Minimal service worker: makes the tool installable and lets the app
 // shell load when offline. USB-MIDI itself still needs a real connection.
-const CACHE_NAME = "bandolibre-midi-v1";
+const CACHE_NAME = "bandolibre-midi-v2";
 const SHELL_URL = "midi.html";
 const SHELL_FILES = [
   SHELL_URL,

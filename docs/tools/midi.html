@@ -4910,6 +4910,24 @@
   }
 })();
 </script>
+<script>
+// Installed app: open once at the width of the page content (1100px column +
+// 16px padding each side). Browsers ignore the manifest for window size.
+(() => {
+  const SIZE_KEY = "bandolibre-window-fit-1";
+  const TARGET_INNER_WIDTH = 1132;
+  if (!window.matchMedia("(display-mode: standalone)").matches) return;
+  try {
+    if (localStorage.getItem(SIZE_KEY)) return;
+    localStorage.setItem(SIZE_KEY, "1");
+  } catch (e) {
+    return;
+  }
+  window.addEventListener("load", () => {
+    window.resizeTo(window.outerWidth + (TARGET_INNER_WIDTH - window.innerWidth), window.outerHeight);
+  });
+})();
+</script>
 <div class="toast-host" id="toastHost" aria-live="polite"></div>
 </body>
 </html>
