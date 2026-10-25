@@ -168,6 +168,8 @@
     font-size: 0.8rem;
     color: var(--muted);
   }
+  /* The card's padding already spaces its end. */
+  .card > .hint:last-child { margin-bottom: 0; }
   .activity-header {
     display: flex;
     align-items: center;
@@ -1065,8 +1067,8 @@
     </div>
   </div>
 
-  <div class="card">
-    <label>Pedals</label>
+  <details class="card collapsible" id="pedalsCard" open>
+    <summary><span class="summary-title">Pedals</span></summary>
     <p class="bp-caption">Drag the min / max lines (or edit the numbers) to calibrate each pedal's sensor range. Hold Shift while dragging for fine adjustment.</p>
 
     <div class="pedal-grid">
@@ -1130,7 +1132,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </details>
 
   <details class="card collapsible" id="keyCard" open>
     <summary>
@@ -1230,7 +1232,7 @@
       </div>
     </div>
     <div class="bp-cp-row">
-      <span class="bp-cp-row-label">Velocity</span>
+      <span class="bp-cp-row-label">Note-on velocity</span>
       <div class="bp-xy">
         <label><span>slowest strike</span><input type="number" id="st-num-vmin" min="1" max="127" value="20"></label>
         <label><span>fastest strike</span><input type="number" id="st-num-vmax" min="1" max="127" value="127"></label>
@@ -1291,7 +1293,7 @@
       </div>
     </div>
     <div class="bp-cp-row">
-      <span class="bp-cp-row-label">Velocity</span>
+      <span class="bp-cp-row-label">Note-off velocity</span>
       <div class="bp-xy">
         <label><span>slowest release</span><input type="number" id="rl-num-vmin" min="1" max="127" value="20"></label>
         <label><span>fastest release</span><input type="number" id="rl-num-vmax" min="1" max="127" value="127"></label>
