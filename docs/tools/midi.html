@@ -514,6 +514,22 @@
    * drawn at the caption's own font and size rather than scaled down. */
   .velocity-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 8px; }
   .velocity-col { min-width: 0; }
+  /* Velocity from the bellows: the Key press and Key release boxes aren't
+   * used. A faint diagonal hatch over their background says so; they stay
+   * editable. The hatch is a layer of the theme's colour cut out by a
+   * repeating 12 px tile, so every stripe sits at the same sub-pixel offset
+   * and is antialiased the same way (a CSS gradient puts each one at a
+   * different offset, and they vary in tone and width). It is behind the
+   * box's contents (isolation + z-index -1) and lets the pointer through. */
+  .velocity-col { position: relative; isolation: isolate; }
+  .velocity-row.unused .velocity-col::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    border-radius: inherit; pointer-events: none;
+    background: color-mix(in srgb, var(--fg) 9%, transparent);
+    --hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M-3,3 L3,-3 M0,12 L12,0 M9,15 L15,9' stroke='black' stroke-width='1'/%3E%3C/svg%3E");
+    -webkit-mask: var(--hatch) 0 0 / 12px 12px repeat;
+    mask: var(--hatch) 0 0 / 12px 12px repeat;
+  }
   @media (max-width: 900px) { .velocity-row { grid-template-columns: 1fr; } }
   svg.velocity-plot { font-size: 0.9rem; }
   /* Speed range row: slowest, fastest and the Logarithmic switch on one line.
@@ -1210,8 +1226,7 @@
     <div class="velocity-row">
     <div class="velocity-col bp-group">
     <div class="bp-group-title"><span class="bp-swatch pull"></span>Key press</div>
-    <svg class="bellow-plot velocity-plot" id="stPlot" viewBox="0 0 520 300" role="img" aria-label="key strike speed to MIDI velocity curve">
-      <line id="st-grid-bottom" class="bp-grid"></line>
+    <svg class="bellow-plot velocity-plot" id="stPlot" viewBox="0 0 520 300" role="img" aria-label="key strike speed to MIDI velocity curve">      <line id="st-grid-bottom" class="bp-grid"></line>
       <line id="st-grid-top" class="bp-grid"></line>
       <g id="st-yticks"></g>
       <text id="st-title-y" class="bp-axis-label" text-anchor="middle">note-on velocity</text>
@@ -1287,8 +1302,7 @@
 
     <div class="velocity-col bp-group">
     <div class="bp-group-title"><span class="bp-swatch release"></span>Key release</div>
-    <svg class="bellow-plot velocity-plot" id="rlPlot" viewBox="0 0 520 300" role="img" aria-label="key release speed to MIDI note-off velocity curve">
-      <line id="rl-grid-bottom" class="bp-grid"></line>
+    <svg class="bellow-plot velocity-plot" id="rlPlot" viewBox="0 0 520 300" role="img" aria-label="key release speed to MIDI note-off velocity curve">      <line id="rl-grid-bottom" class="bp-grid"></line>
       <line id="rl-grid-top" class="bp-grid"></line>
       <g id="rl-yticks"></g>
       <text id="rl-title-y" class="bp-axis-label" text-anchor="middle">note-off velocity</text>
@@ -4724,11 +4738,12 @@
 
     // One SVG unit is one CSS pixel: the viewBox follows the plot's width, so
     // its text keeps the page's font size (svg.velocity-plot) at any width,
-    // and the margins are sized from that font.
+    // and the margins are sized from that font. The width is taken unrounded,
+    // for a scale of exactly 1.
     const H = 300;
     let W = 520, FS = 14, L = 60, R = 500, T = 24, B = 252;
     function layout() {
-      const w = Math.round(svg.getBoundingClientRect().width);
+      const w = svg.getBoundingClientRect().width;
       if (!w) return false; // collapsed card: keep the last layout
       W = w;
       FS = parseFloat(getComputedStyle(svg).fontSize) || 14;
@@ -4899,8 +4914,13 @@
         if (document.activeElement !== input) input.value = g[key];
       }
       el("-log").checked = !!g.log;
-      if (source) source.querySelectorAll("button").forEach((b) =>
-        b.setAttribute("aria-pressed", String(+b.dataset.source === g.source)));
+      if (source) {
+        source.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", String(+b.dataset.source === g.source)));
+        // With the bellows as the source, both velocity graphs go unused:
+        // hatched as a hint, still editable.
+        document.querySelector(".velocity-row").classList.toggle("unused", g.source !== 1);
+      }
     }
 
     // The control points are point properties p1 and p2 (x | y << 8), kept
