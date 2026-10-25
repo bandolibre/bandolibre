@@ -3363,12 +3363,19 @@
     bpEls.roAdc.textContent = Math.round(liveAdcTotal);
   }
 
-  const X_TICK_STEP = 1000;
+  // The tick step: the smallest 1, 2 or 5 x 10^n giving at most this many
+  // ticks, so a zoomed axis keeps as many ticks as the full one.
+  const X_TICK_MAX = 10;
+  function xTickStep(span) {
+    for (let p = 1; ; p *= 10)
+      for (const m of [1, 2, 5]) if (span / (m * p) <= X_TICK_MAX) return m * p;
+  }
   function renderXTicks(xMin, xMax) {
     const group = bpEls.xticks;
     while (group.firstChild) group.removeChild(group.firstChild);
-    const start = Math.ceil(xMin / X_TICK_STEP) * X_TICK_STEP;
-    for (let v = start; v <= xMax; v += X_TICK_STEP) {
+    const step = xTickStep(xMax - xMin);
+    const start = Math.ceil(xMin / step) * step;
+    for (let v = start; v <= xMax; v += step) {
       const x = adcToPx(v);
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
       tick.setAttribute("class", "bp-tick");
