@@ -530,7 +530,7 @@
   .th-inputs { margin-top: 6px; }
   .velocity-header { margin-top: 16px; }
   @media (max-width: 640px) { .th-inputs { grid-template-columns: 1fr; } }
-  .bp-xy .kbd-toggle { border: none; padding: 0; margin: 0; }
+  .bp-xy .kbd-toggle { border: none; padding: 0; margin: 0; align-items: center; } /* the switch has no baseline */
   .bp-xy .kbd-toggle > span:first-child { font-family: inherit; font-size: 0.8rem; color: var(--fg); }
   svg.velocity-plot text { font-family: inherit; font-size: inherit; }
   .bp-curve.strike { stroke: var(--pull); }
@@ -539,7 +539,9 @@
   .bp-hline-hit { stroke: transparent; stroke-width: 18; cursor: ns-resize; outline: none; }
   .bp-hline-hit:hover + .bp-hline { opacity: 1; stroke-width: 3; }
   .bp-vline.strike { stroke: var(--muted); }
-  .bp-cp-handle.strike { fill: var(--fg); }
+  /* Control points take their curve's colour, as the bellows' push/pull ones do. */
+  .bp-cp-handle.strike { fill: var(--pull); }
+  .bp-cp-handle.release { fill: var(--release); }
   #st-hit-cp-1:hover ~ #st-cp-1, #st-hit-cp-2:hover ~ #st-cp-2,
   #rl-hit-cp-1:hover ~ #rl-cp-1, #rl-hit-cp-2:hover ~ #rl-cp-2 { r: 8; }
   .st-diamond { fill: var(--pull); stroke: var(--card); stroke-width: 1.5; pointer-events: none; }
@@ -553,6 +555,7 @@
   }
   .bp-readout b { font-weight: 700; font-variant-numeric: tabular-nums; }
   .bp-readout .sep { color: var(--muted); }
+  .bp-readout .placeholder { color: var(--muted); } /* nothing measured yet */
   .bp-caption { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
 
   .bp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -600,8 +603,10 @@
   .bp-x { grid-template-columns: 1fr; }
   .bp-xy { grid-template-columns: 1fr 1fr; }
   .bp-xyz { grid-template-columns: 1fr 1fr 1fr; }
+  /* Baseline, not center: the label and the value are different sizes, and
+   * centring them puts their text on the same line only by luck of rounding. */
   .bp-x label, .bp-xy label, .bp-xyz label {
-    display: flex; align-items: center; gap: 5px; margin: 0;
+    display: flex; align-items: baseline; gap: 5px; margin: 0;
     border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px;
   }
   .bp-x label span, .bp-xy label span, .bp-xyz label span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); flex: none; }
@@ -1237,7 +1242,7 @@
     </svg>
 
     <div class="bp-readout">
-      <span id="stReadout">play a note to plot a strike</span>
+      <span id="stReadout" class="placeholder">press a key</span>
     </div>
 
     <div class="bp-cp-row">
@@ -1309,12 +1314,12 @@
 
       <circle id="rl-hit-cp-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 1"></circle>
       <circle id="rl-hit-cp-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 2"></circle>
-      <circle id="rl-cp-1" class="bp-cp-handle strike" r="6"></circle>
-      <circle id="rl-cp-2" class="bp-cp-handle strike" r="6"></circle>
+      <circle id="rl-cp-1" class="bp-cp-handle release" r="6"></circle>
+      <circle id="rl-cp-2" class="bp-cp-handle release" r="6"></circle>
     </svg>
 
     <div class="bp-readout">
-      <span id="rlReadout">release a key to plot it</span>
+      <span id="rlReadout" class="placeholder">release a key</span>
     </div>
 
     <div class="bp-cp-row">
@@ -5024,6 +5029,7 @@
       noteTimes.push(now);
       lastNote = now;
       el("Readout").textContent = cfg.describe(speed, vel, !!held);
+      el("Readout").classList.remove("placeholder");
       if (!raf) { lastFrame = 0; raf = requestAnimationFrame(tick); }
       drawMarks();
     }
