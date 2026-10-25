@@ -716,6 +716,19 @@
   .zoom-switch[data-level="2"] .kbd-toggle-track { background: var(--ok); }
   .zoom-switch[data-level="1"] .kbd-toggle-track::before { transform: translateX(15px); }
   .zoom-switch[data-level="2"] .kbd-toggle-track::before { transform: translateX(30px); }
+  /* One dot per stop, centered under each knob position; the knob hides the
+   * current one. */
+  .zoom-switch .kbd-toggle-track { --zoom-dot: var(--muted); }
+  .zoom-switch[data-level="1"] .kbd-toggle-track,
+  .zoom-switch[data-level="2"] .kbd-toggle-track { --zoom-dot: var(--card); }
+  .zoom-switch .kbd-toggle-track::before { z-index: 1; }
+  .zoom-switch .kbd-toggle-track::after {
+    content: ""; position: absolute; inset: 0; opacity: 0.45;
+    --dot: radial-gradient(circle, var(--zoom-dot) 1.5px, transparent 2px);
+    background: var(--dot) 3px 3px / 15px 15px no-repeat,
+                var(--dot) 18px 3px / 15px 15px no-repeat,
+                var(--dot) 33px 3px / 15px 15px no-repeat;
+  }
 
   /* ---- Sound (soundfont playback) ---- */
   .sound-toggle {
