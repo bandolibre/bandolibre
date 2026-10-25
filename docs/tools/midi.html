@@ -496,6 +496,8 @@
   .bp-vline-hit { stroke: transparent; stroke-width: 18; cursor: ew-resize; outline: none; }
   .bp-vline-hit:hover + .bp-vline { opacity: 1; stroke-width: 3; }
   .bp-vline-label { font-family: var(--mono); font-size: 14px; fill: var(--muted); }
+  /* The bellows graph's line labels match its axis text. */
+  svg.bellow-plot:not(.velocity-plot) .bp-vline-label { font-size: 11px; }
   .bp-cp-hit { fill: transparent; cursor: grab; outline: none; }
   .bp-cp-hit:active { cursor: grabbing; }
   .bp-cp-handle { stroke: var(--card); stroke-width: 2; pointer-events: none; }
@@ -545,7 +547,6 @@
   .th-span.release { fill: var(--release); opacity: 0.45; }
   .bp-vline.th-press, .bp-vline.th-start { stroke: var(--pull); }
   .bp-vline.th-release { stroke: var(--release); }
-  .bp-vline.th-press, .bp-vline.th-release { stroke-dasharray: none; }
   .th-inputs { margin-top: 6px; }
   .velocity-header { margin-top: 16px; }
   @media (max-width: 640px) { .th-inputs { grid-template-columns: 1fr; } }
@@ -634,6 +635,9 @@
     font-family: var(--mono); font-size: 0.82rem; padding: 2px 0; font-variant-numeric: tabular-nums;
   }
   .bp-x input[type="number"]:focus, .bp-xy input[type="number"]:focus, .bp-xyz input[type="number"]:focus { outline: none; }
+  /* A control point: one cell, its name then the x and y fields, as a point
+   * is in the properties table. */
+  .bp-x label.bp-point input[type="number"] { width: 3.2ch; flex: none; text-align: right; }
 
   /* ---- Pedal calibration graphs ---- */
   .pedal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
@@ -966,7 +970,7 @@
       <text class="bp-axis-label bp-axis-label-y" x="60" y="344" text-anchor="end">0</text>
       <text class="bp-axis-label bp-axis-label-y" id="y-lbl-top" x="60" y="34" text-anchor="end">127</text>
       <g id="bp-yticks"></g>
-      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">Expression CC#11</text>
+      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">expression CC#11</text>
       <text class="bp-axis-label bp-axis-label-x" x="465" y="388" text-anchor="middle">sensor reading</text>
       <g id="bp-xticks"></g>
 
@@ -1064,51 +1068,27 @@
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch push"></span>Push curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Full push: how far the sensor reading drops below the center</span>
+          <span class="bp-cp-row-label">How far the sensor reading drops below the center at full push</span>
           <div class="bp-x">
             <label><span>push travel</span><input type="number" id="num-push-travel" min="0" max="17000" value="3123"></label>
           </div>
         </div>
         <div class="bp-cp-pair">
-          <div class="bp-cp-row">
-            <span class="bp-cp-row-label">P1 — near center</span>
-            <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-push-x1" min="0" max="255" value="85"></label>
-              <label><span>y</span><input type="number" id="num-push-y1" min="0" max="255" value="85"></label>
-            </div>
-          </div>
-          <div class="bp-cp-row">
-            <span class="bp-cp-row-label">P2 — near full travel</span>
-            <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-push-x2" min="0" max="255" value="170"></label>
-              <label><span>y</span><input type="number" id="num-push-y2" min="0" max="255" value="170"></label>
-            </div>
-          </div>
+          <div class="bp-x"><label class="bp-point"><span>P1 — near center</span><input type="number" id="num-push-x1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>P2 — near full travel</span><input type="number" id="num-push-x2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
         </div>
       </div>
       <div class="bp-group">
         <div class="bp-group-title"><span class="bp-swatch pull"></span>Pull curve</div>
         <div class="bp-cp-row">
-          <span class="bp-cp-row-label">Full pull: how far the sensor reading rises above the center</span>
+          <span class="bp-cp-row-label">How far the sensor reading rises above the center at full pull</span>
           <div class="bp-x">
             <label><span>pull travel</span><input type="number" id="num-pull-travel" min="0" max="17000" value="3028"></label>
           </div>
         </div>
         <div class="bp-cp-pair">
-          <div class="bp-cp-row">
-            <span class="bp-cp-row-label">P1 — near center</span>
-            <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="255" value="85"></label>
-              <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="255" value="85"></label>
-            </div>
-          </div>
-          <div class="bp-cp-row">
-            <span class="bp-cp-row-label">P2 — near full travel</span>
-            <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="255" value="170"></label>
-              <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="255" value="170"></label>
-            </div>
-          </div>
+          <div class="bp-x"><label class="bp-point"><span>P1 — near center</span><input type="number" id="num-pull-x1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>P2 — near full travel</span><input type="number" id="num-pull-x2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
         </div>
       </div>
     </div>
@@ -1187,7 +1167,7 @@
       <span class="bellow-status" id="stStatus">Showing defaults — connect to plot the key sensor live.</span>
     </summary>
     <div class="bp-group">
-    <div class="bp-group-title">Triggering</div>
+    <div class="bp-group-title">Key triggering</div>
     <svg class="bellow-plot velocity-plot" id="thPlot" viewBox="0 0 1000 130" role="img" aria-label="key press, key release and strike timing thresholds on the hall sensor reading">
       <rect id="th-strike-span" class="th-span strike"></rect>
       <rect id="th-release-span" class="th-span release"></rect>
@@ -1286,20 +1266,8 @@
       <div class="bp-x"><label><span>bellows out of neutral</span><input type="number" id="st-num-defv" min="1" max="127" value="40"></label></div>
     </div>
     <div class="bp-cp-pair">
-      <div class="bp-cp-row">
-        <span class="bp-cp-row-label">P1 — near the slowest</span>
-        <div class="bp-xy">
-          <label><span>x</span><input type="number" id="st-num-cx1" min="0" max="255" value="102"></label>
-          <label><span>y</span><input type="number" id="st-num-cy1" min="0" max="255" value="0"></label>
-        </div>
-      </div>
-      <div class="bp-cp-row">
-        <span class="bp-cp-row-label">P2 — near the fastest</span>
-        <div class="bp-xy">
-          <label><span>x</span><input type="number" id="st-num-cx2" min="0" max="255" value="153"></label>
-          <label><span>y</span><input type="number" id="st-num-cy2" min="0" max="255" value="255"></label>
-        </div>
-      </div>
+      <div class="bp-x"><label class="bp-point"><span>P1 — near the slowest</span><input type="number" id="st-num-cx1" min="0" max="255" value="102" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy1" min="0" max="255" value="0" aria-label="P1 y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>P2 — near the fastest</span><input type="number" id="st-num-cx2" min="0" max="255" value="153" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy2" min="0" max="255" value="255" aria-label="P2 y"></label></div>
     </div>
     </div>
 
@@ -1362,20 +1330,8 @@
       <div class="bp-x"><label><span>bellows back to neutral</span><input type="number" id="rl-num-neutv" min="1" max="127" value="64"></label></div>
     </div>
     <div class="bp-cp-pair">
-      <div class="bp-cp-row">
-        <span class="bp-cp-row-label">P1 — near the slowest</span>
-        <div class="bp-xy">
-          <label><span>x</span><input type="number" id="rl-num-cx1" min="0" max="255" value="85"></label>
-          <label><span>y</span><input type="number" id="rl-num-cy1" min="0" max="255" value="85"></label>
-        </div>
-      </div>
-      <div class="bp-cp-row">
-        <span class="bp-cp-row-label">P2 — near the fastest</span>
-        <div class="bp-xy">
-          <label><span>x</span><input type="number" id="rl-num-cx2" min="0" max="255" value="170"></label>
-          <label><span>y</span><input type="number" id="rl-num-cy2" min="0" max="255" value="170"></label>
-        </div>
-      </div>
+      <div class="bp-x"><label class="bp-point"><span>P1 — near the slowest</span><input type="number" id="rl-num-cx1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>P2 — near the fastest</span><input type="number" id="rl-num-cx2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
     </div>
     </div>
     </div>
@@ -3476,9 +3432,9 @@
     setLine(bpEls.vlineDeadPush, deadPushPx, PLOT_TOP, deadPushPx, PLOT_BOTTOM);
     setLine(bpEls.vlineDeadPull, deadPullPx, PLOT_TOP, deadPullPx, PLOT_BOTTOM);
 
-    bpEls.lblFullPush.textContent = "full push −" + Math.round(bg.pushTravel);
+    bpEls.lblFullPush.textContent = "push travel " + Math.round(bg.pushTravel);
     bpEls.lblFullPush.setAttribute("x", fullPushPx);
-    bpEls.lblFullPull.textContent = "full pull +" + Math.round(bg.pullTravel);
+    bpEls.lblFullPull.textContent = "pull travel " + Math.round(bg.pullTravel);
     bpEls.lblFullPull.setAttribute("x", fullPullPx);
     bpEls.lblCenter.textContent = "center " + Math.round(bg.center) + "  ·  dead " + Math.round(bg.dead);
     bpEls.lblCenter.setAttribute("x", centerPx);
