@@ -588,6 +588,15 @@
     padding: 5px 11px; border-radius: 999px; cursor: pointer;
   }
   .bp-presets button:hover { border-color: var(--muted); }
+  /* Bellows: the caption and the presets share a line, the preset chips beside
+   * their title; stacked on small displays. */
+  .bp-caption-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .bp-caption-row .bp-caption { flex: 1; margin: 0; }
+  .bp-group.bp-presets-group { flex-direction: row; align-items: center; flex: none; }
+  @media (max-width: 720px) {
+    .bp-caption-row { flex-direction: column; align-items: stretch; }
+    .bp-group.bp-presets-group { flex-wrap: wrap; }
+  }
 
   /* One-of-N selectors (bellows program, keyboard system): every value is visible
    * upfront and the active one is filled. */
@@ -1032,15 +1041,17 @@
       <span class="sep">→</span>
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
-    <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold Shift while dragging for fine adjustment.</p>
+    <div class="bp-caption-row">
+      <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold Shift while dragging for fine adjustment.</p>
 
-    <div class="bp-group">
-      <div class="bp-group-title">Presets</div>
-      <div class="bp-presets" id="bpPresets">
-        <button type="button" data-preset="linear">Linear</button>
-        <button type="button" data-preset="normal">Normal</button>
-        <button type="button" data-preset="smooth">Smooth</button>
-        <button type="button" data-preset="firm">Firm press</button>
+      <div class="bp-group bp-presets-group">
+        <div class="bp-group-title">Presets</div>
+        <div class="bp-presets" id="bpPresets">
+          <button type="button" data-preset="linear">Linear</button>
+          <button type="button" data-preset="normal">Normal</button>
+          <button type="button" data-preset="smooth">Smooth</button>
+          <button type="button" data-preset="firm">Firm press</button>
+        </div>
       </div>
     </div>
 
