@@ -14,15 +14,34 @@ UID_ADDR = 0x1FFF7590
 UID_LEN = 12
 
 
-def read_uid(serial: str | None = None) -> str:
+def probe_serial() -> str | None:
+    """The serial of the one connected ST-Link, or None if there are several
+    or none. st-flash needs it: without --serial it may open another ST USB
+    device, such as the main board's own USB port (0483:a5b4), and fail."""
+    result = subprocess.run(["st-info", "--probe"], capture_output=True, text=True)
+    serials = [line.split(":", 1)[1].strip() for line in result.stdout.splitlines()
+               if line.strip().startswith("serial:")]
+    return serials[0] if len(serials) == 1 else None
+
+
+def st_flash(serial: str | None, args: list[str], **kwargs) -> subprocess.CompletedProcess:
+    """Runs st-flash on the given (or the one connected) ST-Link. If it cannot
+    connect, retries under reset: a running firmware can refuse a plain
+    debugger attach."""
     cmd = ["st-flash"]
+    serial = serial or probe_serial()
     if serial:
         cmd += ["--serial", serial]
+    result = subprocess.run(cmd + args, **kwargs)
+    if result.returncode != 0:
+        result = subprocess.run(cmd + ["--connect-under-reset"] + args, **kwargs)
+    return result
+
+
+def read_uid(serial: str | None = None) -> str:
     with tempfile.NamedTemporaryFile() as f:
-        result = subprocess.run(
-            cmd + ["read", f.name, hex(UID_ADDR), str(UID_LEN)],
-            capture_output=True,
-        )
+        result = st_flash(serial, ["read", f.name, hex(UID_ADDR), str(UID_LEN)],
+                          capture_output=True)
         uid = Path(f.name).read_bytes().hex()
         if result.returncode != 0 or not uid or set(uid) <= {"0", "f"}:
             label = f"ST-Link {serial}" if serial else "connected board"
