@@ -48,6 +48,10 @@ void midi_sysex_received(gsl::span<const uint8_t> data);
 extern "C" {
 #endif /* __cplusplus */
 
+/* The push notifications below are sent only while the configuration
+ * tool holds the monitor lease (SYSEX_MSG_MONITOR_LEASE in midi.cc, renewed by
+ * its live poll); otherwise they do nothing. */
+
 /* Sends a Bellows Direction sysex push notification (SYSEX_MSG_BELLOWS_DIRECTION
  * in midi.cc): direction is bellows_t's raw encoding (0=BELLOWS_PULL,
  * 1=BELLOWS_PUSH, 2=BELLOWS_NEUTRAL). Called by keyboard.cpp exactly when the
@@ -65,8 +69,25 @@ void midi_send_bellows_direction(uint8_t direction);
  * the device made on its own and saved to flash (the bellows center
  * calibrated by a long press of FN1), so the configuration tool shows it
  * without polling. Changes the tool already polls (table_mode,
- * keyboard_tuning, bellow_program in GET_PERIPHERALS) don't need it. */
+ * keyboard_tuning, bellow_program in MONITOR_LEASE) don't need it. */
 void midi_send_property_changed(size_t index);
+
+/* Sends a Key Strike sysex push notification (SYSEX_MSG_KEY_STRIKE in
+ * midi.cc) right after each NOTE ON: the measured strike speed (ADC counts per
+ * 10 ms; 0 when no clean transit was seen), the velocity actually sent, and
+ * whether the note was deferred (the key was already down when the bellows
+ * started moving, so the speed does not describe it). Sent whatever the
+ * velocity_source, so the configuration tool can plot strikes on the response
+ * curve while it is being tuned. */
+void midi_send_key_strike(uint16_t speed, uint8_t velocity, bool deferred);
+
+/* Sends a Key Release sysex push notification (SYSEX_MSG_KEY_RELEASE in
+ * midi.cc) right after the NOTE OFF of a key: the measured release speed
+ * (counts per 10 ms; 0 when no clean transit was seen), the velocity actually
+ * sent, and whether the note was silenced by the bellows reaching neutral
+ * rather than by the key (the speed then does not describe it). Not sent for
+ * a keyboard link lost, which releases no key. */
+void midi_send_key_release(uint16_t speed, uint8_t velocity, bool neutral);
 
 #ifdef __cplusplus
 }

@@ -44,5 +44,6 @@ add_host_test(property_store_test
     properties/property_store_test.cc)
 add_host_test(bellow_classify_test app/bellow_classify.c app/bellow_classify_test.c)
 add_host_test(bellow_curve_test app/bellow_curve.c app/bellow_curve_test.c)
+add_host_test(key_strike_test app/key_strike.c app/bellow_curve.c app/key_strike_test.c)
 add_host_test(keyboard_layout_test app/keyboard_layout.c app/keyboard_layout_test.c)
 add_host_test(fixed_format_test app/fixed_format.c app/fixed_format_test.c)

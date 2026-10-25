@@ -24,7 +24,10 @@ enum sysex_message_id : uint8_t {
   SYSEX_MSG_GET_PROPERTY             = 0x01,
   SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02,
   SYSEX_MSG_SET_PROPERTY             = 0x03,
-  SYSEX_MSG_GET_PERIPHERALS          = 0x04,
+  /* The tool's live poll: answers with the live peripheral state, and renews
+   * the monitor lease that gates the push notifications below (see
+   * monitor_leased). */
+  SYSEX_MSG_MONITOR_LEASE            = 0x04,
   /* Device -> host push notification, not a request/response: sent whenever
    * the effective bellows direction changes (see midi_send_bellows_direction
    * below and its call site in keyboard.cpp). */
@@ -37,6 +40,12 @@ enum sysex_message_id : uint8_t {
   /* Device -> host push notification: a property the device changed and
    * saved on its own (see midi_send_property_changed). */
   SYSEX_MSG_PROPERTY_CHANGED         = 0x09,
+  /* Device -> host push notification: one per NOTE ON, with the key strike
+   * that caused it (see midi_send_key_strike). */
+  SYSEX_MSG_KEY_STRIKE               = 0x0A,
+  /* Device -> host push notification: one per NOTE OFF of a key, with the
+   * release that caused it (see midi_send_key_release). */
+  SYSEX_MSG_KEY_RELEASE              = 0x0B,
 };
 
 /* Status byte of the GET/SET_SAVED_VALUE response. */
@@ -155,14 +164,36 @@ void send_hello_response()
   usb_app_midi_send_sysex(body.data(), body.size());
 }
 
-/* Live state, polled several times a second by the configuration tool. Raw
- * ADC readings, for diagnostics/calibration: the bellows' two hall sensors and
+/* The push notifications (bellows direction, property changed, key strike,
+ * key release) are only for the configuration tool, so they are sent only while it holds a
+ * lease, renewed by each MONITOR_LEASE request it polls every 100 ms. Any
+ * other MIDI client (a DAW recording the port) gets no sysex it didn't ask
+ * for, and the pushes stop within MONITOR_LEASE_MS of the tool closing. The
+ * tool reads the state they would have announced (HELLO's bellows direction,
+ * the properties) when it connects, so nothing is lost before its first poll. */
+constexpr uint32_t MONITOR_LEASE_MS = 2000;
+bool monitor_lease_valid = false;
+uint32_t monitor_lease_tick;
+
+bool monitor_leased()
+{
+  return monitor_lease_valid && HAL_GetTick() - monitor_lease_tick < MONITOR_LEASE_MS;
+}
+
+/* Renews the monitor lease, and answers with the live state. Raw ADC
+ * readings, for diagnostics/calibration: the bellows' two hall sensors and
  * both pedal wipers (each paired with its presence flag, since a disconnected
  * pedal's ADC value is floating and meaningless). Then the settings the
  * function buttons change (table_mode, keyboard_tuning, bellow_program), so a
- * button press shows up in the tool without a property read of each. */
-void send_peripherals_response()
+ * button press shows up in the tool without a property read of each. Last,
+ * the key most recently pressed (wing id, 0 if none yet; key index) and its
+ * live hall reading, for the tool's key sensor graph; an older tool stops
+ * reading before it. */
+void handle_monitor_lease()
 {
+  monitor_lease_valid = true;
+  monitor_lease_tick = HAL_GetTick();
+
   uint16_t hall0, hall1;
   bellow_get_raw(&hall0, &hall1);
 
@@ -170,10 +201,14 @@ void send_peripherals_response()
   bool pedal1_connected, pedal2_connected;
   pedals_get_raw(&pedal1_sample, &pedal1_connected, &pedal2_sample, &pedal2_connected);
 
-  std::array<uint8_t, 16> payload;
+  uint8_t last_wing = 0, last_key = 0;
+  uint16_t last_value = 0;
+  if (!keyboard_last_key(&last_wing, &last_key, &last_value)) last_wing = 0;
+
+  std::array<uint8_t, 20> payload;
   DataWriter writer(payload);
 
-  writer.write((uint8_t)SYSEX_MSG_GET_PERIPHERALS);
+  writer.write((uint8_t)SYSEX_MSG_MONITOR_LEASE);
   writer.write(hall0);
   writer.write(hall1);
   writer.write((uint8_t)(pedal1_connected ? 1 : 0));
@@ -183,6 +218,9 @@ void send_peripherals_response()
   writer.write((uint8_t)(g_properties->table_mode ? 1 : 0));
   writer.write((uint8_t)g_properties->keyboard_tuning);
   writer.write((uint8_t)g_properties->bellow_program);
+  writer.write(last_wing);
+  writer.write(last_key);
+  writer.write(last_value);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -399,8 +437,8 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
     case SYSEX_MSG_SET_PROPERTY:
       handle_set_property(body);
       break;
-    case SYSEX_MSG_GET_PERIPHERALS:
-      send_peripherals_response();
+    case SYSEX_MSG_MONITOR_LEASE:
+      handle_monitor_lease();
       break;
     case SYSEX_MSG_GET_SAVED_VALUE:
       handle_get_saved_value(body);
@@ -419,14 +457,46 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
 
 void midi_send_bellows_direction(uint8_t direction)
 {
+  if (!monitor_leased()) return;
   uint8_t payload[2] = { (uint8_t)SYSEX_MSG_BELLOWS_DIRECTION, direction };
   usb_app_midi_send_sysex(payload, sizeof(payload));
+}
+
+/* [id, u16 speed, u8 velocity, u8 deferred] */
+void midi_send_key_strike(uint16_t speed, uint8_t velocity, bool deferred)
+{
+  if (!monitor_leased()) return;
+  std::array<uint8_t, 5> payload;
+  DataWriter writer(payload);
+  writer.write((uint8_t)SYSEX_MSG_KEY_STRIKE);
+  writer.write(speed);
+  writer.write(velocity);
+  writer.write((uint8_t)(deferred ? 1 : 0));
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
+}
+
+/* [id, u16 speed, u8 velocity, u8 neutral] */
+void midi_send_key_release(uint16_t speed, uint8_t velocity, bool neutral)
+{
+  if (!monitor_leased()) return;
+  std::array<uint8_t, 5> payload;
+  DataWriter writer(payload);
+  writer.write((uint8_t)SYSEX_MSG_KEY_RELEASE);
+  writer.write(speed);
+  writer.write(velocity);
+  writer.write((uint8_t)(neutral ? 1 : 0));
+
+  gsl::span<const uint8_t> body = writer.getSpan();
+  usb_app_midi_send_sysex(body.data(), body.size());
 }
 
 /* [id, u16 index, u16 live value, u8 status, u16 value]: the last two as in
  * the GET_SAVED_VALUE response. */
 void midi_send_property_changed(size_t index)
 {
+  if (!monitor_leased()) return;
   uint16_t live;
   if (!get_property_raw(index, &live)) return;
 
@@ -518,15 +588,16 @@ static void cmd_note_on(gsl::span<const char* const> argv_span)
 
 static void cmd_note_off(gsl::span<const char* const> argv_span)
 {
-  long channel, note;
+  long channel, note, velocity = MIDI_NOTE_OFF_DEFAULT_VELOCITY;
   if (!parse_arg_impl(argv_span, 1, 1, 16, "channel", &channel) ||
       !parse_arg_impl(argv_span, 2, 0, 127, "note", &note))
   {
-    printf("usage: send_note_off <channel 1-16> <note 0-127>\r\n");
+    printf("usage: send_note_off <channel 1-16> <note 0-127> [velocity 0-127]\r\n");
     return;
   }
-  usb_app_midi_note_off((uint8_t)(channel - 1), (uint8_t)note);
-  printf("note off ch %ld note %ld\r\n", channel, note);
+  if (argv_span.size() > 3 && !parse_arg_impl(argv_span, 3, 0, 127, "velocity", &velocity)) return;
+  usb_app_midi_note_off((uint8_t)(channel - 1), (uint8_t)note, (uint8_t)velocity);
+  printf("note off ch %ld note %ld vel %ld\r\n", channel, note, velocity);
 }
 
 static void cmd_cc(gsl::span<const char* const> argv_span)
@@ -558,7 +629,7 @@ void midi_console_help(void)
 {
   printf("\r\nMIDI commands (cable 0, channel 1-16, data 0-127):\r\n");
   printf("  send_note_on  <channel> <note> [velocity]   velocity defaults to %d\r\n", MIDI_DEFAULT_VELOCITY);
-  printf("  send_note_off <channel> <note>\r\n");
+  printf("  send_note_off <channel> <note> [velocity]   velocity defaults to %d\r\n", MIDI_NOTE_OFF_DEFAULT_VELOCITY);
   printf("  send_cc       <channel> <controller> <value>\r\n");
   printf("  send_sysex    <byte0> [byte1] ...           sends id+body (hex/decimal); framing is automatic\r\n");
 }

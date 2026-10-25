@@ -201,3 +201,85 @@ PROPERTY(72, bool, log_midi_notes,
 PROPERTY(73, uint16_t, led_max_duty,
          .factory_value = 1023, .min = 0, .max = 1023,
          .description = "Function button LED peak PWM duty, out of 1023")
+
+/* Note-on velocity source and key strike. velocity_source 0 sends the bellows
+ * intensity (the original behaviour); 1 sends the speed at which the key
+ * crossed from strike_start down to key_press (app/key_strike.h), mapped
+ * linearly between strike_speed_min and strike_speed_max, shaped by a Bezier
+ * curve (same Q8 control points as the bellows curves) and scaled to
+ * strike_vel_min..strike_vel_max. The factory strike values are first guesses,
+ * to be tuned on hardware. */
+PROPERTY(74, uint16_t, velocity_source,
+         .factory_value = 0, .min = 0, .max = 1,
+         .description = "Note velocity from: 0 bellows, 1 key strike speed")
+PROPERTY(75, uint16_t, strike_start,
+         .factory_value = 2400, .min = 0, .max = 4095,
+         .description = "Strike speed is timed from this ADC level to key_press")
+PROPERTY(76, uint16_t, strike_speed_min,
+         .factory_value = 50, .min = 0, .max = 65535,
+         .description = "Strike speed mapped to the minimum velocity, ADC counts per 10 ms")
+PROPERTY(77, uint16_t, strike_speed_max,
+         .factory_value = 1500, .min = 1, .max = 65535,
+         .description = "Strike speed mapped to the maximum velocity, ADC counts per 10 ms")
+PROPERTY(78, uint16_t, strike_vel_min,
+         .factory_value = 20, .min = 1, .max = 127,
+         .description = "Velocity of the slowest strike")
+PROPERTY(79, uint16_t, strike_vel_max,
+         .factory_value = 127, .min = 1, .max = 127,
+         .description = "Velocity of the fastest strike")
+PROPERTY(80, uint16_t, strike_cx1,
+         .factory_value = 102, .min = 0, .max = 256,
+         .description = "Strike curve control point 1 x, 0..256")
+PROPERTY(81, uint16_t, strike_cy1,
+         .factory_value = 0, .min = 0, .max = 256,
+         .description = "Strike curve control point 1 y, 0..256")
+PROPERTY(82, uint16_t, strike_cx2,
+         .factory_value = 154, .min = 0, .max = 256,
+         .description = "Strike curve control point 2 x, 0..256")
+PROPERTY(83, uint16_t, strike_cy2,
+         .factory_value = 256, .min = 0, .max = 256,
+         .description = "Strike curve control point 2 y, 0..256")
+PROPERTY(84, bool, strike_log,
+         .factory_value = 0,
+         .description = "Map the logarithm of the strike speed instead of the speed")
+PROPERTY(85, uint16_t, deferred_velocity,
+         .factory_value = 40, .min = 1, .max = 127,
+         .description = "Velocity of a key already held when the bellows starts moving")
+
+/* Note-off velocity, with velocity_source 1: the speed at which the key rose
+ * from key_press back to key_release (app/key_strike.h), mapped like the
+ * strike by its own release_* range, curve and velocities. A note silenced by
+ * the bellows reaching neutral (key still held) sends release_neutral_velocity.
+ * Every other note off (velocity_source 0, table mode, a keyboard link lost)
+ * sends 64, the MIDI value for "release velocity not measured". The factory
+ * release values are first guesses (a linear curve), to be tuned on hardware. */
+PROPERTY(86, uint16_t, release_speed_min,
+         .factory_value = 20, .min = 0, .max = 65535,
+         .description = "Release speed mapped to the minimum velocity, ADC counts per 10 ms")
+PROPERTY(87, uint16_t, release_speed_max,
+         .factory_value = 800, .min = 1, .max = 65535,
+         .description = "Release speed mapped to the maximum velocity, ADC counts per 10 ms")
+PROPERTY(88, uint16_t, release_vel_min,
+         .factory_value = 20, .min = 1, .max = 127,
+         .description = "Note-off velocity of the slowest release")
+PROPERTY(89, uint16_t, release_vel_max,
+         .factory_value = 127, .min = 1, .max = 127,
+         .description = "Note-off velocity of the fastest release")
+PROPERTY(90, uint16_t, release_cx1,
+         .factory_value = 85, .min = 0, .max = 256,
+         .description = "Release curve control point 1 x, 0..256")
+PROPERTY(91, uint16_t, release_cy1,
+         .factory_value = 85, .min = 0, .max = 256,
+         .description = "Release curve control point 1 y, 0..256")
+PROPERTY(92, uint16_t, release_cx2,
+         .factory_value = 171, .min = 0, .max = 256,
+         .description = "Release curve control point 2 x, 0..256")
+PROPERTY(93, uint16_t, release_cy2,
+         .factory_value = 171, .min = 0, .max = 256,
+         .description = "Release curve control point 2 y, 0..256")
+PROPERTY(94, bool, release_log,
+         .factory_value = 0,
+         .description = "Map the logarithm of the release speed instead of the speed")
+PROPERTY(95, uint16_t, release_neutral_velocity,
+         .factory_value = 64, .min = 1, .max = 127,
+         .description = "Note-off velocity of a note silenced by the bellows reaching neutral")

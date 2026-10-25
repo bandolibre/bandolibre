@@ -73,6 +73,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/bellow_curve.c
     app/buttons.c
     app/fixed_format.c
+    app/key_strike.c
     app/cmd.cc
     app/keyboard.cpp
     app/app.cc

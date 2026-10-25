@@ -3,19 +3,23 @@
 
 extern "C" {
 void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity);
-void usb_app_midi_note_off(uint8_t channel, uint8_t note);
+void usb_app_midi_note_off(uint8_t channel, uint8_t note, uint8_t velocity);
 void midi_send_bellows_direction(uint8_t direction);
+void midi_send_key_strike(uint16_t speed, uint8_t velocity, bool deferred);
+void midi_send_key_release(uint16_t speed, uint8_t velocity, bool neutral);
 
 #include "main.h"
 #include "spi_link.h"
 #include "hall_report.h"
 #include "keyboard_layout.h"
 #include "bellow.h"
+#include "key_strike.h"
 #include "buttons.h"
 #include "console.h"
 #include "properties.h"
 #include "report.h"
 #include "keyboard.h"
+#include "usb_app.h"
 
 /* SPI handles for the two wing links, defined by the CubeMX-generated main.c. */
 extern SPI_HandleTypeDef hspi1;
@@ -39,6 +43,7 @@ class TripleBuffer {
 
   struct Buffer {
     bool to_be_consumed = 0;
+    uint32_t cycles = 0;   // DWT cycle counter when the frame was received
     uint16_t data[SPI_LINK_FRAME_WORDS] {};
   };
 
@@ -70,6 +75,16 @@ class TripleBuffer {
 
     uint16_t* consumer_buffer() {
       return buffers[consumer_idx].data;
+    }
+
+    // Reception time of the frame being produced; set before release.
+    void stamp_producer(uint32_t cycles) {
+      buffers[producer_idx].cycles = cycles;
+    }
+
+    // Reception time of the frame returned by consumer_buffer().
+    uint32_t consumer_cycles() {
+      return buffers[consumer_idx].cycles;
     }
 };
 
@@ -110,6 +125,17 @@ struct SPIBus
   uint8_t  sounding_note[SPI_LINK_NUM_KEYS];
   uint16_t mapped_keys_pressed;
 
+  /* Strike timing (main-loop only). strike[k] times the reading's fall to the
+   * press threshold; strike_speed[k] is the result for the press in progress,
+   * consumed by bus_note_on. The DWT counter wraps every ~25 s at 170 MHz, so
+   * frame times are accumulated into 64 bits before converting to the 32-bit
+   * microsecond clock the estimator wants. */
+  key_strike_t strike[SPI_LINK_NUM_KEYS];
+  int32_t  strike_speed[SPI_LINK_NUM_KEYS];
+  uint64_t cycles_acc;
+  uint32_t cycles_last;
+  bool     cycles_valid;
+
   /* Last good frame's raw readings and their running statistics, for the
    * show_keyboard live report (main-loop only). */
   uint16_t    last_keys[SPI_LINK_NUM_KEYS];
@@ -147,6 +173,25 @@ unsigned keyboard_keys_pressed(void)
 uint8_t keyboard_wing_id(side_t side)
 {
   return (side == SIDE_LEFT) ? g_bus[0].last_good_wing : g_bus[1].last_good_wing;
+}
+
+/* The key most recently pressed, for keyboard_last_key: set on a press in
+ * bus_process_frame, its reading refreshed from every later frame of that
+ * bus, cleared by bus_silence. bus is NULL until then. Main-loop only. */
+static struct {
+  const SPIBus *bus;
+  uint8_t wing_id;
+  uint8_t key;
+  uint16_t value;
+} g_last_key;
+
+bool keyboard_last_key(uint8_t *wing_id, uint8_t *key, uint16_t *value)
+{
+  if (g_last_key.bus == NULL) return false;
+  *wing_id = g_last_key.wing_id;
+  *key = g_last_key.key;
+  *value = g_last_key.value;
+  return true;
 }
 
 /* Effective bellows direction used to map and gate notes. Table mode pins it to
@@ -211,6 +256,9 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
   {
     bus->rx_good++;
     bus->last_good_wing = (uint8_t)wing_id;
+    /* The frame carries no timestamp, and the consumer may see it late or skip
+     * its neighbours, so the reception time travels with it (key_strike.h). */
+    bus->buffers.stamp_producer(DWT->CYCCNT);
     bus->buffers.release_producer_buffer();
   }
   else
@@ -265,10 +313,46 @@ static inline const uint8_t *notes_for(uint8_t wing_id, bellows_t dir)
   return note_table[tuning][side][dir];
 }
 
+/* The strike_* properties as the mapping module wants them. */
+static key_strike_map_t strike_map(void)
+{
+  key_strike_map_t m;
+  m.speed_min = g_properties->strike_speed_min;
+  m.speed_max = g_properties->strike_speed_max;
+  m.vel_min = g_properties->strike_vel_min;
+  m.vel_max = g_properties->strike_vel_max;
+  m.cx1 = g_properties->strike_cx1;
+  m.cy1 = g_properties->strike_cy1;
+  m.cx2 = g_properties->strike_cx2;
+  m.cy2 = g_properties->strike_cy2;
+  m.log_scale = g_properties->strike_log;
+  return m;
+}
+
+/* The release_* properties, the same way. */
+static key_strike_map_t release_map(void)
+{
+  key_strike_map_t m;
+  m.speed_min = g_properties->release_speed_min;
+  m.speed_max = g_properties->release_speed_max;
+  m.vel_min = g_properties->release_vel_min;
+  m.vel_max = g_properties->release_vel_max;
+  m.cx1 = g_properties->release_cx1;
+  m.cy1 = g_properties->release_cy1;
+  m.cx2 = g_properties->release_cx2;
+  m.cy2 = g_properties->release_cy2;
+  m.log_scale = g_properties->release_log;
+  return m;
+}
+
 /* Sends NOTE ON for key k on wing_id using the current bellows mapping, if
  * it isn't already sounding and that mapping has a note (it doesn't in
- * BELLOWS_NEUTRAL, where no air moves). No-op otherwise. */
-static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
+ * BELLOWS_NEUTRAL, where no air moves). No-op otherwise.
+ *
+ * `deferred` is set when the key went down earlier, while the bellows was at
+ * rest, and this call comes from the bellows starting to move: the key's own
+ * strike is old and no longer says how the note begins (the air does). */
+static void bus_note_on(SPIBus *b, uint8_t wing_id, int k, bool deferred)
 {
   if (b->sounding_note[k] != NOTE_NONE) return;
   bellows_t dir = kbd_bellows();
@@ -280,13 +364,21 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
   b->sounding_note[k] = note;
   /* In table mode the bellows isn't moving, so every note plays at the same
    * constant velocity, tablemode_velocity (which CC#11 is also pinned to there);
-   * otherwise derive velocity from how hard the bellows is moving
+   * otherwise velocity_source picks between how hard the bellows is moving
    * (0.0..1.0 -> 1..127), floored at 1 so a note triggered just past the
-   * neutral deadzone is still audible (0 would be a NOTE OFF). */
+   * neutral deadzone is still audible (0 would be a NOTE OFF), and how fast
+   * the key was struck. */
+  int32_t speed = deferred ? KEY_STRIKE_NO_SPEED : b->strike_speed[k];
   uint8_t velocity;
   if (buttons_table_mode())
   {
     velocity = (uint8_t)g_properties->tablemode_velocity;
+  }
+  else if (g_properties->velocity_source == 1)
+  {
+    key_strike_map_t map = strike_map();
+    velocity = deferred ? (uint8_t)g_properties->deferred_velocity
+                        : key_strike_velocity(&map, speed);
   }
   else
   {
@@ -294,22 +386,40 @@ static void bus_note_on(SPIBus *b, uint8_t wing_id, int k)
   }
   if (g_properties->log_midi_notes)
   {
-    printf("NOTE ON  %s wing=%u key=%2d note=%3u vel=%3u\r\n", b->name, wing_id, k, note, velocity);
+    printf("NOTE ON  %s wing=%u key=%2d note=%3u vel=%3u speed=%ld%s\r\n", b->name, wing_id, k, note,
+           velocity, (long)speed, deferred ? " deferred" : "");
   }
   usb_app_midi_note_on(b->midi_ch, note, velocity);
+  midi_send_key_strike((uint16_t)speed, velocity, deferred);
 }
 
 /* Sends NOTE OFF for key k on wing_id if it is currently sounding. No-op
  * otherwise (e.g. the key was pressed/released while in BELLOWS_NEUTRAL and
- * never sounded). */
-static void bus_note_off(SPIBus *b, uint8_t wing_id, int k)
+ * never sounded).
+ *
+ * `speed` is the key's release speed, or KEY_RELEASE_NEUTRAL when the key is
+ * still held and the bellows reaching neutral silences it. Like the note-on,
+ * velocity_source 1 maps the speed (release_* properties); table mode and
+ * velocity_source 0 send the MIDI default. */
+#define KEY_RELEASE_NEUTRAL (-1)
+static void bus_note_off(SPIBus *b, uint8_t wing_id, int k, int32_t speed)
 {
   if (b->sounding_note[k] == NOTE_NONE) return;
+  const bool neutral = speed == KEY_RELEASE_NEUTRAL;
+  uint8_t velocity = MIDI_NOTE_OFF_DEFAULT_VELOCITY;
+  if (!buttons_table_mode() && g_properties->velocity_source == 1)
+  {
+    key_strike_map_t map = release_map();
+    velocity = neutral ? (uint8_t)g_properties->release_neutral_velocity
+                       : key_strike_velocity(&map, speed);
+  }
   if (g_properties->log_midi_notes)
   {
-    printf("NOTE OFF %s wing=%u key=%2d note=%3u\r\n", b->name, wing_id, k, b->sounding_note[k]);
+    printf("NOTE OFF %s wing=%u key=%2d note=%3u vel=%3u speed=%ld%s\r\n", b->name, wing_id, k,
+           b->sounding_note[k], velocity, (long)(neutral ? 0 : speed), neutral ? " neutral" : "");
   }
-  usb_app_midi_note_off(b->midi_ch, b->sounding_note[k]);
+  usb_app_midi_note_off(b->midi_ch, b->sounding_note[k], velocity);
+  midi_send_key_release((uint16_t)(neutral ? KEY_STRIKE_NO_SPEED : speed), velocity, neutral);
   b->sounding_note[k] = NOTE_NONE;
 }
 
@@ -324,8 +434,8 @@ static void bus_bellows_changed(SPIBus *b)
   uint8_t wing_id = b->last_good_wing;
   for (int k = 0; k < SPI_LINK_NUM_KEYS; k++)
   {
-    if (kbd_bellows() == BELLOWS_NEUTRAL) bus_note_off(b, wing_id, k);
-    else if (b->key_pressed[k])       bus_note_on(b, wing_id, k);
+    if (kbd_bellows() == BELLOWS_NEUTRAL) bus_note_off(b, wing_id, k, KEY_RELEASE_NEUTRAL);
+    else if (b->key_pressed[k])       bus_note_on(b, wing_id, k, true);
   }
 }
 
@@ -333,11 +443,26 @@ static void bus_bellows_changed(SPIBus *b)
  * ON/OFF via bus_note_on/bus_note_off. Channels whose since-boot minimum is
  * still 0 are treated as unpopulated and skipped, matching the wing's
  * present-key detection. */
-static void bus_process_frame(SPIBus *b, const uint16_t *frame)
+static void bus_process_frame(SPIBus *b, const uint16_t *frame, uint32_t rx_cycles)
 {
   uint8_t wing_id = (uint8_t)frame[0];
   const uint16_t *meas = &frame[1];
 
+  /* Reception time in microseconds, from the cycle counter the ISR sampled.
+   * The counter is 32 bits and wraps every ~25 s, so accumulate the unsigned
+   * difference between consecutive frames into 64 bits first. */
+  if (!b->cycles_valid)
+  {
+    b->cycles_valid = true;
+    b->cycles_acc = 0;
+  }
+  else
+  {
+    b->cycles_acc += (uint32_t)(rx_cycles - b->cycles_last);
+  }
+  b->cycles_last = rx_cycles;
+  const uint32_t t_us = (uint32_t)(b->cycles_acc / (SystemCoreClock / 1000000U));
+  const uint16_t strike_start = (uint16_t)g_properties->strike_start;
   /* Hoisted out of the per-key loop below: one property read and one table
    * lookup per frame instead of forty. NULL means an unknown wing id. */
   const uint8_t *push_notes = notes_for(wing_id, BELLOWS_PUSH);
@@ -360,22 +485,39 @@ static void bus_process_frame(SPIBus *b, const uint16_t *frame)
     if (v < b->key_min[k]) b->key_min[k] = v;
     if (b->key_min[k] == 0) continue;          /* unpopulated channel */
 
+    /* Always fed, so a press that begins while the bellows is at rest (a
+     * deferred note) is still timed and the tool can plot it. */
+    int32_t speed = KEY_STRIKE_NO_SPEED;
+    key_edge_t edge = key_strike_update(&b->strike[k], v, t_us, strike_start,
+                                        g_properties->key_press, g_properties->key_release, &speed);
+
     const bool is_mapped = push_notes[k] != NOTE_NONE;
     if (!b->key_pressed[k] && v <= g_properties->key_press)
     {
       b->key_pressed[k] = 1;
+      /* Only a real press of a real key: an unpopulated channel reads low
+       * enough to look held from the first frame after boot, and so can a
+       * key already down then; neither was seen crossing press. */
+      if (is_mapped && edge == KEY_EDGE_PRESS)
+      {
+        g_last_key.bus = b;
+        g_last_key.wing_id = wing_id;
+        g_last_key.key = (uint8_t)k;
+      }
+      b->strike_speed[k] = edge == KEY_EDGE_PRESS ? speed : KEY_STRIKE_NO_SPEED;
       if(is_mapped) {
         printf("PRESS %u %d\r\n", wing_id, k);
       }
-      bus_note_on(b, wing_id, k);
+      bus_note_on(b, wing_id, k, false);
     }
     else if (b->key_pressed[k] && v >= g_properties->key_release)
     {
       b->key_pressed[k] = 0;
-      bus_note_off(b, wing_id, k);
+      bus_note_off(b, wing_id, k, edge == KEY_EDGE_RELEASE ? speed : KEY_STRIKE_NO_SPEED);
     }
     b->mapped_keys_pressed += is_mapped && b->key_pressed[k];
   }
+  if (g_last_key.bus == b) g_last_key.value = meas[g_last_key.key];
 }
 
 #define KEYBOARD_TIMEOUT_MS 500u
@@ -386,12 +528,15 @@ static void bus_silence(SPIBus *b)
 {
   for (int k = 0; k < SPI_LINK_NUM_KEYS; k++) {
     if (b->sounding_note[k] != NOTE_NONE) {
-      usb_app_midi_note_off(b->midi_ch, b->sounding_note[k]);
+      usb_app_midi_note_off(b->midi_ch, b->sounding_note[k], MIDI_NOTE_OFF_DEFAULT_VELOCITY);
       b->sounding_note[k] = NOTE_NONE;
     }
     b->key_pressed[k] = 0;
+    key_strike_reset(&b->strike[k]);   /* the next frame is not a neighbour of the last */
   }
   b->mapped_keys_pressed = 0;
+  b->cycles_valid = false;
+  if (g_last_key.bus == b) g_last_key.bus = NULL;
 }
 
 /* Decodes the latest good frame the ISR handed over, and fires a silence event
@@ -404,7 +549,7 @@ static void bus_poll(SPIBus *b)
       b->timed_out = false;
       printf("KEYBOARD RECOVERED %s\r\n", b->name);
     }
-    bus_process_frame(b, b->buffers.consumer_buffer());
+    bus_process_frame(b, b->buffers.consumer_buffer(), b->buffers.consumer_cycles());
   } else if (!b->timed_out && HAL_GetTick() - b->last_good_frame_tick >= KEYBOARD_TIMEOUT_MS) {
     b->timed_out = true;
     printf("KEYBOARD TIMEOUT %s: no frame for %u ms, silencing all notes\r\n",
@@ -611,5 +756,3 @@ void keyboard_print_rates(uint32_t dt_ms)
     bus_print_rates(&g_bus[i], dt_ms);
 }
 }  /* extern "C" */
-
-#include "usb_app.h"

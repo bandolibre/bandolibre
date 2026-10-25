@@ -37,6 +37,7 @@
     --bad: #c0392b;
     --push: #2f7d78;
     --pull: #b3591a;
+    --release: #1a8bb3;
     --saved-bg: #fdf0cf;
     --modified-bg: #dbe8fb;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -50,6 +51,7 @@
       --border: #333436;
       --push: #6cb3ad;
       --pull: #d99a52;
+      --release: #5cc0e0;
       --saved-bg: #43381c;
       --modified-bg: #1f3350;
     }
@@ -479,6 +481,46 @@
   }
   .bp-live-drop { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; }
   .bp-live-dot { fill: var(--fg); stroke: var(--card); stroke-width: 2; }
+
+  /* Key velocity card: the strike and release plots side by side (one column
+   * on a narrow screen), the curve, its clamp lines and the diamonds.
+   * min-width: 0 lets a column shrink below its SVG's intrinsic width. Each
+   * plot's viewBox follows its pixel size (makeVelocityPlot), so its text is
+   * drawn at the caption's own font and size rather than scaled down. */
+  .velocity-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 8px; }
+  .velocity-col { min-width: 0; }
+  @media (max-width: 900px) { .velocity-row { grid-template-columns: 1fr; } }
+  svg.velocity-plot { font-size: 0.9rem; }
+  /* Speed range row: slowest, fastest and the Logarithmic switch on one line.
+   * The switch is a label like the inputs but keeps its own (unboxed) look. */
+  .bp-xy.bp-xy-log { grid-template-columns: 1fr 1fr auto; }
+  /* Key thresholds graph: press and its strike timing span in the strike
+   * orange, release and its span in the release blue. */
+  .th-span { pointer-events: none; }
+  .th-span.strike { fill: var(--pull); opacity: 0.3; }
+  .th-span.release { fill: var(--release); opacity: 0.45; }
+  .bp-vline.th-press, .bp-vline.th-start { stroke: var(--pull); }
+  .bp-vline.th-release { stroke: var(--release); }
+  .bp-vline.th-press, .bp-vline.th-release { stroke-dasharray: none; }
+  .th-inputs { margin-top: 6px; }
+  .velocity-header { margin-top: 16px; }
+  @media (max-width: 640px) { .th-inputs { grid-template-columns: 1fr; } }
+  .bp-xy .kbd-toggle { border: none; padding: 0; margin: 0; }
+  .bp-xy .kbd-toggle > span:first-child { font-family: inherit; font-size: 0.8rem; color: var(--fg); }
+  svg.velocity-plot text { font-family: inherit; font-size: inherit; }
+  .bp-curve.strike { stroke: var(--pull); }
+  .bp-curve.release { stroke: var(--release); }
+  .bp-hline { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+  .bp-hline-hit { stroke: transparent; stroke-width: 18; cursor: ns-resize; outline: none; }
+  .bp-hline-hit:hover + .bp-hline { opacity: 1; stroke-width: 3; }
+  .bp-vline.strike { stroke: var(--muted); }
+  .bp-cp-handle.strike { fill: var(--fg); }
+  #st-hit-cp-1:hover ~ #st-cp-1, #st-hit-cp-2:hover ~ #st-cp-2,
+  #rl-hit-cp-1:hover ~ #rl-cp-1, #rl-hit-cp-2:hover ~ #rl-cp-2 { r: 8; }
+  .st-diamond { fill: var(--pull); stroke: var(--card); stroke-width: 1.5; pointer-events: none; }
+  .st-diamond.held { fill: none; stroke: var(--pull); stroke-width: 2; }
+  .st-diamond.release { fill: var(--release); }
+  .st-diamond.release.held { fill: none; stroke: var(--release); }
   .bp-readout {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; align-items: baseline;
     font-family: var(--mono); font-size: 1.15rem; margin: 4px auto 0; width: fit-content;
@@ -521,6 +563,7 @@
   .bp-swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .bp-swatch.push { background: var(--push); }
   .bp-swatch.pull { background: var(--pull); }
+  .bp-swatch.release { background: var(--release); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
   /* P1 and P2 side by side, stacking when the group is too narrow. */
   .bp-cp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
@@ -874,8 +917,8 @@
       <text class="bp-axis-label bp-axis-label-y" x="60" y="344" text-anchor="end">0</text>
       <text class="bp-axis-label bp-axis-label-y" id="y-lbl-top" x="60" y="34" text-anchor="end">127</text>
       <g id="bp-yticks"></g>
-      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">CC#11</text>
-      <text class="bp-axis-label bp-axis-label-x" x="465" y="388" text-anchor="middle">sensor</text>
+      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">Expression CC#11</text>
+      <text class="bp-axis-label bp-axis-label-x" x="465" y="388" text-anchor="middle">sensor reading</text>
       <g id="bp-xticks"></g>
 
       <line id="vline-dead-push" class="bp-vline dead"></line>
@@ -1089,6 +1132,176 @@
     </div>
   </div>
 
+  <details class="card collapsible" id="keyCard" open>
+    <summary>
+      <span class="summary-title">Key</span>
+      <span class="bellow-status" id="stStatus">Showing defaults — connect to read and tune the live device.</span>
+    </summary>
+    <div class="bp-group">
+    <div class="bp-group-title">Triggering</div>
+    <svg class="bellow-plot velocity-plot" id="thPlot" viewBox="0 0 1000 130" role="img" aria-label="key press, key release and strike timing thresholds on the hall sensor reading">
+      <rect id="th-strike-span" class="th-span strike"></rect>
+      <rect id="th-release-span" class="th-span release"></rect>
+      <line id="th-axis" class="bp-grid"></line>
+      <g id="th-xticks"></g>
+      <text id="th-title-x" class="bp-axis-label" text-anchor="middle">key sensor reading, ADC (falls as the key goes down)</text>
+      <line id="th-hit-start" class="bp-vline-hit" aria-label="Strike timing start"></line>
+      <line id="th-vline-start" class="bp-vline th-start"></line>
+      <line id="th-hit-release" class="bp-vline-hit" aria-label="Key release threshold"></line>
+      <line id="th-vline-release" class="bp-vline th-release"></line>
+      <line id="th-hit-press" class="bp-vline-hit" aria-label="Key press threshold"></line>
+      <line id="th-vline-press" class="bp-vline th-press"></line>
+      <text id="th-lbl-start" class="bp-vline-label" text-anchor="middle"></text>
+      <text id="th-lbl-release" class="bp-vline-label" text-anchor="middle"></text>
+      <text id="th-lbl-press" class="bp-vline-label" text-anchor="middle"></text>
+      <line id="th-live-line" class="bp-live-drop"></line>
+      <circle id="th-live-dot" class="bp-live-dot" r="5"></circle>
+    </svg>
+    <div class="bp-readout">
+      last key pressed <b id="th-ro-key">—</b>
+      <span class="sep">→</span>
+      sensor <b id="th-ro-adc">—</b>
+    </div>
+    <div class="bp-xyz th-inputs">
+      <label><span>key press</span><input type="number" id="th-num-press" min="0" max="4095" value="1900"></label>
+      <label><span>key release</span><input type="number" id="th-num-release" min="0" max="4095" value="2100"></label>
+      <label><span>timing starts at</span><input type="number" id="th-num-start" min="0" max="4095" value="2400"></label>
+    </div>
+    </div>
+
+    <div class="bellow-header velocity-header">
+      <label>Velocity from</label>
+      <div class="choice-buttons" id="stSource" role="group" aria-label="Note velocity source">
+        <button type="button" data-source="0" aria-pressed="true">Bellows</button>
+        <button type="button" data-source="1" aria-pressed="false">Key strike</button>
+      </div>
+    </div>
+
+    <div class="velocity-row">
+    <div class="velocity-col bp-group">
+    <div class="bp-group-title"><span class="bp-swatch pull"></span>Key press</div>
+    <svg class="bellow-plot velocity-plot" id="stPlot" viewBox="0 0 520 300" role="img" aria-label="key strike speed to MIDI velocity curve">
+      <line id="st-grid-bottom" class="bp-grid"></line>
+      <line id="st-grid-top" class="bp-grid"></line>
+      <g id="st-yticks"></g>
+      <text id="st-title-y" class="bp-axis-label" text-anchor="middle">note-on velocity</text>
+      <g id="st-xticks"></g>
+      <text id="st-title-x" class="bp-axis-label" text-anchor="middle">strike speed, ADC counts per 10 ms</text>
+
+      <line id="st-hit-vmax" class="bp-hline-hit"></line>
+      <line id="st-hline-vmax" class="bp-hline"></line>
+      <line id="st-hit-vmin" class="bp-hline-hit"></line>
+      <line id="st-hline-vmin" class="bp-hline"></line>
+      <line id="st-hit-smin" class="bp-vline-hit"></line>
+      <line id="st-vline-smin" class="bp-vline strike"></line>
+      <line id="st-hit-smax" class="bp-vline-hit"></line>
+      <line id="st-vline-smax" class="bp-vline strike"></line>
+      <text class="bp-vline-label" id="st-lbl-smin" text-anchor="middle" y="14"></text>
+      <text class="bp-vline-label" id="st-lbl-smax" text-anchor="middle" y="14"></text>
+
+      <line id="st-guide-1" class="bp-guide"></line>
+      <line id="st-guide-2" class="bp-guide"></line>
+      <path id="st-curve" class="bp-curve strike"></path>
+
+      <g id="st-marks"></g>
+
+      <circle id="st-hit-cp-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Strike curve control point 1"></circle>
+      <circle id="st-hit-cp-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Strike curve control point 2"></circle>
+      <circle id="st-cp-1" class="bp-cp-handle strike" r="6"></circle>
+      <circle id="st-cp-2" class="bp-cp-handle strike" r="6"></circle>
+    </svg>
+
+    <div class="bp-readout">
+      <span id="stReadout">play a note to plot a strike</span>
+    </div>
+
+    <div class="bp-cp-row">
+      <span class="bp-cp-row-label">Speed range</span>
+      <div class="bp-xy bp-xy-log">
+        <label><span>slowest</span><input type="number" id="st-num-smin" min="0" max="65535" value="50"></label>
+        <label><span>fastest</span><input type="number" id="st-num-smax" min="1" max="65535" value="1500"></label>
+        <label class="kbd-toggle" title="Map the logarithm of the speed instead of the speed">
+          <span>Logarithmic</span>
+          <span class="kbd-toggle-switch">
+            <input type="checkbox" id="st-log">
+            <span class="kbd-toggle-track"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div class="bp-cp-row">
+      <span class="bp-cp-row-label">Velocity</span>
+      <div class="bp-xy">
+        <label><span>slowest strike</span><input type="number" id="st-num-vmin" min="1" max="127" value="20"></label>
+        <label><span>fastest strike</span><input type="number" id="st-num-vmax" min="1" max="127" value="127"></label>
+      </div>
+      <div class="bp-x"><label><span>bellows out of neutral</span><input type="number" id="st-num-defv" min="1" max="127" value="40"></label></div>
+    </div>
+    </div>
+
+    <div class="velocity-col bp-group">
+    <div class="bp-group-title"><span class="bp-swatch release"></span>Key release</div>
+    <svg class="bellow-plot velocity-plot" id="rlPlot" viewBox="0 0 520 300" role="img" aria-label="key release speed to MIDI note-off velocity curve">
+      <line id="rl-grid-bottom" class="bp-grid"></line>
+      <line id="rl-grid-top" class="bp-grid"></line>
+      <g id="rl-yticks"></g>
+      <text id="rl-title-y" class="bp-axis-label" text-anchor="middle">note-off velocity</text>
+      <g id="rl-xticks"></g>
+      <text id="rl-title-x" class="bp-axis-label" text-anchor="middle">release speed, ADC counts per 10 ms</text>
+
+      <line id="rl-hit-vmax" class="bp-hline-hit"></line>
+      <line id="rl-hline-vmax" class="bp-hline"></line>
+      <line id="rl-hit-vmin" class="bp-hline-hit"></line>
+      <line id="rl-hline-vmin" class="bp-hline"></line>
+      <line id="rl-hit-smin" class="bp-vline-hit"></line>
+      <line id="rl-vline-smin" class="bp-vline strike"></line>
+      <line id="rl-hit-smax" class="bp-vline-hit"></line>
+      <line id="rl-vline-smax" class="bp-vline strike"></line>
+      <text class="bp-vline-label" id="rl-lbl-smin" text-anchor="middle" y="14"></text>
+      <text class="bp-vline-label" id="rl-lbl-smax" text-anchor="middle" y="14"></text>
+
+      <line id="rl-guide-1" class="bp-guide"></line>
+      <line id="rl-guide-2" class="bp-guide"></line>
+      <path id="rl-curve" class="bp-curve release"></path>
+
+      <g id="rl-marks"></g>
+
+      <circle id="rl-hit-cp-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 1"></circle>
+      <circle id="rl-hit-cp-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 2"></circle>
+      <circle id="rl-cp-1" class="bp-cp-handle strike" r="6"></circle>
+      <circle id="rl-cp-2" class="bp-cp-handle strike" r="6"></circle>
+    </svg>
+
+    <div class="bp-readout">
+      <span id="rlReadout">release a key to plot it</span>
+    </div>
+
+    <div class="bp-cp-row">
+      <span class="bp-cp-row-label">Speed range</span>
+      <div class="bp-xy bp-xy-log">
+        <label><span>slowest</span><input type="number" id="rl-num-smin" min="0" max="65535" value="20"></label>
+        <label><span>fastest</span><input type="number" id="rl-num-smax" min="1" max="65535" value="800"></label>
+        <label class="kbd-toggle" title="Map the logarithm of the speed instead of the speed">
+          <span>Logarithmic</span>
+          <span class="kbd-toggle-switch">
+            <input type="checkbox" id="rl-log">
+            <span class="kbd-toggle-track"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div class="bp-cp-row">
+      <span class="bp-cp-row-label">Velocity</span>
+      <div class="bp-xy">
+        <label><span>slowest release</span><input type="number" id="rl-num-vmin" min="1" max="127" value="20"></label>
+        <label><span>fastest release</span><input type="number" id="rl-num-vmax" min="1" max="127" value="127"></label>
+      </div>
+      <div class="bp-x"><label><span>bellows back to neutral</span><input type="number" id="rl-num-neutv" min="1" max="127" value="64"></label></div>
+    </div>
+    </div>
+    </div>
+  </details>
+
   <details class="card collapsible" id="keyboardCard" open>
     <summary id="keyboardSummary">
       <span class="summary-title">Keyboards</span>
@@ -1225,7 +1438,7 @@
         <label><input type="checkbox" autocomplete="off" data-kind="sysexGetProperty" data-group="sysex" checked> Get Property</label>
         <label><input type="checkbox" autocomplete="off" data-kind="sysexGetPropertyDescription" data-group="sysex" checked> Get Property Description</label>
         <label><input type="checkbox" autocomplete="off" data-kind="sysexSetProperty" data-group="sysex" checked> Set Property</label>
-        <label><input type="checkbox" autocomplete="off" data-kind="sysexGetPeripherals" data-group="sysex" checked> Get Peripherals</label>
+        <label><input type="checkbox" autocomplete="off" data-kind="sysexMonitorLease" data-group="sysex" checked> Monitor Lease</label>
         <label><input type="checkbox" autocomplete="off" data-kind="sysexBellowsDirection" data-group="sysex" checked> Bellows Direction</label>
         <label><input type="checkbox" autocomplete="off" data-kind="sysexSavedValue" data-group="sysex" checked> Saved Value</label>
         <label><input type="checkbox" autocomplete="off" data-kind="sysexFactoryReset" data-group="sysex" checked> Factory Reset</label>
@@ -1351,7 +1564,7 @@
   const SYSEX_MSG_GET_PROPERTY = 0x01;
   const SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02;
   const SYSEX_MSG_SET_PROPERTY = 0x03;
-  const SYSEX_MSG_GET_PERIPHERALS = 0x04;
+  const SYSEX_MSG_MONITOR_LEASE = 0x04;
   // Device -> host push notification, not a request/response: sent whenever
   // the effective bellows direction changes (see keyboard.cpp/midi.cc).
   const SYSEX_MSG_BELLOWS_DIRECTION = 0x05;
@@ -1362,6 +1575,10 @@
   // Device -> host push notification: a property the device changed and saved
   // on its own (the bellows center, by a long press of the middle button).
   const SYSEX_MSG_PROPERTY_CHANGED = 0x09;
+  // Device -> host push, one per NOTE ON: [u16 speed, u8 velocity, u8 deferred].
+  const SYSEX_MSG_KEY_STRIKE = 0x0a;
+  // Device -> host push, one per NOTE OFF of a key: [u16 speed, u8 velocity, u8 neutral].
+  const SYSEX_MSG_KEY_RELEASE = 0x0b;
   const PROPERTY_TYPE_BOOL = 0;
 
   // GET/SET_SAVED_VALUE response status (saved_value_status in midi.cc) and
@@ -1563,12 +1780,14 @@
       case SYSEX_MSG_GET_PROPERTY: return "GET_PROPERTY";
       case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "GET_PROPERTY_DESCRIPTION";
       case SYSEX_MSG_SET_PROPERTY: return "SET_PROPERTY";
-      case SYSEX_MSG_GET_PERIPHERALS: return "GET_PERIPHERALS";
+      case SYSEX_MSG_MONITOR_LEASE: return "MONITOR_LEASE";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "BELLOWS_DIRECTION";
       case SYSEX_MSG_GET_SAVED_VALUE: return "GET_SAVED_VALUE";
       case SYSEX_MSG_SET_SAVED_VALUE: return "SET_SAVED_VALUE";
       case SYSEX_MSG_FACTORY_RESET: return "FACTORY_RESET";
       case SYSEX_MSG_PROPERTY_CHANGED: return "PROPERTY_CHANGED";
+      case SYSEX_MSG_KEY_STRIKE: return "KEY_STRIKE";
+      case SYSEX_MSG_KEY_RELEASE: return "KEY_RELEASE";
       default: return "0x" + id.toString(16).padStart(2, "0");
     }
   }
@@ -1583,7 +1802,7 @@
       case SYSEX_MSG_GET_PROPERTY: return "sysexGetProperty";
       case SYSEX_MSG_GET_PROPERTY_DESCRIPTION: return "sysexGetPropertyDescription";
       case SYSEX_MSG_SET_PROPERTY: return "sysexSetProperty";
-      case SYSEX_MSG_GET_PERIPHERALS: return "sysexGetPeripherals";
+      case SYSEX_MSG_MONITOR_LEASE: return "sysexMonitorLease";
       case SYSEX_MSG_BELLOWS_DIRECTION: return "sysexBellowsDirection";
       case SYSEX_MSG_GET_SAVED_VALUE:
       case SYSEX_MSG_SET_SAVED_VALUE: return "sysexSavedValue";
@@ -1646,7 +1865,7 @@
                (propName !== null ? " name=\"" + propName + "\"" : "") +
                (description !== null ? " desc=\"" + description + "\"" : "");
       }
-      case SYSEX_MSG_GET_PERIPHERALS: {
+      case SYSEX_MSG_MONITOR_LEASE: {
         const hall0 = reader.readUInt16();
         if (hall0 === null) return name + " (request, no body)";
         const hall1 = reader.readUInt16();
@@ -1657,11 +1876,15 @@
         const tableMode = reader.readUint8();
         const tuning = reader.readUint8();
         const bellowProgram = reader.readUint8();
+        const lastWing = reader.readUint8();
+        const lastKey = reader.readUint8();
+        const lastValue = reader.readUInt16();
         return name + " hall0=" + hall0 + " hall1=" + hall1 +
                " pedal1=" + (pedal1Connected ? "connected" : "disconnected") + ":" + pedal1Sample +
                " pedal2=" + (pedal2Connected ? "connected" : "disconnected") + ":" + pedal2Sample +
                (tableMode !== null ? " table_mode=" + tableMode + " keyboard_tuning=" + tuning +
-                                     " bellow_program=" + bellowProgram : "");
+                                     " bellow_program=" + bellowProgram : "") +
+               (lastValue !== null ? (lastWing ? " last_key=" + lastWing + ":" + lastKey + ":" + lastValue : " last_key=none") : "");
       }
       case SYSEX_MSG_BELLOWS_DIRECTION: {
         const dir = reader.readUint8();
@@ -1689,6 +1912,20 @@
         return saved === null ? name : name + " index=" + index + " value=" + value +
                                        " saved_status=" + status + " saved_value=" + saved;
       }
+      case SYSEX_MSG_KEY_RELEASE: {
+        const speed = reader.readUInt16();
+        const velocity = reader.readUint8();
+        const neutral = reader.readUint8();
+        return neutral === null ? name : name + " speed=" + speed + " velocity=" + velocity +
+                                         (neutral ? " neutral" : "");
+      }
+      case SYSEX_MSG_KEY_STRIKE: {
+        const speed = reader.readUInt16();
+        const velocity = reader.readUint8();
+        const deferred = reader.readUint8();
+        return deferred === null ? name : name + " speed=" + speed + " velocity=" + velocity +
+                                          (deferred ? " deferred" : "");
+      }
       default:
         return name + " (" + (payload.length - 1) + " body byte" + (payload.length - 1 === 1 ? "" : "s") + ")";
     }
@@ -1704,12 +1941,12 @@
     return new Promise((resolve, reject) => {
       if (!activeOutput) { reject(new Error("no MIDI output for the active device")); return; }
       if (pending) { reject(new Error("another request is already in flight")); return; }
-      // GET_PERIPHERALS is polled several times a second (see
+      // MONITOR_LEASE is polled several times a second (see
       // startPeripheralPolling) - logging every request/response would drown
       // out everything else in the activity log and dev console, so it's
       // kept quiet on the success path. Timeouts/errors still log: those are
       // signal, not routine chatter.
-      const silent = payload[0] === SYSEX_MSG_GET_PERIPHERALS;
+      const silent = payload[0] === SYSEX_MSG_MONITOR_LEASE;
       const kind = sysexKindFromId(payload[0]);
       const frame = buildSysexFrame(payload);
       const hex = Array.from(frame, (b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
@@ -1728,7 +1965,7 @@
         reject(new Error(msg));
         pumpWriteQueue();
       }, timeoutMs);
-      pending = { resolve, reject, timeoutId, sentAt, requestDesc: desc, silent, kind };
+      pending = { id: payload[0], resolve, reject, timeoutId, sentAt, requestDesc: desc, silent, kind };
       try {
         activeOutput.send(frame);
         bwBytesSinceTick += frame.length;
@@ -1743,6 +1980,11 @@
 
   function resolvePendingRequest(payload) {
     if (!pending) return;
+    // Every response starts with its request's id. Another one is not ours:
+    // the answer to another page's request (the device's responses reach
+    // every open MIDI input, e.g. a browser tab and the installed app), or a
+    // late answer to a request of ours that already timed out.
+    if (payload[0] !== pending.id) return;
     const elapsed = Date.now() - pending.sentAt;
     clearTimeout(pending.timeoutId);
     const desc = pending.requestDesc;
@@ -1796,9 +2038,12 @@
    * readings + presence flags (a disconnected pedal's sample is floating and
    * meaningless), then the settings the function buttons change: table mode,
    * keyboard system and bellows program (null from an older firmware that
-   * doesn't send them). */
+   * doesn't send them). Each request also renews the device's monitor lease:
+   * it sends the push notifications (bellows direction, property changed, key
+   * strike, key release) only within 2 s of the last one, so the 100 ms poll keeps them
+   * coming and they stop once the tool is closed. */
   async function requestPeripherals() {
-    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_GET_PERIPHERALS).toBytes());
+    const payload = await sendSysexRequest(new DataWriter().writeUint8(SYSEX_MSG_MONITOR_LEASE).toBytes());
     const reader = new DataReader(payload);
     reader.readUint8(); // message id
     const hall0 = reader.readUInt16();
@@ -1810,8 +2055,13 @@
     const tableMode = reader.readUint8();
     const tuning = reader.readUint8();
     const bellowProgram = reader.readUint8();
+    // The key most recently pressed: wing id (0 = none yet), key index, live
+    // reading; lastValue is null from an older firmware.
+    const lastWing = reader.readUint8();
+    const lastKey = reader.readUint8();
+    const lastValue = reader.readUInt16();
     return { hall0, hall1, pedal1Connected, pedal1Sample, pedal2Connected, pedal2Sample,
-             tableMode, tuning, bellowProgram };
+             tableMode, tuning, bellowProgram, lastWing, lastKey, lastValue };
   }
 
   async function requestSetProperty(index, value) {
@@ -2132,6 +2382,7 @@
   }
 
   function syncControlsFromTable(index, value) {
+    for (const plot of velocityPlots) if (plot.syncFromTable(index, value)) return;
     if (bellowGraphLive) {
       if (index === BELLOW_CENTER_PROP_INDEX) { bg.center = value; redrawGraph(); updateLiveDot(); return; }
       for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
@@ -2693,6 +2944,7 @@
       applyKeyboardTuningFromFetched(fetched, byName);
       applyTableModeFromFetched(fetched, byName);
       applyTablemodeVelocityFromFetched(fetched, byName);
+      for (const plot of velocityPlots) plot.applyFetched(fetched, byName);
 
       try {
         const p = await requestPeripherals();
@@ -2702,7 +2954,7 @@
         startPeripheralPolling();
         startKeyboardPropsPolling();
       } catch (err) {
-        log("peripherals request failed: " + err.message, "sysexGetPeripherals");
+        log("peripherals request failed: " + err.message, "sysexMonitorLease");
         console.log("[peripherals error]", { error: err.message });
       }
     } catch (err) {
@@ -3141,6 +3393,36 @@
     return svgPointIn(bellowSvg, clientX, clientY);
   }
 
+  // Holding Shift while dragging moves things at this fraction of the
+  // pointer's speed, for fine adjustment (every graph's lines and points).
+  const FINE_DRAG_GAIN = 0.12;
+
+  /* Pointer drag over an SVG, for graphs that map the pointer's position
+   * straight to a value (the key graphs): onMove gets a point in the SVG's own
+   * units that follows the pointer, but at FINE_DRAG_GAIN of its movement
+   * while Shift is held, so those graphs get the same fine adjustment as the
+   * bellows graph's relative drags. onStart and onEnd are optional. */
+  function dragInSvg(svg, hitEl, onMove, onStart, onEnd) {
+    let dragging = false, last = null, point = null;
+    hitEl.addEventListener("pointerdown", (e) => {
+      dragging = true; hitEl.setPointerCapture(e.pointerId);
+      const p = svgPointIn(svg, e.clientX, e.clientY);
+      last = { x: p.x, y: p.y }; point = { x: p.x, y: p.y };
+      if (onStart) onStart();
+    });
+    hitEl.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const p = svgPointIn(svg, e.clientX, e.clientY);
+      const gain = e.shiftKey ? FINE_DRAG_GAIN : 1;
+      point = { x: point.x + (p.x - last.x) * gain, y: point.y + (p.y - last.y) * gain };
+      last = { x: p.x, y: p.y };
+      onMove(point);
+    });
+    const end = () => { if (!dragging) return; dragging = false; if (onEnd) onEnd(); };
+    hitEl.addEventListener("pointerup", end);
+    hitEl.addEventListener("pointercancel", end);
+  }
+
   /* Draggable vertical line (center / full push / full pull): horizontal
    * drag only, mapped through the SVG's own CTM so it stays correct at any
    * display size, not just the viewBox's own units. Shift reduces the
@@ -3156,7 +3438,7 @@
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
-      const gain = e.shiftKey ? 0.12 : 1;
+      const gain = e.shiftKey ? FINE_DRAG_GAIN : 1;
       const dxSvg = (svgPoint(e.clientX, 0).x - svgPoint(lastClientX, 0).x) * gain;
       lastClientX = e.clientX;
       const { xMin, xMax } = axisRange();
@@ -3208,7 +3490,7 @@
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
-      const gain = e.shiftKey ? 0.12 : 1;
+      const gain = e.shiftKey ? FINE_DRAG_GAIN : 1;
       const p0 = svgPoint(lastClientX, lastClientY), p1 = svgPoint(e.clientX, e.clientY);
       lastClientX = e.clientX; lastClientY = e.clientY;
       const dxPx = (p1.x - p0.x) * gain, dyPx = (p1.y - p0.y) * gain;
@@ -3562,7 +3844,7 @@
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
-      const gain = e.shiftKey ? 0.12 : 1;
+      const gain = e.shiftKey ? FINE_DRAG_GAIN : 1;
       const dxSvg = (svgPointIn(svg, e.clientX, 0).x - svgPointIn(svg, lastClientX, 0).x) * gain;
       lastClientX = e.clientX;
       const adcPerSvgPx = PEDAL_DOMAIN_MAX / (PEDAL_PLOT_RIGHT - PEDAL_PLOT_LEFT);
@@ -3633,6 +3915,7 @@
       updateLiveDot();
       updatePedalLiveState(p);
       updateButtonSettingsFromDevice(p);
+      thresholdPlot.setLiveKey(p.lastValue !== null && p.lastWing ? p : null);
     } catch (err) {
       // Transient: another request may have been in flight. Retried next tick.
     }
@@ -4277,6 +4560,638 @@
     }
   }
 
+  /* ---- Key strike and release velocity ---------------------------------------
+   * Two plots built by makeVelocityPlot, one per mapping through
+   * key_strike_velocity() (app/key_strike.c): a speed in ADC counts per 10 ms
+   * is normalised between speed_min and speed_max (linearly, or by its
+   * logarithm), shaped by the same cubic Bezier as the bellows curves, and
+   * scaled to vel_min..vel_max.
+   * - Strike, for the NOTE ON: the key's fall from strike_start to key_press.
+   * - Release, for the NOTE OFF: its rise from key_press back to key_release.
+   * Every figure on a plot is derived from the speed through that one
+   * function, so the curve, the handles and the diamonds cannot disagree with
+   * each other.
+   *
+   * Each NOTE ON (NOTE OFF) is followed by a KEY_STRIKE (KEY_RELEASE) push from
+   * the device: speed, velocity sent, and a "held" flag for a note the key's
+   * own movement didn't decide (a key already down when the bellows starts
+   * moving; a note silenced by the bellows reaching neutral). The velocity
+   * drawn is recomputed here from the live parameters, so a diamond sits on
+   * the curve being edited; a held note is drawn hollow at cfg.heldKey's
+   * constant velocity, at the left edge.
+   *
+   * cfg: prefix of the element ids, props (key -> property name, with smin,
+   * smax, vmin, vmax, cx1..cy2, log and heldKey), defaults (the firmware's
+   * factory values), numbers ([id suffix, key, lo, hi] for the inputs besides
+   * the four ranges), heldKey, name (for the log), describe(speed, velocity,
+   * held) for the readout. An element `<prefix>Source` (optional) holds the
+   * velocity_source buttons. */
+  const svgEl = (tag, attrs) => {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+  const fmtSpeed = (s) => (s >= 100 ? Math.round(s) : Math.round(s * 10) / 10);
+
+  function makeVelocityPlot(cfg) {
+    const el = (id) => document.getElementById(cfg.prefix + id);
+    const INDEX = {};
+    let live = false;
+    const g = { ...cfg.defaults };
+
+    const PAD = 0.12; // the axis extends this much of the speed span beyond each clamp line
+    const svg = el("Plot");
+    let axis = null; // frozen {lo, hi} while a speed line is dragged, so the axis doesn't chase it
+
+    // One SVG unit is one CSS pixel: the viewBox follows the plot's width, so
+    // its text keeps the page's font size (svg.velocity-plot) at any width,
+    // and the margins are sized from that font.
+    const H = 300;
+    let W = 520, FS = 14, L = 60, R = 500, T = 24, B = 252;
+    function layout() {
+      const w = Math.round(svg.getBoundingClientRect().width);
+      if (!w) return false; // collapsed card: keep the last layout
+      W = w;
+      FS = parseFloat(getComputedStyle(svg).fontSize) || 14;
+      L = Math.round(FS * 4.4);
+      R = W - Math.round(FS * 1.8);
+      T = Math.round(FS * 1.8);
+      B = H - Math.round(FS * 2.8 + 12);
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      return true;
+    }
+
+    const loOf = (lo, log) => (log ? Math.max(lo, 1) : lo);
+    function speedToFrac(s, lo, hi, log) {
+      lo = loOf(lo, log);
+      if (hi <= lo) return s >= hi ? 1 : 0;
+      if (log) return (Math.log(Math.max(s, 1)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+      return (s - lo) / (hi - lo);
+    }
+    function fracToSpeed(f, lo, hi, log) {
+      lo = loOf(lo, log);
+      if (log) return Math.exp(Math.log(lo) + f * (Math.log(hi) - Math.log(lo)));
+      return lo + f * (hi - lo);
+    }
+    const axisNow = () => axis ?? { lo: g.smin, hi: Math.max(g.smax, loOf(g.smin, g.log) + 1) };
+    const xOfSpeed = (s) => {
+      const a = axisNow();
+      const f = speedToFrac(s, a.lo, a.hi, g.log);
+      return L + ((f + PAD) / (1 + 2 * PAD)) * (R - L);
+    };
+    const speedOfX = (x) => {
+      const a = axisNow();
+      const f = ((x - L) / (R - L)) * (1 + 2 * PAD) - PAD;
+      return fracToSpeed(f, a.lo, a.hi, g.log);
+    };
+    const yOfVel = (v) => B - (v / 127) * (B - T);
+    const velOfY = (y) => ((B - y) / (B - T)) * 127;
+
+    // Unrounded velocity for a speed, as key_strike_velocity() computes it.
+    function velocity(speed) {
+      const t = clamp(speedToFrac(speed, g.smin, g.smax, g.log), 0, 1);
+      const shaped = curveApply(t * 1024, g.cx1, g.cy1, g.cx2, g.cy2) / 1024;
+      return g.vmin + shaped * (g.vmax - g.vmin);
+    }
+
+    // Speed axis ticks at round values over the whole visible axis, as the
+    // bellows graph does with its fixed 1000-count step, but the range here
+    // spans anything from tens to thousands of counts: the step is the
+    // smallest 1, 2 or 5 x 10^n that keeps labels FS * 3.5 apart. A log axis
+    // gets 1-2-5 per decade instead, thinned to 1-3, then 1, if that crowds.
+    // Independent of the clamp lines, which carry their own labels on top.
+    function speedTicks() {
+      const lo = Math.max(speedOfX(L), 0), hi = speedOfX(R);
+      const spaced = (ticks) => ticks.every((s, i) => i === 0 || xOfSpeed(s) - xOfSpeed(ticks[i - 1]) >= FS * 3.5);
+      if (g.log) {
+        let ticks = [];
+        for (const mantissas of [[1, 2, 5], [1, 3], [1]]) {
+          ticks = [];
+          for (let p = Math.pow(10, Math.floor(Math.log10(Math.max(lo, 1)))); p <= hi; p *= 10)
+            for (const m of mantissas) if (m * p >= lo && m * p <= hi) ticks.push(m * p);
+          if (spaced(ticks)) break;
+        }
+        return ticks;
+      }
+      for (let p = 1; ; p *= 10) {
+        for (const m of [1, 2, 5]) {
+          const step = m * p, ticks = [];
+          for (let s = Math.ceil(lo / step) * step; s <= hi; s += step) ticks.push(s);
+          if (ticks.length <= 1 || spaced(ticks)) return ticks;
+        }
+      }
+    }
+
+    function setStatus() {
+      const s = el("Status");
+      if (!s) return;
+      if (live) {
+        s.textContent = "Connected — live, dragging writes to the device.";
+        s.classList.add("live");
+      } else {
+        s.textContent = "Showing defaults — connect to read and tune the live device.";
+        s.classList.remove("live");
+      }
+    }
+
+    function redraw() {
+      const smin = xOfSpeed(g.smin), smax = xOfSpeed(g.smax);
+      const yMin = yOfVel(g.vmin), yMax = yOfVel(g.vmax);
+
+      setLine(el("-grid-top"), L, T, R, T);
+      setLine(el("-grid-bottom"), L, B, R, B);
+      const ty = el("-title-y"), tyX = Math.round(FS * 1.1), tyY = (T + B) / 2;
+      ty.setAttribute("x", tyX); ty.setAttribute("y", tyY);
+      ty.setAttribute("transform", "rotate(-90 " + tyX + " " + tyY + ")");
+      const tx = el("-title-x");
+      tx.setAttribute("x", (L + R) / 2); tx.setAttribute("y", H - 6);
+
+      setLine(el("-vline-smin"), smin, T, smin, B);
+      setLine(el("-hit-smin"), smin, T, smin, B);
+      setLine(el("-vline-smax"), smax, T, smax, B);
+      setLine(el("-hit-smax"), smax, T, smax, B);
+      setLine(el("-hline-vmin"), L, yMin, R, yMin);
+      setLine(el("-hit-vmin"), L, yMin, R, yMin);
+      setLine(el("-hline-vmax"), L, yMax, R, yMax);
+      setLine(el("-hit-vmax"), L, yMax, R, yMax);
+      for (const [id, x, v] of [["-lbl-smin", smin, g.smin], ["-lbl-smax", smax, g.smax]]) {
+        const label = el(id);
+        label.setAttribute("x", x);
+        label.setAttribute("y", T - 6);
+        label.textContent = v;
+      }
+
+      // Curve, sampled across the whole axis (flat outside the clamp lines).
+      let d = "";
+      const N = 160;
+      for (let i = 0; i <= N; i++) {
+        const x = L + (i / N) * (R - L);
+        const y = yOfVel(velocity(speedOfX(x)));
+        d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+      }
+      el("-curve").setAttribute("d", d);
+
+      // Control points live in the curve's own box: x between the two speed
+      // lines, y between the two velocity lines.
+      const cp = (n) => {
+        const x = xOfSpeed(fracToSpeed(g["cx" + n] / 256, g.smin, g.smax, g.log));
+        const y = yOfVel(g.vmin + (g["cy" + n] / 256) * (g.vmax - g.vmin));
+        return { x, y };
+      };
+      const p1 = cp(1), p2 = cp(2);
+      for (const [n, p, ex, ey] of [[1, p1, smin, yMin], [2, p2, smax, yMax]]) {
+        setLine(el("-guide-" + n), ex, ey, p.x, p.y);
+        for (const id of ["-cp-" + n, "-hit-cp-" + n]) {
+          el(id).setAttribute("cx", p.x); el(id).setAttribute("cy", p.y);
+        }
+      }
+
+      // Ticks: round speeds across the visible axis (speedTicks), five velocities.
+      const xt = el("-xticks");
+      xt.replaceChildren();
+      for (const s of speedTicks()) {
+        const x = xOfSpeed(s);
+        xt.append(svgEl("line", { class: "bp-tick", x1: x, y1: B, x2: x, y2: B + 6 }));
+        const t = svgEl("text", { class: "bp-axis-label", x, y: B + 6 + FS, "text-anchor": "middle" });
+        t.textContent = s;
+        xt.append(t);
+      }
+      const yt = el("-yticks");
+      yt.replaceChildren();
+      for (const v of [0, 32, 64, 96, 127]) {
+        const y = yOfVel(v);
+        if (v > 0 && v < 127) yt.append(svgEl("line", { class: "bp-grid", x1: L, y1: y, x2: R, y2: y }));
+        const t = svgEl("text", { class: "bp-axis-label", x: L - 8, y: y + FS * 0.35, "text-anchor": "end" });
+        t.textContent = v;
+        yt.append(t);
+      }
+      drawMarks();
+    }
+
+    const numbers = [["-num-smin", "smin", 0, 65535], ["-num-smax", "smax", 1, 65535],
+                     ["-num-vmin", "vmin", 1, 127], ["-num-vmax", "vmax", 1, 127], ...cfg.numbers];
+    const source = el("Source");
+
+    function syncInputs() {
+      for (const [id, key] of numbers) {
+        const input = el(id);
+        if (document.activeElement !== input) input.value = g[key];
+      }
+      el("-log").checked = !!g.log;
+      if (source) source.querySelectorAll("button").forEach((b) =>
+        b.setAttribute("aria-pressed", String(+b.dataset.source === g.source)));
+    }
+
+    function write(key, value) {
+      g[key] = value;
+      if (live) queueSetProperty(INDEX[key], value);
+      redraw();
+      syncInputs();
+    }
+
+    function applyFetched(fetched, byName) {
+      let ok = true;
+      for (const [key, propName] of Object.entries(cfg.props)) {
+        const index = byName.get(propName);
+        if (index === undefined) {
+          ok = false;
+          log(cfg.name + ": property \"" + propName + "\" not found on this device - showing defaults, editing is local-only.", "sysexGetPropertyDescription");
+          break;
+        }
+        INDEX[key] = index;
+      }
+      live = ok;
+      if (ok) for (const [key, index] of Object.entries(INDEX)) g[key] = fetched.get(index).value;
+      setStatus();
+      redraw();
+      syncInputs();
+    }
+
+    // A table edit of one of this plot's properties: true if it was one.
+    function syncFromTable(index, value) {
+      if (!live) return false;
+      for (const [key, idx] of Object.entries(INDEX)) {
+        if (idx !== index) continue;
+        g[key] = value;
+        redraw();
+        syncInputs();
+        return true;
+      }
+      return false;
+    }
+
+    // ---- Inputs ----
+    for (const [id, key, lo, hi] of numbers) {
+      const input = el(id);
+      input.addEventListener("input", () => {
+        if (input.value === "") return;
+        write(key, clamp(Math.round(+input.value), lo, hi));
+      });
+      input.addEventListener("blur", syncInputs);
+    }
+    el("-log").addEventListener("change", (e) => write("log", e.target.checked ? 1 : 0));
+    if (source) source.querySelectorAll("button").forEach((b) =>
+      b.addEventListener("click", () => write("source", +b.dataset.source)));
+
+    // ---- Dragging. Positions are absolute (pointer to value), through the SVG's
+    // own transform so they hold at any display size; Shift for fine
+    // adjustment (dragInSvg). ----
+    const drag = (hitEl, onMove, onStart, onEnd) => dragInSvg(svg, hitEl, onMove, onStart, onEnd);
+    const freezeAxis = () => { axis = { ...axisNow() }; };
+    const thawAxis = () => { axis = null; redraw(); };
+    drag(el("-hit-smin"), (p) => {
+      write("smin", clamp(Math.round(speedOfX(p.x)), 0, g.smax - 1));
+    }, freezeAxis, thawAxis);
+    drag(el("-hit-smax"), (p) => {
+      write("smax", clamp(Math.round(speedOfX(p.x)), g.smin + 1, 65535));
+    }, freezeAxis, thawAxis);
+    drag(el("-hit-vmin"), (p) => write("vmin", clamp(Math.round(velOfY(p.y)), 1, 127)));
+    drag(el("-hit-vmax"), (p) => write("vmax", clamp(Math.round(velOfY(p.y)), 1, 127)));
+    for (const n of [1, 2]) {
+      drag(el("-hit-cp-" + n), (p) => {
+        const s = speedOfX(p.x);
+        const fx = speedToFrac(s, g.smin, g.smax, g.log);
+        const span = g.vmax - g.vmin;
+        const fy = span === 0 ? 0 : (velOfY(p.y) - g.vmin) / span;
+        g["cx" + n] = clamp(Math.round(fx * 256), 0, 256);
+        g["cy" + n] = clamp(Math.round(fy * 256), 0, 256);
+        if (live) {
+          queueSetProperty(INDEX["cx" + n], g["cx" + n]);
+          queueSetProperty(INDEX["cy" + n], g["cy" + n]);
+        }
+        redraw();
+      });
+      el("-hit-cp-" + n).addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 1 : 4;
+        let dx = 0, dy = 0;
+        if (e.key === "ArrowRight") dx = step; else if (e.key === "ArrowLeft") dx = -step;
+        else if (e.key === "ArrowUp") dy = step; else if (e.key === "ArrowDown") dy = -step;
+        else return;
+        e.preventDefault();
+        write("cx" + n, clamp(g["cx" + n] + dx, 0, 256));
+        write("cy" + n, clamp(g["cy" + n] + dy, 0, 256));
+      });
+    }
+
+    // ---- Diamonds ----
+    // A diamond per note. It ages in "effective seconds" and is gone after LIFE.
+    // How fast effective time runs depends on how much is being played: it
+    // equals the notes per second over the last WINDOW seconds, kept between 1
+    // and MAX_RATE, so a busy passage clears the plot quickly. Once the playing
+    // stops it holds still for HOLD seconds (counted from the last note), so
+    // the last notes can be read, and then fades at the normal rate.
+    const LIFE = 10, MIN_ALPHA = 0.3, FADE_TAIL = 0.5, MAX_MARKS = 24;
+    const WINDOW = 2, MAX_RATE = 8, HOLD = 10, ACTIVE_GAP = 1.5, FLASH = 0.2;
+    let marks = [], noteTimes = [], lastNote = 0, raf = 0, lastFrame = 0;
+
+    function onEvent(payload) {
+      const reader = new DataReader(payload.slice(1));
+      const speed = reader.readUInt16();
+      const vel = reader.readUint8();
+      const held = reader.readUint8();
+      if (held === null) return;
+      const now = performance.now() / 1000;
+      marks.push({ speed, held: !!held, age: 0, born: now });
+      if (marks.length > MAX_MARKS) marks.shift();
+      noteTimes.push(now);
+      lastNote = now;
+      el("Readout").textContent = cfg.describe(speed, vel, !!held);
+      if (!raf) { lastFrame = 0; raf = requestAnimationFrame(tick); }
+      drawMarks();
+    }
+
+    function clearMarks() {
+      marks = []; noteTimes = [];
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      drawMarks();
+    }
+
+    function tick(ms) {
+      raf = 0;
+      const now = ms / 1000;
+      const dt = lastFrame ? Math.min(now - lastFrame, 0.25) : 0;
+      lastFrame = now;
+      noteTimes = noteTimes.filter((t) => now - t < WINDOW);
+      const idle = now - lastNote;
+      let rate;
+      if (idle < ACTIVE_GAP) rate = clamp(noteTimes.length / WINDOW, 1, MAX_RATE);
+      else if (idle < HOLD) rate = 0;
+      else rate = 1;
+      for (const m of marks) m.age += dt * rate;
+      marks = marks.filter((m) => m.age < LIFE);
+      drawMarks();
+      if (marks.length) raf = requestAnimationFrame(tick);
+    }
+
+    function drawMarks() {
+      const group = el("-marks");
+      group.replaceChildren();
+      const now = performance.now() / 1000;
+      for (const m of marks) {
+        let x, y;
+        if (m.held) {
+          x = L + 14; y = yOfVel(g[cfg.heldKey]);
+        } else {
+          x = clamp(xOfSpeed(m.speed), L, R);
+          y = yOfVel(velocity(m.speed));
+        }
+        const solid = m.age / (LIFE - FADE_TAIL);
+        const alpha = m.age >= LIFE - FADE_TAIL
+          ? MIN_ALPHA * (1 - (m.age - (LIFE - FADE_TAIL)) / FADE_TAIL)
+          : 1 - (1 - MIN_ALPHA) * solid;
+        const flash = clamp(1 - (now - m.born) / FLASH, 0, 1);
+        const r = 6 + 4 * flash;
+        group.append(svgEl("polygon", {
+          class: "st-diamond" + (cfg.markClass ? " " + cfg.markClass : "") + (m.held ? " held" : ""),
+          points: x + "," + (y - r) + " " + (x + r) + "," + y + " " + x + "," + (y + r) + " " + (x - r) + "," + y,
+          opacity: clamp(alpha, 0, 1).toFixed(2),
+        }));
+      }
+    }
+
+    // Back to the factory values' status, for a disconnect.
+    function disconnect() {
+      live = false;
+      for (const key of Object.keys(INDEX)) delete INDEX[key];
+      clearMarks();
+      setStatus();
+    }
+
+    layout();
+    redraw();
+    syncInputs();
+    new ResizeObserver(() => { if (layout()) redraw(); }).observe(svg);
+    return { applyFetched, syncFromTable, onEvent, disconnect };
+  }
+
+  const strikePlot = makeVelocityPlot({
+    prefix: "st", name: "key strike", heldKey: "defv",
+    props: {
+      source: "velocity_source", smin: "strike_speed_min", smax: "strike_speed_max",
+      vmin: "strike_vel_min", vmax: "strike_vel_max", cx1: "strike_cx1", cy1: "strike_cy1",
+      cx2: "strike_cx2", cy2: "strike_cy2", log: "strike_log", defv: "deferred_velocity",
+    },
+    defaults: { source: 0, smin: 50, smax: 1500, vmin: 20, vmax: 127,
+                cx1: 102, cy1: 0, cx2: 154, cy2: 256, log: 0, defv: 40 },
+    numbers: [["-num-defv", "defv", 1, 127]],
+    describe: (speed, velocity, held) => held
+      ? "bellows out of neutral → velocity " + velocity
+      : "strike " + fmtSpeed(speed) + " → velocity " + velocity,
+  });
+
+  const releasePlot = makeVelocityPlot({
+    prefix: "rl", name: "key release", heldKey: "neutv",
+    markClass: "release",
+    props: {
+      smin: "release_speed_min", smax: "release_speed_max", vmin: "release_vel_min", vmax: "release_vel_max",
+      cx1: "release_cx1", cy1: "release_cy1", cx2: "release_cx2", cy2: "release_cy2",
+      log: "release_log", neutv: "release_neutral_velocity",
+    },
+    defaults: { smin: 20, smax: 800, vmin: 20, vmax: 127, cx1: 85, cy1: 85, cx2: 171, cy2: 171, log: 0, neutv: 64 },
+    numbers: [["-num-neutv", "neutv", 1, 127]],
+    describe: (speed, velocity, held) => held
+      ? "bellows back to neutral → velocity " + velocity
+      : "release " + fmtSpeed(speed) + " → velocity " + velocity,
+  });
+
+  /* ---- Key thresholds ------------------------------------------------------
+   * Where a key's hall reading triggers things, on a linear axis like the
+   * pedal graphs, zoomed to AXIS_LO..AXIS_HI where the thresholds live
+   * (anything outside is drawn pinned to the edge; the values themselves
+   * still range over 0..4095). The reading falls as the key goes
+   * down: key_press fires the NOTE ON, key_release (above it: the hysteresis
+   * band) the NOTE OFF (app/keyboard.cpp). The strike is timed from
+   * strike_start down to key_press (shaded orange, upper half), the release
+   * from key_press back up to key_release (shaded blue, lower half;
+   * app/key_strike.h). Dragging keeps both above key_press, as the firmware
+   * assumes; the number fields commit on Enter or blur, so typing a value
+   * isn't fought digit by digit. Each line's label has its own row, so close
+   * thresholds never overlap. Same viewBox-follows-width layout as the
+   * velocity plots, so the text is at the page's size. */
+  function makeThresholdPlot() {
+    const el = (id) => document.getElementById("th" + id);
+    const PROPS = { press: "key_press", release: "key_release", start: "strike_start" };
+    const NAMES = { start: "timing starts", release: "release", press: "press" };
+    const ROWS = { start: 0, release: 1, press: 2 };
+    const MAX = 4095;
+    const AXIS_LO = 1400, AXIS_HI = 2800;
+    const INDEX = {};
+    let live = false;
+    const g = { press: 1900, release: 2100, start: 2400 }; // the firmware's factory values
+    const svg = el("Plot");
+
+    let W = 1000, H = 130, FS = 14, L = 20, R = 980, T = 60, B = 90;
+    function layout() {
+      const w = Math.round(svg.getBoundingClientRect().width);
+      if (!w) return false; // collapsed card: keep the last layout
+      W = w;
+      FS = parseFloat(getComputedStyle(svg).fontSize) || 14;
+      L = Math.round(FS * 1.5);
+      R = W - L;
+      T = Math.round(3 * (FS + 4) + 6);
+      B = T + Math.round(FS * 2);
+      H = B + Math.round(FS * 2 + 18);
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      return true;
+    }
+    const xOf = (v) => L + ((clamp(v, AXIS_LO, AXIS_HI) - AXIS_LO) / (AXIS_HI - AXIS_LO)) * (R - L);
+    const valueOf = (x) => AXIS_LO + ((clamp(x, L, R) - L) / (R - L)) * (AXIS_HI - AXIS_LO);
+    const labelY = (key) => ROWS[key] * (FS + 4) + FS;
+
+    function redraw() {
+      setLine(el("-axis"), L, B, R, B);
+      const mid = (T + B) / 2;
+      const span = (id, a, b, y0, y1) => {
+        const r = el(id);
+        r.setAttribute("x", xOf(Math.min(a, b))); r.setAttribute("width", Math.abs(xOf(b) - xOf(a)));
+        r.setAttribute("y", y0); r.setAttribute("height", y1 - y0);
+      };
+      span("-strike-span", g.press, g.start, T, mid);
+      span("-release-span", g.press, g.release, mid, B);
+      for (const key of Object.keys(ROWS)) {
+        const x = xOf(g[key]), top = labelY(key) + 4;
+        setLine(el("-vline-" + key), x, top, x, B);
+        setLine(el("-hit-" + key), x, top, x, B);
+        const label = el("-lbl-" + key);
+        label.setAttribute("x", clamp(x, L + FS * 4, R - FS * 4));
+        label.setAttribute("y", labelY(key));
+        label.textContent = NAMES[key] + " " + g[key];
+      }
+
+      // Ticks at a round step that keeps the labels apart, as speedTicks does.
+      const step = [50, 100, 200, 500, 1000].find((s) => xOf(AXIS_LO + s) - xOf(AXIS_LO) >= FS * 3.5) ?? 1000;
+      const xt = el("-xticks");
+      xt.replaceChildren();
+      for (let v = Math.ceil(AXIS_LO / step) * step; v <= AXIS_HI; v += step) {
+        const x = xOf(v);
+        xt.append(svgEl("line", { class: "bp-tick", x1: x, y1: B, x2: x, y2: B + 6 }));
+        const t = svgEl("text", { class: "bp-axis-label", x, y: B + 6 + FS, "text-anchor": "middle" });
+        t.textContent = v;
+        xt.append(t);
+      }
+      const title = el("-title-x");
+      title.setAttribute("x", (L + R) / 2); title.setAttribute("y", H - 6);
+      drawLiveKey();
+    }
+
+    // The key most recently pressed and its live reading, from the
+    // MONITOR_LEASE poll (null: none yet, or not connected): a dotted line
+    // and a dot on the axis, like the pedal graphs' live sample.
+    let liveKey = null;
+    function drawLiveKey() {
+      const line = el("-live-line"), dot = el("-live-dot");
+      const visibility = liveKey ? "" : "hidden";
+      line.style.visibility = visibility; dot.style.visibility = visibility;
+      el("-ro-key").textContent = liveKey ? keyName(liveKey.lastWing, liveKey.lastKey) : "—";
+      el("-ro-adc").textContent = liveKey ? liveKey.lastValue : "—";
+      if (!liveKey) return;
+      const x = xOf(liveKey.lastValue);
+      setLine(line, x, T, x, B);
+      placeCircle(dot, x, B);
+    }
+    function setLiveKey(p) {
+      liveKey = p;
+      drawLiveKey();
+    }
+    // "left C4/D4": the side (wing id 1 = right, 2 = left) and the key's
+    // pull/push notes in the current keyboard system, or its index if unmapped.
+    function keyName(wing, key) {
+      const side = wing === 1 ? "right" : "left";
+      const tuning = KBD_NOTE_TABLE[currentTuning]?.[side];
+      const pull = tuning?.pull[key], push = tuning?.push[key];
+      if (!pull && !push) return side + " key " + key;
+      const notes = tuning.bisonoric && pull && push && pull !== push
+        ? kbdNoteName(pull) + "/" + kbdNoteName(push)
+        : kbdNoteName(pull || push);
+      return side + " " + notes;
+    }
+
+    // Keeps start and release above press (the firmware takes them as press + 1 otherwise).
+    function constrain(key, v) {
+      v = clamp(Math.round(v), 0, MAX);
+      if (key === "press") return Math.min(v, Math.min(g.release, g.start) - 1);
+      return Math.max(v, g.press + 1);
+    }
+
+    function syncInputs() {
+      for (const key of Object.keys(PROPS)) {
+        const input = el("-num-" + key);
+        if (document.activeElement !== input) input.value = g[key];
+      }
+    }
+
+    function write(key, value) {
+      g[key] = constrain(key, value);
+      if (live) queueSetProperty(INDEX[key], g[key]);
+      redraw();
+      syncInputs();
+    }
+
+    function applyFetched(fetched, byName) {
+      let ok = true;
+      for (const [key, propName] of Object.entries(PROPS)) {
+        const index = byName.get(propName);
+        if (index === undefined) {
+          ok = false;
+          log("key thresholds: property \"" + propName + "\" not found on this device - showing defaults, editing is local-only.", "sysexGetPropertyDescription");
+          break;
+        }
+        INDEX[key] = index;
+      }
+      live = ok;
+      if (ok) for (const [key, index] of Object.entries(INDEX)) g[key] = fetched.get(index).value;
+      redraw();
+      syncInputs();
+    }
+
+    function syncFromTable(index, value) {
+      if (!live) return false;
+      for (const [key, idx] of Object.entries(INDEX)) {
+        if (idx !== index) continue;
+        g[key] = value;
+        redraw();
+        syncInputs();
+        return true;
+      }
+      return false;
+    }
+
+    for (const key of Object.keys(PROPS)) {
+      const input = el("-num-" + key);
+      input.addEventListener("change", () => {
+        if (input.value !== "") write(key, +input.value);
+        syncInputs();
+      });
+      const hit = el("-hit-" + key);
+      hit.setAttribute("tabindex", "0");
+      hit.setAttribute("role", "slider");
+      dragInSvg(svg, hit, (p) => write(key, valueOf(p.x)));
+      hit.addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 1 : 10;
+        if (e.key === "ArrowRight") write(key, g[key] + step);
+        else if (e.key === "ArrowLeft") write(key, g[key] - step);
+        else return;
+        e.preventDefault();
+      });
+    }
+
+    function disconnect() {
+      live = false;
+      for (const key of Object.keys(INDEX)) delete INDEX[key];
+      setLiveKey(null);
+    }
+
+    layout();
+    redraw();
+    syncInputs();
+    new ResizeObserver(() => { if (layout()) redraw(); }).observe(svg);
+    return { applyFetched, syncFromTable, disconnect, setLiveKey };
+  }
+  const thresholdPlot = makeThresholdPlot();
+
+  // Everything in the Key card that follows the device's properties.
+  const velocityPlots = [thresholdPlot, strikePlot, releasePlot];
+
   /* Follows the function buttons on the instrument (or a console edit): the
    * peripherals poll carries table_mode, keyboard_tuning and bellow_program.
    * A setting is skipped while this page's own write is in flight or still
@@ -4626,7 +5541,7 @@
       return;
     }
     const startingSysex = bytes[0] === 0xf0 || inSysex;
-    // A GET_PERIPHERALS exchange (polled several times a second - see
+    // A MONITOR_LEASE exchange (polled several times a second - see
     // startPeripheralPolling) is kept quiet the same way sendSysexRequest/
     // resolvePendingRequest already silence its outgoing request and
     // resolved-response logs: pending.silent is set for exactly the request
@@ -4664,7 +5579,8 @@
           inSysex = false;
           const payload = unpackSysexFrame(Uint8Array.from(sysexBuf));
           if (payload) {
-            if (!silentSysex) {
+            // One per note played: plotted, not logged.
+            if (!silentSysex && payload[0] !== SYSEX_MSG_KEY_STRIKE && payload[0] !== SYSEX_MSG_KEY_RELEASE) {
               log("  → " + describeSysexPayload(payload), sysexKindFromId(payload[0]));
             }
             // Device-initiated pushes, not responses: they must not resolve
@@ -4678,6 +5594,10 @@
               }
             } else if (payload[0] === SYSEX_MSG_PROPERTY_CHANGED) {
               applyPropertyChanged(payload);
+            } else if (payload[0] === SYSEX_MSG_KEY_STRIKE) {
+              strikePlot.onEvent(payload);
+            } else if (payload[0] === SYSEX_MSG_KEY_RELEASE) {
+              releasePlot.onEvent(payload);
             } else {
               resolvePendingRequest(payload);
             }
@@ -4700,7 +5620,7 @@
     linkState = null;
     firmwareUpdateNotice.hidden = true;
     enumGeneration++; // the rejected HELLO below must not set linkState back
-    // A sysex round-trip (eg. a GET_PERIPHERALS poll) can still be in flight
+    // A sysex round-trip (eg. a MONITOR_LEASE poll) can still be in flight
     // when the device drops off the bus - a fast device reset re-enumerates
     // well within the 1500ms sysex timeout. Left alone, `pending` would stay
     // set until that stale timeout fires, and every request the reconnected
@@ -4733,6 +5653,7 @@
     BELLOW_PROGRAM_PROP_INDEX = null;
     BELLOW_CENTER_PROP_INDEX = null;
     TABLEMODE_VELOCITY_PROP_INDEX = null;
+    for (const plot of velocityPlots) plot.disconnect();
     bpEls.status.textContent = "Not connected — showing defaults; connect to read and tune the live device.";
     bpEls.status.classList.remove("live");
     redrawGraph();

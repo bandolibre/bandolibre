@@ -190,7 +190,7 @@ void usb_app_task(void)
 void usb_app_midi_test_note(uint8_t note)
 {
   usb_app_midi_note_on(0, note, 100);
-  usb_app_midi_note_off(0, note);
+  usb_app_midi_note_off(0, note, MIDI_NOTE_OFF_DEFAULT_VELOCITY);
 }
 
 void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity)
@@ -200,10 +200,10 @@ void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity)
   tud_midi_stream_write(cable, msg, 3);
 }
 
-void usb_app_midi_note_off(uint8_t channel, uint8_t note)
+void usb_app_midi_note_off(uint8_t channel, uint8_t note, uint8_t velocity)
 {
   uint8_t const cable = 0;
-  uint8_t msg[3] = { static_cast<uint8_t>(0x80 | (channel & 0x0F)), note, 0 };
+  uint8_t msg[3] = { static_cast<uint8_t>(0x80 | (channel & 0x0F)), note, velocity };
   tud_midi_stream_write(cable, msg, 3);
 }
 

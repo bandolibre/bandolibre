@@ -31,7 +31,11 @@ void usb_app_midi_test_note(uint8_t note);
 
 /* Sends a Note On / Note Off on the given 0-based MIDI channel (cable 0). */
 void usb_app_midi_note_on(uint8_t channel, uint8_t note, uint8_t velocity);
-void usb_app_midi_note_off(uint8_t channel, uint8_t note);
+void usb_app_midi_note_off(uint8_t channel, uint8_t note, uint8_t velocity);
+
+/* Note-off velocity for a release that wasn't measured: the MIDI spec's
+ * default, which synths read as neutral. */
+#define MIDI_NOTE_OFF_DEFAULT_VELOCITY 64
 
 /* Sends a Control Change on the given 0-based MIDI channel (cable 0). */
 void usb_app_midi_control_change(uint8_t channel, uint8_t controller, uint8_t value);

@@ -1,6 +1,7 @@
 #ifndef APP_KEYBOARD_H
 #define APP_KEYBOARD_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "keyboard_layout.h"
@@ -57,6 +58,12 @@ uint8_t keyboard_wing_id(side_t side);
  * Exported for the sysex HELLO response's initial-state field; change
  * notifications go out separately via midi_send_bellows_direction(). */
 bellows_t keyboard_bellows_direction(void);
+
+/* The key most recently pressed on either wing (wing id, key index 0..39) and
+ * its latest raw hall reading, followed frame by frame while it moves, for
+ * the configuration tool's key sensor graph. False until a key has been
+ * pressed, and again after its wing's link was lost. */
+bool keyboard_last_key(uint8_t *wing_id, uint8_t *key, uint16_t *value);
 
 #ifdef __cplusplus
 }
