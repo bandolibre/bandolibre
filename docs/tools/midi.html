@@ -554,7 +554,11 @@
   .bp-xy .kbd-toggle > span:first-child { font-family: inherit; font-size: 0.8rem; color: var(--fg); }
   svg.velocity-plot text { font-family: inherit; font-size: inherit; }
   .bp-curve.strike { stroke: var(--pull); }
+  /* Drawn over the curve, in its colour, so the control arms stay visible. */
+  .bp-guide.strike, .bp-guide.release { stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 1; }
+  .bp-guide.strike { stroke: var(--pull); }
   .bp-curve.release { stroke: var(--release); }
+  .bp-guide.release { stroke: var(--release); }
   .bp-hline { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
   .bp-hline-hit { stroke: transparent; stroke-width: 18; cursor: ns-resize; outline: none; }
   .bp-hline-hit:hover + .bp-hline { opacity: 1; stroke-width: 3; }
@@ -1240,11 +1244,12 @@
       <text class="bp-vline-label" id="st-lbl-smin" text-anchor="middle" y="14"></text>
       <text class="bp-vline-label" id="st-lbl-smax" text-anchor="middle" y="14"></text>
 
-      <line id="st-guide-1" class="bp-guide"></line>
-      <line id="st-guide-2" class="bp-guide"></line>
       <path id="st-curve" class="bp-curve strike"></path>
 
       <g id="st-marks"></g>
+
+      <line id="st-guide-1" class="bp-guide strike"></line>
+      <line id="st-guide-2" class="bp-guide strike"></line>
 
       <circle id="st-hit-cp-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Strike curve control point 1"></circle>
       <circle id="st-hit-cp-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Strike curve control point 2"></circle>
@@ -1304,11 +1309,12 @@
       <text class="bp-vline-label" id="rl-lbl-smin" text-anchor="middle" y="14"></text>
       <text class="bp-vline-label" id="rl-lbl-smax" text-anchor="middle" y="14"></text>
 
-      <line id="rl-guide-1" class="bp-guide"></line>
-      <line id="rl-guide-2" class="bp-guide"></line>
       <path id="rl-curve" class="bp-curve release"></path>
 
       <g id="rl-marks"></g>
+
+      <line id="rl-guide-1" class="bp-guide release"></line>
+      <line id="rl-guide-2" class="bp-guide release"></line>
 
       <circle id="rl-hit-cp-1" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 1"></circle>
       <circle id="rl-hit-cp-2" class="bp-cp-hit" r="14" tabindex="0" role="slider" aria-label="Release curve control point 2"></circle>
