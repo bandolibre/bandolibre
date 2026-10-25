@@ -7,6 +7,7 @@
 extern "C" {
 #include "bellow.h"
 #include "keyboard.h"
+#include "lease.h"
 #include "pedals.h"
 }
 
@@ -46,6 +47,9 @@ enum sysex_message_id : uint8_t {
   /* Device -> host push notification: one per NOTE OFF of a key, with the
    * release that caused it (see midi_send_key_release). */
   SYSEX_MSG_KEY_RELEASE              = 0x0B,
+  /* A synth asking for key-speed velocities (bandopm's attack & release
+   * mode): renews the velocity lease (see renew_velocity_lease). No reply. */
+  SYSEX_MSG_VELOCITY_LEASE           = 0x0C,
 };
 
 /* Status byte of the GET/SET_SAVED_VALUE response. */
@@ -172,12 +176,48 @@ void send_hello_response()
  * tool reads the state they would have announced (HELLO's bellows direction,
  * the properties) when it connects, so nothing is lost before its first poll. */
 constexpr uint32_t MONITOR_LEASE_MS = 2000;
-bool monitor_lease_valid = false;
-uint32_t monitor_lease_tick;
+lease_t monitor_lease;
 
 bool monitor_leased()
 {
-  return monitor_lease_valid && HAL_GetTick() - monitor_lease_tick < MONITOR_LEASE_MS;
+  return lease_held(&monitor_lease, HAL_GetTick(), MONITOR_LEASE_MS);
+}
+
+/* bandopm's attack & release mode wants key-speed velocities. When a synth
+ * first renews the velocity lease, velocity_source is set to 1 (key speed);
+ * VELOCITY_LEASE_MS after its last renewal, the value it had before comes
+ * back, unless something else changed it meanwhile. Live values only: nothing
+ * is saved. Both changes are pushed as PROPERTY_CHANGED, so an open
+ * configuration tool shows them. */
+constexpr uint32_t VELOCITY_LEASE_MS = 2000;
+lease_t velocity_lease;
+bool velocity_lease_active = false;
+uint16_t velocity_source_before;
+
+void set_velocity_source(uint16_t value)
+{
+  size_t index;
+  if (!property_by_name("velocity_source", &index)) return;
+  property_set_value(index, value);
+  midi_send_property_changed(index);
+}
+
+void renew_velocity_lease()
+{
+  lease_renew(&velocity_lease, HAL_GetTick());
+  if (velocity_lease_active) return;
+  velocity_lease_active = true;
+  velocity_source_before = g_properties->velocity_source;
+  if (velocity_source_before != 1) set_velocity_source(1);
+}
+
+/* Restores velocity_source once the lease has lapsed. From midi_poll. */
+void check_velocity_lease()
+{
+  if (!velocity_lease_active || lease_held(&velocity_lease, HAL_GetTick(), VELOCITY_LEASE_MS)) return;
+  velocity_lease_active = false;
+  if (g_properties->velocity_source == 1 && velocity_source_before != 1)
+    set_velocity_source(velocity_source_before);
 }
 
 /* Renews the monitor lease, and answers with the live state. Raw ADC
@@ -191,8 +231,7 @@ bool monitor_leased()
  * reading before it. */
 void handle_monitor_lease()
 {
-  monitor_lease_valid = true;
-  monitor_lease_tick = HAL_GetTick();
+  lease_renew(&monitor_lease, HAL_GetTick());
 
   uint16_t hall0, hall1;
   bellow_get_raw(&hall0, &hall1);
@@ -430,6 +469,9 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
     case SYSEX_MSG_MONITOR_LEASE:
       handle_monitor_lease();
       break;
+    case SYSEX_MSG_VELOCITY_LEASE:
+      renew_velocity_lease();
+      break;
     case SYSEX_MSG_GET_SAVED_VALUE:
       handle_get_saved_value(body);
       break;
@@ -554,6 +596,7 @@ static void cmd_send_sysex(gsl::span<const char* const> argv)
 void midi_poll(void)
 {
   static uint32_t last_tick = 0;
+  check_velocity_lease();
   if (!g_properties->midi_active_sensing_enable) return;
   uint32_t now = HAL_GetTick();
   if ((now - last_tick) < g_properties->midi_active_sensing_period) return;

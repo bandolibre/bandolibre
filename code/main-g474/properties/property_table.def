@@ -197,10 +197,12 @@ PROPERTY(61, uint16_t, led_max_duty,
  * linearly between strike_speed_min and strike_speed_max, shaped by a Bezier
  * curve (the same 0..255 control points as the bellows curves) and scaled to
  * strike_vel_min..strike_vel_max. The factory strike values are first guesses,
- * to be tuned on hardware. */
+ * to be tuned on hardware. A synth holding the velocity lease (bandopm,
+ * SYSEX_MSG_VELOCITY_LEASE) sets this to 1 while it holds it, and the
+ * previous value comes back when the lease lapses. */
 PROPERTY(62, uint16_t, velocity_source,
          .factory_value = 0, .min = 0, .max = 1,
-         .description = "Note velocity from: 0 bellows, 1 key strike speed")
+         .description = "Note velocity from: 0 bellows, 1 key speed")
 PROPERTY(63, uint16_t, strike_start,
          .factory_value = 2400, .min = 0, .max = 4095,
          .description = "Strike speed is timed from this ADC level to key_press")

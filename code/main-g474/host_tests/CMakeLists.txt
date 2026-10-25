@@ -32,6 +32,7 @@ endfunction()
 
 add_host_test(one_euro_filter_test app/one_euro_filter_test.c)
 add_host_test(hysteresis_test app/hysteresis_test.c)
+add_host_test(lease_test app/lease_test.c)
 add_host_test(properties_test
     properties/properties_test.c
     properties/properties.c

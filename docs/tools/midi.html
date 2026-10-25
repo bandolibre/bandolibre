@@ -548,8 +548,7 @@
   .bp-vline.th-press, .bp-vline.th-start { stroke: var(--pull); }
   .bp-vline.th-release { stroke: var(--release); }
   .th-inputs { margin-top: 6px; }
-  .velocity-header { margin-top: 16px; }
-  @media (max-width: 640px) { .th-inputs { grid-template-columns: 1fr; } }
+  .velocity-header { margin-top: 16px; }  @media (max-width: 640px) { .th-inputs { grid-template-columns: 1fr; } }
   .bp-xy .kbd-toggle { border: none; padding: 0; margin: 0; align-items: center; } /* the switch has no baseline */
   .bp-xy .kbd-toggle > span:first-child { font-family: inherit; font-size: 0.8rem; color: var(--fg); }
   svg.velocity-plot text { font-family: inherit; font-size: inherit; }
@@ -1230,7 +1229,7 @@
       <label>Velocity from</label>
       <div class="choice-buttons" id="stSource" role="group" aria-label="Note velocity source">
         <button type="button" data-source="0" aria-pressed="true">Bellows</button>
-        <button type="button" data-source="1" aria-pressed="false">Key strike</button>
+        <button type="button" data-source="1" aria-pressed="false">Key speed</button>
       </div>
     </div>
 
@@ -2526,9 +2525,11 @@
     renderDefaultCell(index);
   }
 
-  /* SYSEX_MSG_PROPERTY_CHANGED: the device changed a property and saved it on
-   * its own - a long press of the middle button calibrates the bellows center.
-   * Shown like a table edit, plus the new saved value in the Default column. */
+  /* SYSEX_MSG_PROPERTY_CHANGED: the device changed a property on its own - a
+   * long press of the middle button calibrates and saves the bellows center;
+   * bandopm's velocity lease sets velocity_source to key speed, and restores
+   * it when the lease lapses. Shown like a table edit, plus the saved value in
+   * the Default column. */
   function applyPropertyChanged(payload) {
     const reader = new DataReader(payload.slice(1));
     const index = reader.readUInt16();
