@@ -6,7 +6,8 @@
 /* Cubic-Bezier response shape, reshaping an already-classified
  * bellow_classify() intensity (0.0..1.0) through a curve from (0,0) to
  * (1,1) with two fully free 2D control points P1=(cx1,cy1), P2=(cx2,cy2),
- * each coordinate 0..256 (Q8, i.e. 0..1). This is the same construction
+ * each coordinate a byte 0..255 standing for 0..1 (255 is exactly 1: the
+ * point properties, properties.h). This is the same construction
  * as CSS's cubic-bezier() timing function / cubic-bezier.com: dragging a
  * control point sideways changes how suddenly the response arrives at a
  * given output, independent of how high the bulge (cyN) is.
@@ -28,7 +29,7 @@
  * unlike the earlier closed-form design this replaces which only ever
  * needed a power-of-two shift.
  *
- * Monotonicity: with all four coordinates confined to [0,256], BOTH x(t)
+ * Monotonicity: with all four coordinates confined to [0,1], BOTH x(t)
  * and y(t) are individually guaranteed monotonic non-decreasing (each is
  * a cubic Bezier whose own hodograph -- its derivative, itself a Bezier
  * curve -- is a convex combination of control-point-derived values that
@@ -44,10 +45,15 @@
  * bit-exact to the pre-existing linear ramp at its shared default
  * (cy1=85, cy2=171). This iterative solve is only exact in the
  * mathematical limit; in practice it lands within a fraction of a part in
- * 1024 of linear at the equivalent default (cx1=cy1=85, cx2=cy2=171, i.e.
- * both control points sitting on the diagonal), not a hard guarantee. */
+ * 1024 of linear at the equivalent default (both control points on the
+ * diagonal, at 1/3 and 2/3), not a hard guarantee. */
 float bellow_curve_apply(float intensity,
-                         uint16_t cx1, uint16_t cy1,
-                         uint16_t cx2, uint16_t cy2);
+                         uint8_t cx1, uint8_t cy1,
+                         uint8_t cx2, uint8_t cy2);
+
+/* The same curve with its control point coordinates already in 0.0..1.0. */
+float bellow_curve_apply_unit(float intensity,
+                              float p1x, float p1y,
+                              float p2x, float p2y);
 
 #endif /* APP_BELLOW_CURVE_H */

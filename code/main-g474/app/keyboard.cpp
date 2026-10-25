@@ -321,10 +321,10 @@ static key_strike_map_t strike_map(void)
   m.speed_max = g_properties->strike_speed_max;
   m.vel_min = g_properties->strike_vel_min;
   m.vel_max = g_properties->strike_vel_max;
-  m.cx1 = g_properties->strike_cx1;
-  m.cy1 = g_properties->strike_cy1;
-  m.cx2 = g_properties->strike_cx2;
-  m.cy2 = g_properties->strike_cy2;
+  m.cx1 = g_properties->strike_curve_p1.x;
+  m.cy1 = g_properties->strike_curve_p1.y;
+  m.cx2 = g_properties->strike_curve_p2.x;
+  m.cy2 = g_properties->strike_curve_p2.y;
   m.log_scale = g_properties->strike_log;
   return m;
 }
@@ -337,10 +337,10 @@ static key_strike_map_t release_map(void)
   m.speed_max = g_properties->release_speed_max;
   m.vel_min = g_properties->release_vel_min;
   m.vel_max = g_properties->release_vel_max;
-  m.cx1 = g_properties->release_cx1;
-  m.cy1 = g_properties->release_cy1;
-  m.cx2 = g_properties->release_cx2;
-  m.cy2 = g_properties->release_cy2;
+  m.cx1 = g_properties->release_curve_p1.x;
+  m.cy1 = g_properties->release_curve_p1.y;
+  m.cx2 = g_properties->release_curve_p2.x;
+  m.cy2 = g_properties->release_curve_p2.y;
   m.log_scale = g_properties->release_log;
   return m;
 }

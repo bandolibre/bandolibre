@@ -232,7 +232,7 @@ static key_strike_map_t default_map(void)
 {
   key_strike_map_t m = {
     .speed_min = 50, .speed_max = 1500, .vel_min = 20, .vel_max = 127,
-    .cx1 = 102, .cy1 = 0, .cx2 = 154, .cy2 = 256, .log_scale = false,
+    .cx1 = 102, .cy1 = 0, .cx2 = 153, .cy2 = 255, .log_scale = false,
   };
   return m;
 }
@@ -268,7 +268,7 @@ static void test_mapping_log(void)
 {
   key_strike_map_t m = default_map();
   m.log_scale = true;
-  m.cx1 = 85; m.cy1 = 85; m.cx2 = 171; m.cy2 = 171;     /* ~linear curve */
+  m.cx1 = 85; m.cy1 = 85; m.cx2 = 170; m.cy2 = 170;     /* linear curve */
   float geo = key_strike_normalize(&m, 274);            /* sqrt(50*1500) ~ 274 */
   CHECK(geo > 0.47f && geo < 0.53f);
   CHECK(key_strike_velocity(&m, 0) == 20);

@@ -54,17 +54,15 @@ static uint32_t g_bellow_cc_reversals;
  * separate flat fields, so current_program() gathers the selected set. */
 typedef struct {
   uint16_t dead, push_travel, pull_travel;
-  uint16_t push_x1, push_y1, push_x2, push_y2;
-  uint16_t pull_x1, pull_y1, pull_x2, pull_y2;
+  property_point_t push_p1, push_p2;
+  property_point_t pull_p1, pull_p2;
 } bellow_program_t;
 
 #define BELLOW_PROGRAM_FIELDS(n) (bellow_program_t){                                       \
   g_properties->bellow_p##n##_dead,                                                         \
   g_properties->bellow_p##n##_push_travel, g_properties->bellow_p##n##_pull_travel,         \
-  g_properties->bellow_p##n##_push_curve_x1, g_properties->bellow_p##n##_push_curve_y1,     \
-  g_properties->bellow_p##n##_push_curve_x2, g_properties->bellow_p##n##_push_curve_y2,     \
-  g_properties->bellow_p##n##_pull_curve_x1, g_properties->bellow_p##n##_pull_curve_y1,     \
-  g_properties->bellow_p##n##_pull_curve_x2, g_properties->bellow_p##n##_pull_curve_y2 }
+  g_properties->bellow_p##n##_push_curve_p1, g_properties->bellow_p##n##_push_curve_p2,     \
+  g_properties->bellow_p##n##_pull_curve_p1, g_properties->bellow_p##n##_pull_curve_p2 }
 
 _Static_assert(BELLOW_PROGRAM_COUNT == 3, "current_program() lists every program");
 
@@ -456,9 +454,9 @@ void bellow_poll(void)
                                                  p.push_travel, p.pull_travel);
     g_bellow_out.direction = r.direction;
     if (r.direction == BELLOWS_PUSH)
-      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.push_x1, p.push_y1, p.push_x2, p.push_y2);
+      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.push_p1.x, p.push_p1.y, p.push_p2.x, p.push_p2.y);
     else
-      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.pull_x1, p.pull_y1, p.pull_x2, p.pull_y2);
+      g_bellow_out.intensity = bellow_curve_apply(r.intensity, p.pull_p1.x, p.pull_p1.y, p.pull_p2.x, p.pull_p2.y);
 
     bellow_send_cc();
   }

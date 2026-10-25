@@ -227,29 +227,19 @@ void handle_monitor_lease()
 }
 
 /* Reads a property's current value regardless of its underlying type (bool
- * reads back as 0/1). False if index is out of range. */
+ * reads back as 0/1, a point as x | y << 8). False if index is out of range. */
 bool get_property_raw(size_t index, uint16_t *out)
 {
-  const property_desc_t *d = property_at(index);
-  if (!d) return false;
-  if (d->type == PROPERTY_TYPE_BOOL) {
-    bool b;
-    if (!property_get_bool(index, &b)) return false;
-    *out = b ? 1 : 0;
-    return true;
-  }
-  return property_get_u16(index, out);
+  if (!property_at(index)) return false;
+  *out = property_value(index);
+  return true;
 }
 
 /* Writes a property's value regardless of its underlying type (bool takes
- * value != 0); property_set_u16 clamps to [min,max]. False if index is out
- * of range. */
+ * value != 0); clamps to [min,max]. False if index is out of range. */
 bool set_property_raw(size_t index, uint16_t value)
 {
-  const property_desc_t *d = property_at(index);
-  if (!d) return false;
-  if (d->type == PROPERTY_TYPE_BOOL) return property_set_bool(index, value != 0);
-  return property_set_u16(index, value);
+  return property_set_value(index, value);
 }
 
 void send_index_value_response(sysex_message_id message_id, uint16_t index, uint16_t value)
@@ -326,7 +316,7 @@ void handle_set_property(gsl::span<const uint8_t> body)
     return;
   }
 
-  /* Echo back the value actually in effect: property_set_u16 clamps to
+  /* Echo back the value actually in effect: property_set_value clamps to
    * [min,max], so it may differ from what was requested. */
   uint16_t new_value;
   get_property_raw(index, &new_value);

@@ -54,6 +54,11 @@ static uint16_t read_value(const property_desc_t *d)
 {
   void *field = (char *)&s_props + d->offset;
   if (d->type == PROPERTY_TYPE_BOOL) return *(bool *)field ? 1u : 0u;
+  if (d->type == PROPERTY_TYPE_POINT)
+  {
+    const property_point_t *p = (const property_point_t *)field;
+    return PROPERTY_POINT(p->x, p->y);
+  }
   return *(uint16_t *)field;
 }
 
@@ -61,6 +66,12 @@ static void write_value(const property_desc_t *d, uint16_t v)
 {
   void *field = (char *)&s_props + d->offset;
   if (d->type == PROPERTY_TYPE_BOOL) *(bool *)field = (v != 0);
+  else if (d->type == PROPERTY_TYPE_POINT)
+  {
+    property_point_t *p = (property_point_t *)field;
+    p->x = (uint8_t)(v & 0xFFu);
+    p->y = (uint8_t)(v >> 8);
+  }
   else *(uint16_t *)field = v;
 }
 
@@ -157,4 +168,12 @@ bool property_reset(size_t index)
 uint16_t property_value(size_t index)
 {
   return index < PROPERTY_COUNT ? read_value(&g_prop_desc[index]) : 0u;
+}
+
+bool property_set_value(size_t index, uint16_t value)
+{
+  if (index >= PROPERTY_COUNT) return false;
+  const property_desc_t *d = &g_prop_desc[index];
+  write_value(d, d->type == PROPERTY_TYPE_BOOL ? (value != 0) : clamp(d, value));
+  return true;
 }

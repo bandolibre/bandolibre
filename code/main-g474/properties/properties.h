@@ -30,23 +30,38 @@ extern "C" {
 #define PROPERTY_TAG_NONE 0u   /* tag value marking a transient (non-persistent) property */
 
 typedef enum {
-  PROPERTY_TYPE_BOOL = 0,
-  PROPERTY_TYPE_U16  = 1,
+  PROPERTY_TYPE_BOOL  = 0,
+  PROPERTY_TYPE_U16   = 1,
+  PROPERTY_TYPE_POINT = 2,
 } property_type_t;
+
+/* A point: two coordinates of one byte each, such as a curve control point
+ * (0..255, 255 being the end of the range: see bellow_curve.h). Its 16-bit
+ * property value, as sent over sysex and saved in flash, is x in the low byte
+ * and y in the high byte. */
+typedef struct {
+  uint8_t x;
+  uint8_t y;
+} property_point_t;
+
+#define PROPERTY_POINT(px, py) ((uint16_t)((px) | ((py) << 8)))  /* a point's 16-bit value */
 
 /* Map the C type token used in property_table.def to its property_type_t. The
  * `bool` token expands to `_Bool` (stdbool.h) before it reaches the paste, so
  * the bool mapping is keyed on `_Bool`. */
-#define PROPERTY_TYPE_ENUM_uint16_t PROPERTY_TYPE_U16
-#define PROPERTY_TYPE_ENUM__Bool    PROPERTY_TYPE_BOOL
+#define PROPERTY_TYPE_ENUM_uint16_t         PROPERTY_TYPE_U16
+#define PROPERTY_TYPE_ENUM__Bool            PROPERTY_TYPE_BOOL
+#define PROPERTY_TYPE_ENUM_property_point_t PROPERTY_TYPE_POINT
 #define PROPERTY_TYPE_ENUM(type) PROPERTY_TYPE_ENUM_##type
 
 /* Per-type metadata defaults, expanded ahead of the table's named initializers
  * so a property can omit them. bool has a fixed 0..1 range, so bool properties
- * leave out .min/.max; uint16_t supplies its own. Keyed on the post-expansion
+ * leave out .min/.max; uint16_t supplies its own; a point has no range of its
+ * own (each byte is a full 0..255 coordinate). Keyed on the post-expansion
  * type token (`bool` -> `_Bool`). */
 #define PROPERTY_DEFAULTS_uint16_t
-#define PROPERTY_DEFAULTS__Bool      .min = 0, .max = 1,
+#define PROPERTY_DEFAULTS__Bool            .min = 0, .max = 1,
+#define PROPERTY_DEFAULTS_property_point_t .min = 0, .max = 0xFFFF,
 #define PROPERTY_DEFAULTS(type) PROPERTY_DEFAULTS_##type
 
 /* Live values. The type token in the table IS the C type, so each field
@@ -87,8 +102,10 @@ bool property_set_u16(size_t index, uint16_t value);       /* clamps to [min,max
 bool property_get_bool(size_t index, bool *out);
 bool property_set_bool(size_t index, bool value);
 bool property_reset(size_t index);                         /* one -> default */
-uint16_t property_value(size_t index);                     /* live value of any type (bool 0/1);
-                                                            * 0 on bad index */
+uint16_t property_value(size_t index);                     /* live value of any type (bool 0/1,
+                                                            * point x | y << 8); 0 on bad index */
+bool property_set_value(size_t index, uint16_t value);     /* any type, as property_value reads it;
+                                                            * clamps; false on bad index */
 
 /* ---- saved values (property_persist.cc) ---------------------------------- */
 

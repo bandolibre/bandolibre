@@ -8,36 +8,49 @@
 
 static const char *type_name(property_type_t t)
 {
-  return t == PROPERTY_TYPE_BOOL ? "bool" : "u16";
+  switch (t)
+  {
+    case PROPERTY_TYPE_BOOL:  return "bool";
+    case PROPERTY_TYPE_POINT: return "point";
+    default:                  return "u16";
+  }
 }
 
-/* Current value of a property regardless of type (bool -> 0/1). */
-static uint16_t current_value(size_t index)
+/* A value as the console shows it: a number, or "x,y" for a point. A point's
+ * 16-bit value packs x in its low byte and y in its high byte. */
+typedef struct { char s[16]; } value_text_t;
+
+static value_text_t value_text(const property_desc_t *d, uint16_t v)
 {
-  const property_desc_t *d = property_at(index);
-  if (d->type == PROPERTY_TYPE_BOOL)
-  {
-    bool b = false;
-    property_get_bool(index, &b);
-    return b ? 1u : 0u;
-  }
-  uint16_t v = 0;
-  property_get_u16(index, &v);
-  return v;
+  value_text_t t;
+  if (d->type == PROPERTY_TYPE_POINT) snprintf(t.s, sizeof t.s, "%u,%u", v & 0xFFu, v >> 8);
+  else snprintf(t.s, sizeof t.s, "%u", v);
+  return t;
+}
+
+/* The range column: a point's coordinates each span a byte. */
+static value_text_t range_text(const property_desc_t *d)
+{
+  value_text_t t;
+  if (d->type == PROPERTY_TYPE_POINT) snprintf(t.s, sizeof t.s, "x,y 0..255");
+  else snprintf(t.s, sizeof t.s, "[%u, %u]", d->min, d->max);
+  return t;
 }
 
 /* "name = value  (min M, max X, default D)", the default being the saved
- * value if there is one: "(..., saved S, factory F)". */
+ * value if there is one: "(..., saved S, factory F)". A point has no min/max. */
 static void print_one(size_t index)
 {
   const property_desc_t *d = property_at(index);
   uint16_t saved;
+  char bounds[24] = "";
+  if (d->type != PROPERTY_TYPE_POINT) snprintf(bounds, sizeof bounds, "min %u, max %u, ", d->min, d->max);
   if (property_get_saved(index, &saved))
-    printf("%s = %u  (min %u, max %u, saved %u, factory %u)\r\n",
-           d->name, current_value(index), d->min, d->max, saved, d->factory_value);
+    printf("%s = %s  (%ssaved %s, factory %s)\r\n", d->name, value_text(d, property_value(index)).s,
+           bounds, value_text(d, saved).s, value_text(d, d->factory_value).s);
   else
-    printf("%s = %u  (min %u, max %u, default %u)\r\n",
-           d->name, current_value(index), d->min, d->max, d->factory_value);
+    printf("%s = %s  (%sdefault %s)\r\n", d->name, value_text(d, property_value(index)).s,
+           bounds, value_text(d, d->factory_value).s);
 }
 
 /* Shell-style glob match supporting '*' (any run) and '?' (one char). Used so
@@ -73,11 +86,10 @@ static void print_row(size_t index, size_t row)
   const property_desc_t *d = property_at(index);
   uint16_t saved;
   bool has = property_get_saved(index, &saved);
-  char range[16];
-  snprintf(range, sizeof range, "[%u, %u]", d->min, d->max);
-  printf("%s%-28s %5s %-12s %6u %7u%c %8u  %s" ANSI_RESET "\r\n", (row & 1) ? ANSI_BG_GREY236 : "",
-         d->name, type_name(d->type), range, current_value(index),
-         has ? saved : d->factory_value, has ? '*' : ' ', d->factory_value, d->description);
+  printf("%s%-28s %5s %-12s %7s %7s%c %8s  %s" ANSI_RESET "\r\n", (row & 1) ? ANSI_BG_GREY236 : "",
+         d->name, type_name(d->type), range_text(d).s, value_text(d, property_value(index)).s,
+         value_text(d, has ? saved : d->factory_value).s, has ? '*' : ' ',
+         value_text(d, d->factory_value).s, d->description);
 }
 
 static bool property_cmd_get(int argc, const char *const *argv)
@@ -88,7 +100,7 @@ static bool property_cmd_get(int argc, const char *const *argv)
   {
     if (!name_match(argv[1], property_at(i)->name)) continue;
     if (!matched)
-      printf(ANSI_BOLD ANSI_FG_GREEN "%-28s %5s %-12s %6s %8s %8s  %s" ANSI_RESET "\r\n", "name", "type", "range", "value", "default",
+      printf(ANSI_BOLD ANSI_FG_GREEN "%-28s %5s %-12s %7s %8s %8s  %s" ANSI_RESET "\r\n", "name", "type", "range", "value", "default",
              "firmware", "description");
     print_row(i, matched++);
   }
@@ -96,20 +108,31 @@ static bool property_cmd_get(int argc, const char *const *argv)
   return true;
 }
 
-/* Parse a property value string. Returns false (with a message) if not a number. */
-static bool parse_value(const char *s, unsigned long *out)
+/* Parse a value string for property i: a number, or "x,y" (each 0..255) for a
+ * point. Returns false (with a message) if it doesn't fit the property. */
+static bool parse_value(size_t i, const char *s, uint16_t *out)
 {
+  const property_desc_t *d = property_at(i);
   char *end;
   unsigned long v = strtoul(s, &end, 0);
+  if (d->type == PROPERTY_TYPE_POINT)
+  {
+    if (s[0] == '\0' || *end != ',') { printf("%s: not an x,y point: %s\r\n", d->name, s); return false; }
+    const char *ys = end + 1;
+    unsigned long y = strtoul(ys, &end, 0);
+    if (ys[0] == '\0' || *end != '\0' || v > 255 || y > 255)
+    { printf("%s: not an x,y point (each 0..255): %s\r\n", d->name, s); return false; }
+    *out = PROPERTY_POINT(v, y);
+    return true;
+  }
   if (s[0] == '\0' || *end != '\0') { printf("not a number: %s\r\n", s); return false; }
-  *out = v;
+  *out = v > 0xFFFFu ? 0xFFFFu : (uint16_t)v;
   return true;
 }
 
-static void set_one(size_t i, unsigned long v)
+static void set_one(size_t i, uint16_t v)
 {
-  if (property_at(i)->type == PROPERTY_TYPE_BOOL) property_set_bool(i, v != 0);
-  else property_set_u16(i, v > 0xFFFFu ? 0xFFFFu : (uint16_t)v);
+  property_set_value(i, v);
   print_one(i);
 }
 
@@ -126,18 +149,22 @@ static bool property_cmd_set(int argc, const char *const *argv)
     return true;
   }
   if (argc < 3) { printf("usage: set <name> [<value>]  (the value may be left out for a boolean)\r\n"); return false; }
-  unsigned long v;
-  if (!parse_value(argv[2], &v)) return false;
+  uint16_t v;
   if (has_wildcard(argv[1]))
   {
     size_t matched = 0;
     for (size_t i = 0; i < property_count(); i++)
-      if (name_match(argv[1], property_at(i)->name)) { set_one(i, v); matched++; }
+    {
+      if (!name_match(argv[1], property_at(i)->name)) continue;
+      matched++;
+      if (parse_value(i, argv[2], &v)) set_one(i, v);
+    }
     if (!matched) { printf("no property matches: %s\r\n", argv[1]); return false; }
     return true;
   }
   size_t i;
   if (!property_by_name(argv[1], &i)) { printf("unknown property: %s\r\n", argv[1]); return false; }
+  if (!parse_value(i, argv[2], &v)) return false;
   set_one(i, v);
   return true;
 }
@@ -163,14 +190,15 @@ static bool property_cmd_reset(int argc, const char *const *argv)
 /* The default column is the saved value, starred, if there is one. */
 static void property_cmd_show(void)
 {
-  printf("%-18s %6s %6s %6s %8s %8s\r\n", "name", "value", "min", "max", "default", "factory");
+  printf("%-18s %7s %6s %6s %8s %8s\r\n", "name", "value", "min", "max", "default", "factory");
   for (size_t i = 0; i < property_count(); i++)
   {
     const property_desc_t *d = property_at(i);
     uint16_t saved;
     bool has = property_get_saved(i, &saved);
-    printf("%-18s %6u %6u %6u %7u%c %8u\r\n", d->name, current_value(i), d->min, d->max,
-           has ? saved : d->factory_value, has ? '*' : ' ', d->factory_value);
+    printf("%-18s %7s %6u %6u %7s%c %8s\r\n", d->name, value_text(d, property_value(i)).s, d->min, d->max,
+           value_text(d, has ? saved : d->factory_value).s, has ? '*' : ' ',
+           value_text(d, d->factory_value).s);
   }
 }
 
@@ -232,7 +260,7 @@ void properties_help(void)
   printf("  get <name>           table of value, range, default, firmware value and description\r\n");
   printf("                       (name may glob, e.g. log_* or *)\r\n");
   printf("  set <name> [<value>] set a property, clamped to its range (name may glob, e.g. log_*);\r\n");
-  printf("                       without a value, a boolean is toggled\r\n");
+  printf("                       without a value, a boolean is toggled; a point takes x,y\r\n");
   printf("  reset <name>         restore default(s): saved value, else factory (name may glob)\r\n");
   printf("  save                 save current values as defaults, in flash\r\n");
   printf("  factory_reset        erase saved values, restore every factory value\r\n");

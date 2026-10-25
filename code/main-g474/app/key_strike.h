@@ -73,7 +73,7 @@ key_edge_t key_strike_update(key_strike_t *s, uint16_t v, uint32_t t_us,
 typedef struct {
   uint16_t speed_min, speed_max;      /* counts per 10 ms */
   uint16_t vel_min, vel_max;          /* 1..127 */
-  uint16_t cx1, cy1, cx2, cy2;        /* Q8 Bezier control points, as bellow_curve */
+  uint8_t  cx1, cy1, cx2, cy2;        /* Bezier control points 0..255, as bellow_curve */
   bool     log_scale;                 /* normalise ln(speed) instead of speed */
 } key_strike_map_t;
 

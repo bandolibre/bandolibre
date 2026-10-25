@@ -8,14 +8,18 @@
  *   tag             permanent identity of the saved value in flash (property_store.h).
  *                   NEVER reuse a tag, even after a property is removed.
  *                   0 (PROPERTY_TAG_NONE) marks a transient (never saved) property.
- *   type            C type of the value: uint16_t or bool
+ *   type            C type of the value: uint16_t, bool or property_point_t (an
+ *                   x,y pair of bytes, such as a curve control point: see
+ *                   properties.h)
  *   name            struct member (direct read g_properties->name) and, stringized,
  *                   the lookup name
- *   .factory_value  the firmware's value (bool: 0/1). A saved value, set from the
- *                   web tool, overrides it at boot; property_reset() restores the
- *                   saved value if there is one, else this.
+ *   .factory_value  the firmware's value (bool: 0/1; point: PROPERTY_POINT(x, y)).
+ *                   A saved value, set from the web tool, overrides it at boot;
+ *                   property_reset() restores the saved value if there is one,
+ *                   else this.
  *   .min .max       inclusive bounds; set() clamps, a saved value outside them is
- *                   ignored at boot. Omit for bool (range is implicitly 0..1).
+ *                   ignored at boot. Omit for bool (range is implicitly 0..1) and
+ *                   for a point (each coordinate is a full byte, 0..255).
  *   .description    short text for the editor and console help, shown next to
  *                   the name: don't repeat what the name says (program, pedal,
  *                   _ms/_us/_hz unit), so per-program and per-pedal strings are
@@ -38,13 +42,12 @@ PROPERTY(3, uint16_t, bellow_center,
 
 /* Bellows programs: FN1 cycles bellow_program through BELLOW_PROGRAM_COUNT
  * (bellow.h) sets of dead zone, travel and response curves, each
- * BELLOW_PROGRAM() owning 11 consecutive tags from tag0:
+ * BELLOW_PROGRAM() owning 7 consecutive tags from tag0:
  *   BELLOW_PROGRAM(n, tag0, push_travel, (x1, y1), (x2, y2),
  *                           pull_travel, (x1, y1), (x2, y2))
- * where each (x, y) is a cubic-Bezier control point default, /256. Travels are
- * offsets from bellow_center, so recalibrating the center keeps every program. */
-#define BELLOW_CP_X(x, y) x
-#define BELLOW_CP_Y(x, y) y
+ * where each (x, y) is a cubic-Bezier control point default, 0..255 (255 is
+ * the end of the range, bellow_curve.h). Travels are offsets from
+ * bellow_center, so recalibrating the center keeps every program. */
 #define BELLOW_PROGRAM(n, tag0, push_travel_default, push_p1, push_p2, \
                        pull_travel_default, pull_p1, pull_p2) \
 PROPERTY(tag0 + 0, uint16_t, bellow_p##n##_dead, \
@@ -56,149 +59,135 @@ PROPERTY(tag0 + 1, uint16_t, bellow_p##n##_push_travel, \
 PROPERTY(tag0 + 2, uint16_t, bellow_p##n##_pull_travel, \
          .factory_value = pull_travel_default, .min = 0, .max = 17000, \
          .description = "Full pull: rise above bellow_center") \
-PROPERTY(tag0 + 3, uint16_t, bellow_p##n##_push_curve_x1, \
-         .factory_value = BELLOW_CP_X push_p1, .min = 0, .max = 256, \
-         .description = "Push curve P1.x, 1/256 (near center)") \
-PROPERTY(tag0 + 4, uint16_t, bellow_p##n##_push_curve_y1, \
-         .factory_value = BELLOW_CP_Y push_p1, .min = 0, .max = 256, \
-         .description = "Push curve P1.y, 1/256 (near center)") \
-PROPERTY(tag0 + 5, uint16_t, bellow_p##n##_push_curve_x2, \
-         .factory_value = BELLOW_CP_X push_p2, .min = 0, .max = 256, \
-         .description = "Push curve P2.x, 1/256 (near full travel)") \
-PROPERTY(tag0 + 6, uint16_t, bellow_p##n##_push_curve_y2, \
-         .factory_value = BELLOW_CP_Y push_p2, .min = 0, .max = 256, \
-         .description = "Push curve P2.y, 1/256 (near full travel)") \
-PROPERTY(tag0 + 7, uint16_t, bellow_p##n##_pull_curve_x1, \
-         .factory_value = BELLOW_CP_X pull_p1, .min = 0, .max = 256, \
-         .description = "Pull curve P1.x, 1/256 (near center)") \
-PROPERTY(tag0 + 8, uint16_t, bellow_p##n##_pull_curve_y1, \
-         .factory_value = BELLOW_CP_Y pull_p1, .min = 0, .max = 256, \
-         .description = "Pull curve P1.y, 1/256 (near center)") \
-PROPERTY(tag0 + 9, uint16_t, bellow_p##n##_pull_curve_x2, \
-         .factory_value = BELLOW_CP_X pull_p2, .min = 0, .max = 256, \
-         .description = "Pull curve P2.x, 1/256 (near full travel)") \
-PROPERTY(tag0 + 10, uint16_t, bellow_p##n##_pull_curve_y2, \
-         .factory_value = BELLOW_CP_Y pull_p2, .min = 0, .max = 256, \
-         .description = "Pull curve P2.y, 1/256 (near full travel)")
+PROPERTY(tag0 + 3, property_point_t, bellow_p##n##_push_curve_p1, \
+         .factory_value = PROPERTY_POINT push_p1, \
+         .description = "Push curve control point near center, x,y 0..255") \
+PROPERTY(tag0 + 4, property_point_t, bellow_p##n##_push_curve_p2, \
+         .factory_value = PROPERTY_POINT push_p2, \
+         .description = "Push curve control point near full travel, x,y 0..255") \
+PROPERTY(tag0 + 5, property_point_t, bellow_p##n##_pull_curve_p1, \
+         .factory_value = PROPERTY_POINT pull_p1, \
+         .description = "Pull curve control point near center, x,y 0..255") \
+PROPERTY(tag0 + 6, property_point_t, bellow_p##n##_pull_curve_p2, \
+         .factory_value = PROPERTY_POINT pull_p2, \
+         .description = "Pull curve control point near full travel, x,y 0..255")
 
 /* p0 is the nominal travel; p1 and p2 reach full expression with 1/1.5 and
  * 1/2 of it, like the former x1.5 and x2.0 sensitivity levels. */
-BELLOW_PROGRAM(0, 4, 3123, (10, 0), (245, 256), 3028, (10, 0), (245, 256))
-BELLOW_PROGRAM(1, 15, 2082, (10, 0), (245, 256), 2019, (10, 0), (245, 256))
-BELLOW_PROGRAM(2, 26, 1562, (10, 0), (245, 256), 1514, (10, 0), (245, 256))
+BELLOW_PROGRAM(0, 4, 3123, (10, 0), (244, 255), 3028, (10, 0), (244, 255))
+BELLOW_PROGRAM(1, 11, 2082, (10, 0), (244, 255), 2019, (10, 0), (244, 255))
+BELLOW_PROGRAM(2, 18, 1562, (10, 0), (244, 255), 1514, (10, 0), (244, 255))
 #undef BELLOW_PROGRAM
-#undef BELLOW_CP_X
-#undef BELLOW_CP_Y
-PROPERTY(37, uint16_t, bellow_program,
+PROPERTY(25, uint16_t, bellow_program,
          .factory_value = 0, .min = 0, .max = 2,
          .description = "Active bellow_p<n>_* set; FN1 cycles it")
 
-PROPERTY(38, uint16_t, bellow_hyst,
+PROPERTY(26, uint16_t, bellow_hyst,
          .factory_value = 12, .min = 0, .max = 4095,
          .description = "Travel given back before returning to neutral")
-PROPERTY(39, uint16_t, bellow_cc_period_ms,
+PROPERTY(27, uint16_t, bellow_cc_period_ms,
          .factory_value = 5, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(40, uint16_t, bellow_settle_us,
+PROPERTY(28, uint16_t, bellow_settle_us,
          .factory_value = 2, .min = 0, .max = 1000,
          .description = "Hall supply settling time before sampling")
-PROPERTY(41, uint16_t, bellow_sample_period_us,
+PROPERTY(29, uint16_t, bellow_sample_period_us,
          .factory_value = 250, .min = 250, .max = 10000,
          .description = "Min interval between hall samples (250 = 4 kHz)")
-PROPERTY(42, uint16_t, bellow_cc_1e_mincutoff,
+PROPERTY(30, uint16_t, bellow_cc_1e_mincutoff,
          .factory_value = 16, .min = 2, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(43, uint16_t, bellow_cc_1e_beta,
+PROPERTY(31, uint16_t, bellow_cc_1e_beta,
          .factory_value = 20, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
-PROPERTY(44, uint16_t, midi_active_sensing_period,
+PROPERTY(32, uint16_t, midi_active_sensing_period,
          .factory_value = 200, .min = 10, .max = 300,
          .description = "Active Sensing interval, ms")
-PROPERTY(45, bool, midi_active_sensing_enable,
+PROPERTY(33, bool, midi_active_sensing_enable,
          .factory_value = 1,
          .description = "Send MIDI Active Sensing (0xFE)")
-PROPERTY(46, uint16_t, pedal1_min,
+PROPERTY(34, uint16_t, pedal1_min,
          .factory_value = 920, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 0")
-PROPERTY(47, uint16_t, pedal1_max,
+PROPERTY(35, uint16_t, pedal1_max,
          .factory_value = 3100, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 127")
-PROPERTY(48, uint16_t, pedal2_min,
+PROPERTY(36, uint16_t, pedal2_min,
          .factory_value = 920, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 0")
-PROPERTY(49, uint16_t, pedal2_max,
+PROPERTY(37, uint16_t, pedal2_max,
          .factory_value = 3100, .min = 0, .max = 4095,
          .description = "ADC reading mapped to CC 127")
-PROPERTY(50, uint16_t, pedal1_hyst_fwd,
+PROPERTY(38, uint16_t, pedal1_hyst_fwd,
          .factory_value = 4, .min = 0, .max = 4095,
          .description = "Backlash moving the same way, ADC units; 0 with hyst_rev 0 disables")
-PROPERTY(51, uint16_t, pedal1_hyst_rev,
+PROPERTY(39, uint16_t, pedal1_hyst_rev,
          .factory_value = 16, .min = 0, .max = 4095,
          .description = "Backlash to reverse direction, ADC units")
-PROPERTY(52, uint16_t, pedal1_cc_period_ms,
+PROPERTY(40, uint16_t, pedal1_cc_period_ms,
          .factory_value = 10, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(53, uint16_t, pedal2_hyst_fwd,
+PROPERTY(41, uint16_t, pedal2_hyst_fwd,
          .factory_value = 4, .min = 0, .max = 4095,
          .description = "Backlash moving the same way, ADC units; 0 with hyst_rev 0 disables")
-PROPERTY(54, uint16_t, pedal2_hyst_rev,
+PROPERTY(42, uint16_t, pedal2_hyst_rev,
          .factory_value = 16, .min = 0, .max = 4095,
          .description = "Backlash to reverse direction, ADC units")
-PROPERTY(55, uint16_t, pedal2_cc_period_ms,
+PROPERTY(43, uint16_t, pedal2_cc_period_ms,
          .factory_value = 10, .min = 1, .max = 1000,
          .description = "Min interval between CC sends")
-PROPERTY(56, uint16_t, tablemode_velocity,
+PROPERTY(44, uint16_t, tablemode_velocity,
          .factory_value = 80, .min = 1, .max = 127,
          .description = "Note velocity and CC#11 in table mode")
-PROPERTY(57, uint16_t, keyboard_tuning,
+PROPERTY(45, uint16_t, keyboard_tuning,
          .factory_value = 0, .min = 0, .max = 2,
          .description = "Note layout: 0 Rheinische, 1 Peguri, 2 Manoury")
-PROPERTY(58, bool, log_bellow,
+PROPERTY(46, bool, log_bellow,
          .factory_value = 0,
          .description = "Log hall readings and bellows direction")
-PROPERTY(59, bool, log_spi_stat,
+PROPERTY(47, bool, log_spi_stat,
          .factory_value = 0,
          .description = "Log SPI link errors and reception rates")
-PROPERTY(60, bool, log_pedals,
+PROPERTY(48, bool, log_pedals,
          .factory_value = 0,
          .description = "Log pedal wiper moves (plug/unplug always logged)")
-PROPERTY(61, bool, log_midi_sysex,
+PROPERTY(49, bool, log_midi_sysex,
          .factory_value = 0,
          .description = "Log MIDI sysex in and out")
-PROPERTY(62, uint16_t, report_period_ms,
+PROPERTY(50, uint16_t, report_period_ms,
          .factory_value = 250, .min = 33, .max = 10000,
          .description = "Live-report refresh period in ms")
-PROPERTY(63, bool, show_bellow,
+PROPERTY(51, bool, show_bellow,
          .factory_value = 0,
          .description = "Live-report bellows direction, intensity, hall readings")
-PROPERTY(64, bool, show_spi,
+PROPERTY(52, bool, show_spi,
          .factory_value = 0,
          .description = "Live-report SPI link counters and rates")
-PROPERTY(65, uint16_t, show_keyboard,
+PROPERTY(53, uint16_t, show_keyboard,
          .factory_value = 0, .min = 0, .max = 3,
          .description = "Live-report key hall readings: 0 off, 1 left, 2 right, 3 both")
-PROPERTY(66, uint16_t, show_keyboard_stats,
+PROPERTY(54, uint16_t, show_keyboard_stats,
          .factory_value = 0, .min = 0, .max = 3,
          .description = "Add min/max/diff/stddev tables, same 0..3 as show_keyboard")
-PROPERTY(67, bool, table_mode,
+PROPERTY(55, bool, table_mode,
          .factory_value = 0,
          .description = "Bellows pinned to PULL so keys sound at rest; FN0 toggles it")
-PROPERTY(68, uint16_t, pedal1_1e_mincutoff,
+PROPERTY(56, uint16_t, pedal1_1e_mincutoff,
          .factory_value = 256, .min = 26, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(69, uint16_t, pedal1_1e_beta,
+PROPERTY(57, uint16_t, pedal1_1e_beta,
          .factory_value = 459, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
-PROPERTY(70, uint16_t, pedal2_1e_mincutoff,
+PROPERTY(58, uint16_t, pedal2_1e_mincutoff,
          .factory_value = 256, .min = 26, .max = 2560,
          .description = "1-euro cutoff at rest, 1/256 Hz; lower = smoother")
-PROPERTY(71, uint16_t, pedal2_1e_beta,
+PROPERTY(59, uint16_t, pedal2_1e_beta,
          .factory_value = 459, .min = 0, .max = 65535,
          .description = "1-euro speed coefficient, 1/65536; higher = less lag")
-PROPERTY(72, bool, log_midi_notes,
+PROPERTY(60, bool, log_midi_notes,
          .factory_value = 0,
          .description = "Log MIDI note on and off")
-PROPERTY(73, uint16_t, led_max_duty,
+PROPERTY(61, uint16_t, led_max_duty,
          .factory_value = 1023, .min = 0, .max = 1023,
          .description = "Function button LED peak PWM duty, out of 1023")
 
@@ -206,43 +195,37 @@ PROPERTY(73, uint16_t, led_max_duty,
  * intensity (the original behaviour); 1 sends the speed at which the key
  * crossed from strike_start down to key_press (app/key_strike.h), mapped
  * linearly between strike_speed_min and strike_speed_max, shaped by a Bezier
- * curve (same Q8 control points as the bellows curves) and scaled to
+ * curve (the same 0..255 control points as the bellows curves) and scaled to
  * strike_vel_min..strike_vel_max. The factory strike values are first guesses,
  * to be tuned on hardware. */
-PROPERTY(74, uint16_t, velocity_source,
+PROPERTY(62, uint16_t, velocity_source,
          .factory_value = 0, .min = 0, .max = 1,
          .description = "Note velocity from: 0 bellows, 1 key strike speed")
-PROPERTY(75, uint16_t, strike_start,
+PROPERTY(63, uint16_t, strike_start,
          .factory_value = 2400, .min = 0, .max = 4095,
          .description = "Strike speed is timed from this ADC level to key_press")
-PROPERTY(76, uint16_t, strike_speed_min,
+PROPERTY(64, uint16_t, strike_speed_min,
          .factory_value = 50, .min = 0, .max = 65535,
          .description = "Strike speed mapped to the minimum velocity, ADC counts per 10 ms")
-PROPERTY(77, uint16_t, strike_speed_max,
+PROPERTY(65, uint16_t, strike_speed_max,
          .factory_value = 1500, .min = 1, .max = 65535,
          .description = "Strike speed mapped to the maximum velocity, ADC counts per 10 ms")
-PROPERTY(78, uint16_t, strike_vel_min,
+PROPERTY(66, uint16_t, strike_vel_min,
          .factory_value = 20, .min = 1, .max = 127,
          .description = "Velocity of the slowest strike")
-PROPERTY(79, uint16_t, strike_vel_max,
+PROPERTY(67, uint16_t, strike_vel_max,
          .factory_value = 127, .min = 1, .max = 127,
          .description = "Velocity of the fastest strike")
-PROPERTY(80, uint16_t, strike_cx1,
-         .factory_value = 102, .min = 0, .max = 256,
-         .description = "Strike curve control point 1 x, 0..256")
-PROPERTY(81, uint16_t, strike_cy1,
-         .factory_value = 0, .min = 0, .max = 256,
-         .description = "Strike curve control point 1 y, 0..256")
-PROPERTY(82, uint16_t, strike_cx2,
-         .factory_value = 154, .min = 0, .max = 256,
-         .description = "Strike curve control point 2 x, 0..256")
-PROPERTY(83, uint16_t, strike_cy2,
-         .factory_value = 256, .min = 0, .max = 256,
-         .description = "Strike curve control point 2 y, 0..256")
-PROPERTY(84, bool, strike_log,
+PROPERTY(68, property_point_t, strike_curve_p1,
+         .factory_value = PROPERTY_POINT(102, 0),
+         .description = "Strike curve control point near the slowest, x,y 0..255")
+PROPERTY(69, property_point_t, strike_curve_p2,
+         .factory_value = PROPERTY_POINT(153, 255),
+         .description = "Strike curve control point near the fastest, x,y 0..255")
+PROPERTY(70, bool, strike_log,
          .factory_value = 0,
          .description = "Map the logarithm of the strike speed instead of the speed")
-PROPERTY(85, uint16_t, deferred_velocity,
+PROPERTY(71, uint16_t, deferred_velocity,
          .factory_value = 40, .min = 1, .max = 127,
          .description = "Velocity of a key already held when the bellows starts moving")
 
@@ -253,33 +236,27 @@ PROPERTY(85, uint16_t, deferred_velocity,
  * Every other note off (velocity_source 0, table mode, a keyboard link lost)
  * sends 64, the MIDI value for "release velocity not measured". The factory
  * release values are first guesses (a linear curve), to be tuned on hardware. */
-PROPERTY(86, uint16_t, release_speed_min,
+PROPERTY(72, uint16_t, release_speed_min,
          .factory_value = 20, .min = 0, .max = 65535,
          .description = "Release speed mapped to the minimum velocity, ADC counts per 10 ms")
-PROPERTY(87, uint16_t, release_speed_max,
+PROPERTY(73, uint16_t, release_speed_max,
          .factory_value = 800, .min = 1, .max = 65535,
          .description = "Release speed mapped to the maximum velocity, ADC counts per 10 ms")
-PROPERTY(88, uint16_t, release_vel_min,
+PROPERTY(74, uint16_t, release_vel_min,
          .factory_value = 20, .min = 1, .max = 127,
          .description = "Note-off velocity of the slowest release")
-PROPERTY(89, uint16_t, release_vel_max,
+PROPERTY(75, uint16_t, release_vel_max,
          .factory_value = 127, .min = 1, .max = 127,
          .description = "Note-off velocity of the fastest release")
-PROPERTY(90, uint16_t, release_cx1,
-         .factory_value = 85, .min = 0, .max = 256,
-         .description = "Release curve control point 1 x, 0..256")
-PROPERTY(91, uint16_t, release_cy1,
-         .factory_value = 85, .min = 0, .max = 256,
-         .description = "Release curve control point 1 y, 0..256")
-PROPERTY(92, uint16_t, release_cx2,
-         .factory_value = 171, .min = 0, .max = 256,
-         .description = "Release curve control point 2 x, 0..256")
-PROPERTY(93, uint16_t, release_cy2,
-         .factory_value = 171, .min = 0, .max = 256,
-         .description = "Release curve control point 2 y, 0..256")
-PROPERTY(94, bool, release_log,
+PROPERTY(76, property_point_t, release_curve_p1,
+         .factory_value = PROPERTY_POINT(85, 85),
+         .description = "Release curve control point near the slowest, x,y 0..255")
+PROPERTY(77, property_point_t, release_curve_p2,
+         .factory_value = PROPERTY_POINT(170, 170),
+         .description = "Release curve control point near the fastest, x,y 0..255")
+PROPERTY(78, bool, release_log,
          .factory_value = 0,
          .description = "Map the logarithm of the release speed instead of the speed")
-PROPERTY(95, uint16_t, release_neutral_velocity,
+PROPERTY(79, uint16_t, release_neutral_velocity,
          .factory_value = 64, .min = 1, .max = 127,
          .description = "Note-off velocity of a note silenced by the bellows reaching neutral")

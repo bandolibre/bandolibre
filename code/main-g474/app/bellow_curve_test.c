@@ -14,9 +14,13 @@
  * bellow_curve_apply() used to do internally, rather than recomputing
  * 37000+ expected values. */
 #define BELLOW_INTENSITY_MAX 16384
+/* The control points below are in the 1/256 units these values were computed
+ * at (the properties now store 0..255 bytes, /255): passed to the curve as
+ * 0..1 floats, so the curve math is checked unchanged. */
 static uint16_t curve_apply_u16(uint16_t intensity, uint16_t cx1, uint16_t cy1, uint16_t cx2, uint16_t cy2)
 {
-  float y = bellow_curve_apply((float)intensity / (float)BELLOW_INTENSITY_MAX, cx1, cy1, cx2, cy2);
+  float y = bellow_curve_apply_unit((float)intensity / (float)BELLOW_INTENSITY_MAX,
+                                    cx1 / 256.0f, cy1 / 256.0f, cx2 / 256.0f, cy2 / 256.0f);
   return (uint16_t)(y * (float)BELLOW_INTENSITY_MAX + 0.5f);
 }
 
@@ -130,6 +134,19 @@ static void test_monotonic_sweep(void)
         }
 }
 
+/* The byte form the properties use: 255 is exactly 1, so the line through
+ * (85,85), (170,170), at 1/3 and 2/3, is y = x. */
+static void test_byte_scale(void)
+{
+  CHECK(bellow_curve_apply(1.0f, 0, 0, 255, 255) == 1.0f);
+  for (int i = 0; i <= 16; i++)
+  {
+    float x = (float)i / 16.0f;
+    float y = bellow_curve_apply(x, 85, 85, 170, 170);
+    CHECK(y > x - 0.002f && y < x + 0.002f);
+  }
+}
+
 int main(void)
 {
   test_endpoints();
@@ -137,6 +154,7 @@ int main(void)
   test_hand_traceable_case();
   test_degenerate_flat_start();
   test_monotonic_sweep();
+  test_byte_scale();
 
   printf("%d checks, %d failures\n", g_checks, g_failures);
   return g_failures != 0;

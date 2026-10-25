@@ -229,7 +229,11 @@
     /* Shared by the header labels and the row contents, so the ↺ arrows line
      * up down each column. rem, not em: header and rows differ in font size. */
     --prop-value-w: 5.2rem;
-    --prop-default-w: 4.4rem;
+    --prop-default-w: 5.6rem; /* fits a point, "(255, 255)" */
+    /* The Name column: the longest name, measured by fitNameColumn() and
+     * remembered for the next load; until a first load, this fits the
+     * longest names (26 monospace characters at the rows' 0.85rem). */
+    --prop-name-w: 13.4rem;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
@@ -263,9 +267,14 @@
     font-family: var(--mono);
     white-space: nowrap;
   }
-  /* th.name gets an inline width from fitNameColumn(): the longest name, so
-   * the columns stay put when "show all" hides most rows. A width on a table
-   * cell acts as its minimum. */
+  /* Every column but the description is as wide as its content, and the
+   * description takes the rest, in the placeholder rows as in the real ones:
+   * so the columns don't move while the properties load, or when "show all"
+   * hides most rows. A table cell's own width is not a minimum once a column
+   * takes 100%, so the Name column's width is held by its header label
+   * (--prop-name-w), like the Value and Default ones. */
+  table.properties-table td.desc, table.properties-table th.desc { width: 100%; }
+  .th-label.name { width: var(--prop-name-w); }
   table.properties-table td.value {
     font-family: var(--mono);
     white-space: nowrap;
@@ -308,6 +317,21 @@
     width: var(--prop-value-w); height: 22px; padding: 0 4px; border-radius: 4px; vertical-align: middle;
   }
   .prop-value-input.modified, .prop-check-wrap.modified { background: var(--modified-bg); cursor: help; }
+  /* A point: x and y fields side by side, taking the width of one value field. */
+  .prop-point {
+    display: inline-flex; align-items: center; gap: 2px; box-sizing: border-box;
+    width: var(--prop-value-w); border-radius: 6px; vertical-align: middle;
+  }
+  .prop-point.modified { background: var(--modified-bg); cursor: help; }
+  .prop-point .prop-point-input { width: auto; flex: 1; min-width: 0; padding: 2px 4px; }
+  /* Coordinate pairs (the table's points, the curves' P1/P2) have no spin
+   * buttons: half a field only fits the 3 digits without them, and the arrow
+   * keys still step the value. */
+  .prop-point-input, .bp-cp-pair input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  .prop-point-input::-webkit-inner-spin-button, .prop-point-input::-webkit-outer-spin-button,
+  .bp-cp-pair input[type="number"]::-webkit-inner-spin-button,
+  .bp-cp-pair input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .prop-point-sep { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
   .prop-value-input {
     width: var(--prop-value-w); border: 1px solid var(--border); border-radius: 6px;
     background: var(--bg); color: var(--fg); font-family: var(--mono);
@@ -355,9 +379,8 @@
   .sk.box { height: 22px; margin-right: 26px; }
   .sk.box.value { width: var(--prop-value-w); }
   .sk.box.default { width: var(--prop-default-w); }
-  /* The description takes what the other columns leave, as long real
-   * descriptions do; its bar is a share of that. */
-  tr.skeleton td.desc { width: 100%; }
+  /* The description takes what the other columns leave (td.desc above); its
+   * bar is a share of that. */
   tr.skeleton td.desc .sk { display: block; }
   @keyframes sk-shimmer { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
   @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
@@ -1026,15 +1049,15 @@
           <div class="bp-cp-row">
             <span class="bp-cp-row-label">P1 — near center</span>
             <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-push-x1" min="0" max="256" value="85"></label>
-              <label><span>y</span><input type="number" id="num-push-y1" min="0" max="256" value="85"></label>
+              <label><span>x</span><input type="number" id="num-push-x1" min="0" max="255" value="85"></label>
+              <label><span>y</span><input type="number" id="num-push-y1" min="0" max="255" value="85"></label>
             </div>
           </div>
           <div class="bp-cp-row">
             <span class="bp-cp-row-label">P2 — near full travel</span>
             <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-push-x2" min="0" max="256" value="171"></label>
-              <label><span>y</span><input type="number" id="num-push-y2" min="0" max="256" value="171"></label>
+              <label><span>x</span><input type="number" id="num-push-x2" min="0" max="255" value="170"></label>
+              <label><span>y</span><input type="number" id="num-push-y2" min="0" max="255" value="170"></label>
             </div>
           </div>
         </div>
@@ -1051,15 +1074,15 @@
           <div class="bp-cp-row">
             <span class="bp-cp-row-label">P1 — near center</span>
             <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="256" value="85"></label>
-              <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="256" value="85"></label>
+              <label><span>x</span><input type="number" id="num-pull-x1" min="0" max="255" value="85"></label>
+              <label><span>y</span><input type="number" id="num-pull-y1" min="0" max="255" value="85"></label>
             </div>
           </div>
           <div class="bp-cp-row">
             <span class="bp-cp-row-label">P2 — near full travel</span>
             <div class="bp-xy">
-              <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="256" value="171"></label>
-              <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="256" value="171"></label>
+              <label><span>x</span><input type="number" id="num-pull-x2" min="0" max="255" value="170"></label>
+              <label><span>y</span><input type="number" id="num-pull-y2" min="0" max="255" value="170"></label>
             </div>
           </div>
         </div>
@@ -1239,6 +1262,22 @@
       </div>
       <div class="bp-x"><label><span>bellows out of neutral</span><input type="number" id="st-num-defv" min="1" max="127" value="40"></label></div>
     </div>
+    <div class="bp-cp-pair">
+      <div class="bp-cp-row">
+        <span class="bp-cp-row-label">P1 — near the slowest</span>
+        <div class="bp-xy">
+          <label><span>x</span><input type="number" id="st-num-cx1" min="0" max="255" value="102"></label>
+          <label><span>y</span><input type="number" id="st-num-cy1" min="0" max="255" value="0"></label>
+        </div>
+      </div>
+      <div class="bp-cp-row">
+        <span class="bp-cp-row-label">P2 — near the fastest</span>
+        <div class="bp-xy">
+          <label><span>x</span><input type="number" id="st-num-cx2" min="0" max="255" value="153"></label>
+          <label><span>y</span><input type="number" id="st-num-cy2" min="0" max="255" value="255"></label>
+        </div>
+      </div>
+    </div>
     </div>
 
     <div class="velocity-col bp-group">
@@ -1299,6 +1338,22 @@
         <label><span>fastest release</span><input type="number" id="rl-num-vmax" min="1" max="127" value="127"></label>
       </div>
       <div class="bp-x"><label><span>bellows back to neutral</span><input type="number" id="rl-num-neutv" min="1" max="127" value="64"></label></div>
+    </div>
+    <div class="bp-cp-pair">
+      <div class="bp-cp-row">
+        <span class="bp-cp-row-label">P1 — near the slowest</span>
+        <div class="bp-xy">
+          <label><span>x</span><input type="number" id="rl-num-cx1" min="0" max="255" value="85"></label>
+          <label><span>y</span><input type="number" id="rl-num-cy1" min="0" max="255" value="85"></label>
+        </div>
+      </div>
+      <div class="bp-cp-row">
+        <span class="bp-cp-row-label">P2 — near the fastest</span>
+        <div class="bp-xy">
+          <label><span>x</span><input type="number" id="rl-num-cx2" min="0" max="255" value="170"></label>
+          <label><span>y</span><input type="number" id="rl-num-cy2" min="0" max="255" value="170"></label>
+        </div>
+      </div>
     </div>
     </div>
     </div>
@@ -1404,10 +1459,10 @@
       </div>
     </div>
     <table class="properties-table" id="propertiesTable" hidden>
-      <thead><tr><th>#</th><th class="name">Name</th>
+      <thead><tr><th>#</th><th class="name"><span class="th-label name">Name</span></th>
         <th><span class="th-label value">Value</span><button type="button" class="prop-reset-btn" id="propertiesResetAllBtn" hidden title="Reset every value to its default">↺</button></th>
         <th><span class="th-label default">Default</span></th>
-        <th>Description</th></tr></thead>
+        <th class="desc">Description</th></tr></thead>
       <tbody id="propertiesBody"></tbody>
     </table>
     <p class="hint" id="propertiesAllFactory" hidden>Every property is at its factory value. Turn on <em>Show all</em> in the ⋮ menu to see them.</p>
@@ -1582,6 +1637,14 @@
   // Device -> host push, one per NOTE OFF of a key: [u16 speed, u8 velocity, u8 neutral].
   const SYSEX_MSG_KEY_RELEASE = 0x0b;
   const PROPERTY_TYPE_BOOL = 0;
+  // An x,y pair of bytes, such as a curve control point (property_point_t):
+  // its 16-bit value is x in the low byte, y in the high byte.
+  const PROPERTY_TYPE_POINT = 2;
+  const pointValue = (x, y) => (x & 0xff) | ((y & 0xff) << 8);
+  const pointX = (v) => v & 0xff;
+  const pointY = (v) => (v >> 8) & 0xff;
+  // A property value as the page shows it: "(x, y)" for a point.
+  const fmtPropValue = (type, v) => (type === PROPERTY_TYPE_POINT ? "(" + pointX(v) + ", " + pointY(v) + ")" : String(v));
 
   // GET/SET_SAVED_VALUE response status (saved_value_status in midi.cc) and
   // SET_SAVED_VALUE operation (saved_value_op).
@@ -2209,15 +2272,16 @@
     const info = savedInfo.get(index);
     if (!info || !info.defaultEl) return;
     const el = info.defaultEl;
-    el.textContent = effectiveDefault(index);
+    const fmt = (v) => fmtPropValue(info.type, v);
+    el.textContent = fmt(effectiveDefault(index));
     el.classList.toggle("saved", info.savedValue !== null);
     el.classList.toggle("transient", savedValuesSupported && !info.persistent);
-    if (info.savedValue !== null) el.title = "Saved value: " + info.savedValue + "\nFactory value: " + info.factoryValue;
-    else if (savedValuesSupported && !info.persistent) el.title = "Not saved: back to " + info.factoryValue + " at power-off";
+    if (info.savedValue !== null) el.title = "Saved value: " + fmt(info.savedValue) + "\nFactory value: " + fmt(info.factoryValue);
+    else if (savedValuesSupported && !info.persistent) el.title = "Not saved: back to " + fmt(info.factoryValue) + " at power-off";
     else el.title = "Factory value";
     info.factoryBtn.disabled = info.savedValue === null;
     info.factoryBtn.title = info.savedValue !== null
-      ? "Reset the saved value to the factory value (" + info.factoryValue + ")"
+      ? "Reset the saved value to the factory value (" + fmt(info.factoryValue) + ")"
       : (savedValuesSupported && !info.persistent ? "Not saved: nothing to reset" : "Already the factory value");
     renderValueCell(index);
   }
@@ -2225,21 +2289,18 @@
   /* Highlights the value cell while the live value differs from the default. */
   function renderValueCell(index) {
     const info = savedInfo.get(index);
-    if (!info || !info.input) return;
-    const input = info.input;
-    let live;
-    if (info.type === PROPERTY_TYPE_BOOL) live = input.checked ? 1 : 0;
-    else live = input.value === "" ? null : Math.max(0, Math.round(+input.value));
+    if (!info || !info.editor) return;
+    const live = info.editor.get();
     const def = effectiveDefault(index);
     const modified = live !== null && live !== def;
     info.resetBtn.disabled = !modified;
-    info.resetBtn.title = modified ? "Reset the value to the default (" + def + ")" : "Already the default";
+    info.resetBtn.title = modified ? "Reset the value to the default (" + fmtPropValue(info.type, def) + ")" : "Already the default";
     const el = info.highlightEl;
     el.classList.toggle("modified", modified);
     if (!modified) el.title = "";
     else if (savedValuesSupported && info.persistent)
-      el.title = "Changed from the default (" + def + ")\nNot saved: Save as default keeps it";
-    else el.title = "Changed from the default (" + def + ")";
+      el.title = "Changed from the default (" + fmtPropValue(info.type, def) + ")\nNot saved: Save as default keeps it";
+    else el.title = "Changed from the default (" + fmtPropValue(info.type, def) + ")";
     updateRowVisibility(index);
     if (index === BELLOW_CENTER_PROP_INDEX) updateSaveCenterButton();
   }
@@ -2250,9 +2311,7 @@
   function rowIsInteresting(index) {
     const info = savedInfo.get(index);
     if (info.savedValue !== null) return true;
-    const input = info.input;
-    const live = info.type === PROPERTY_TYPE_BOOL ? (input.checked ? 1 : 0)
-                                                  : (input.value === "" ? info.factoryValue : Math.round(+input.value));
+    const live = info.editor.get() ?? info.factoryValue;
     return live !== info.factoryValue;
   }
 
@@ -2284,13 +2343,17 @@
   // A collapsed card has no layout to measure: realign when it opens.
   document.getElementById("propertiesCard").addEventListener("toggle", alignSaveButton);
 
-  /* Minimum Name column width = the longest property name, measured with the
-   * name cells' font (hidden rows count too: a canvas needs no layout). */
+  /* Name column width (--prop-name-w) = the longest property name, measured
+   * with the name cells' font (hidden rows count too: a canvas needs no
+   * layout). With no rows it keeps its width, for the next load. */
   let nameMeasureCtx = null;
+  function setNameColumnWidth(px) {
+    if (px) propertiesTable.style.setProperty("--prop-name-w", px + "px");
+    else propertiesTable.style.removeProperty("--prop-name-w");
+  }
   function fitNameColumn() {
-    const th = propertiesTable.querySelector("th.name");
     const cell = propertiesBody.querySelector("td.name");
-    if (!cell) { th.style.width = ""; return; }
+    if (!cell) return;
     nameMeasureCtx ??= document.createElement("canvas").getContext("2d");
     // From its parts: Firefox can leave the "font" shorthand empty.
     const cs = getComputedStyle(cell);
@@ -2298,7 +2361,9 @@
     let widest = 0;
     for (const info of savedInfo.values())
       if (info.name) widest = Math.max(widest, nameMeasureCtx.measureText(info.name).width);
-    th.style.width = Math.ceil(widest) + "px";
+    setNameColumnWidth(Math.ceil(widest));
+    // Remembered, so the next load starts at this width (showPropertySkeleton).
+    try { localStorage.setItem(NAME_WIDTH_KEY, String(Math.ceil(widest))); } catch (_) {}
   }
 
   function updateAllFactoryHint() {
@@ -2315,6 +2380,7 @@
    * table showed last time, so the card keeps its height through a reload.
    * addPropertyRow() replaces one, from the top, with each real row shown. */
   const SHOWN_ROWS_KEY = "propertiesShownRows";
+  const NAME_WIDTH_KEY = "propertiesNameWidth";
   let lastShownRows = null;
   function rememberShownRows(count) {
     if (count === lastShownRows) return;
@@ -2323,14 +2389,25 @@
   }
 
   function showPropertySkeleton() {
-    let count = 0;
-    try { count = Math.min(Number(localStorage.getItem(SHOWN_ROWS_KEY)) || 0, 512); } catch (_) {}
+    // A first visit has no count yet: a few rows still lay the columns out as
+    // real rows will, rather than as a lone header that reflows on the first.
+    let count = 8;
+    try {
+      const stored = localStorage.getItem(SHOWN_ROWS_KEY);
+      if (stored !== null) count = Math.min(Number(stored) || 0, 512);
+    } catch (_) {}
+    // The Name column keeps last load's width while the names arrive one by
+    // one (fitNameColumn sets the exact one at the end); without it, the CSS
+    // default fits today's longest names.
+    let nameWidth = 0;
+    try { nameWidth = Math.min(Number(localStorage.getItem(NAME_WIDTH_KEY)) || 0, 600); } catch (_) {}
+    setNameColumnWidth(nameWidth);
     for (let i = 0; i < count; i++) {
       const row = document.createElement("tr");
       row.className = "skeleton";
       row.setAttribute("aria-hidden", "true");
       // Fixed pseudo-random lengths, so the rows don't look cloned.
-      const bars = [["index", "1.5ch"], ["name", 10 + (i * 7) % 12 + "ch"], ["value", null],
+      const bars = [["index", "2ch"], ["name", 10 + (i * 7) % 12 + "ch"], ["value", null],
                     ["default", null], ["desc", 40 + (i * 37) % 55 + "%"]];
       for (const [cls, width] of bars) {
         const cell = document.createElement("td");
@@ -2368,9 +2445,8 @@
    * device's function buttons), unless it is the one being typed in. */
   function syncTableValue(index, value) {
     const info = savedInfo.get(index);
-    if (!info || !info.input || document.activeElement === info.input) return;
-    if (info.type === PROPERTY_TYPE_BOOL) info.input.checked = !!value;
-    else info.input.value = value;
+    if (!info || !info.editor || info.editor.el.contains(document.activeElement)) return;
+    info.editor.set(value);
     renderValueCell(index);
   }
 
@@ -2378,9 +2454,11 @@
    * (bellows and pedal graphs, keyboard system, table mode, bellows program)
    * updates that control without writing to the device again. */
   function setBellowField(obj, key, value) {
-    const m = /^(push|pull)([XY][12])$/.exec(key);
-    if (m) obj[m[1]][m[2].toLowerCase()] = value;
-    else obj[key] = value;
+    const m = /^(push|pull)P([12])$/.exec(key);
+    if (m) {
+      obj[m[1]]["x" + m[2]] = pointX(value);
+      obj[m[1]]["y" + m[2]] = pointY(value);
+    } else obj[key] = value;
   }
 
   function syncControlsFromTable(index, value) {
@@ -2607,7 +2685,8 @@
           if (!info.name) continue;
           setPropertiesStatus("Reading " + info.name + "…");
           const value = await requestPropertyValue(index);
-          out[info.name] = info.type === PROPERTY_TYPE_BOOL ? !!value : value;
+          out[info.name] = info.type === PROPERTY_TYPE_BOOL ? !!value
+                         : info.type === PROPERTY_TYPE_POINT ? [pointX(value), pointY(value)] : value;
         }
         return out;
       });
@@ -2635,7 +2714,8 @@
   }
 
   /* A property the file names but this firmware lacks is skipped; a value out
-   * of range is clamped by the device, which answers with the value in effect. */
+   * of range is clamped by the device, which answers with the value in effect.
+   * A point is an [x, y] pair, each 0..255. */
   async function loadPropertiesFromFile(file) {
     let data;
     try {
@@ -2655,7 +2735,9 @@
     const skipped = [];
     for (const [name, raw] of Object.entries(props)) {
       const index = indexByName.get(name);
-      const value = typeof raw === "boolean" ? +raw : raw;
+      const isPair = Array.isArray(raw) && raw.length === 2 &&
+                     raw.every((c) => Number.isInteger(c) && c >= 0 && c <= 255);
+      const value = typeof raw === "boolean" ? +raw : isPair ? pointValue(raw[0], raw[1]) : raw;
       if (index === undefined || !Number.isInteger(value) || value < 0 || value > 0xFFFF) skipped.push(name);
       else writes.push([index, value]);
     }
@@ -2761,56 +2843,81 @@
    * graph drag never race. */
   // Rows currently in the table, so "Reset all to default" can walk every
   // input without re-deriving it from the DOM. Cleared in clearProperties().
-  const propertyResetRows = []; // { index, type, input }
+  const propertyResetRows = []; // { index, editor }
 
-  function resetPropertyToDefault({ index, type, input }) {
+  function resetPropertyToDefault({ index, editor }) {
     const defaultValue = effectiveDefault(index);
-    if (type === PROPERTY_TYPE_BOOL) {
-      input.checked = !!defaultValue;
-    } else {
-      input.value = defaultValue;
-    }
+    editor.set(defaultValue);
     setFromTable(index, defaultValue);
     renderValueCell(index);
   }
 
-  function addPropertyValueInput(cell, index, type, value) {
-    let input;
+  /* The value cell's editor for one property type: el (the element shown and
+   * highlighted), get() (the value typed, null while a field is empty) and
+   * set(value). onEdit(value) runs on each complete edit. A bool is a
+   * checkbox, a u16 a number field, a point an x and a y field (0..255). */
+  function makeValueEditor(type, value, onEdit) {
+    const numberInput = (min, max, cls) => {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = String(min);
+      if (max !== undefined) input.max = String(max);
+      input.className = cls;
+      return input;
+    };
+    const readNumber = (input, max) => (input.value === "" ? null : clamp(Math.round(+input.value), 0, max));
+
     if (type === PROPERTY_TYPE_BOOL) {
-      input = document.createElement("input");
+      const input = document.createElement("input");
       input.type = "checkbox";
       input.checked = !!value;
-      input.addEventListener("change", () => {
-        setFromTable(index, input.checked ? 1 : 0);
-        renderValueCell(index);
-      });
-    } else {
-      input = document.createElement("input");
-      input.type = "number";
-      input.min = "0";
-      input.value = value;
-      input.className = "prop-value-input";
-      input.addEventListener("input", () => {
-        renderValueCell(index);
-        if (input.value === "") return;
-        setFromTable(index, Math.max(0, Math.round(+input.value)));
-      });
+      // A checkbox has no background of its own, so its highlight goes on a wrapper.
+      const el = document.createElement("span");
+      el.className = "prop-check-wrap";
+      el.appendChild(input);
+      input.addEventListener("change", () => onEdit(input.checked ? 1 : 0));
+      return { el, get: () => (input.checked ? 1 : 0), set: (v) => { input.checked = !!v; } };
     }
-    // A checkbox has no background of its own, so its highlight goes on a wrapper.
-    let highlightEl = input;
-    if (type === PROPERTY_TYPE_BOOL) {
-      highlightEl = document.createElement("span");
-      highlightEl.className = "prop-check-wrap";
-      highlightEl.appendChild(input);
-    }
-    cell.appendChild(highlightEl);
 
-    const target = { index, type, input };
+    if (type === PROPERTY_TYPE_POINT) {
+      const el = document.createElement("span");
+      el.className = "prop-point";
+      const x = numberInput(0, 255, "prop-value-input prop-point-input");
+      const y = numberInput(0, 255, "prop-value-input prop-point-input");
+      x.setAttribute("aria-label", "x"); y.setAttribute("aria-label", "y");
+      const sep = document.createElement("span");
+      sep.className = "prop-point-sep";
+      sep.textContent = ",";
+      el.append(x, sep, y);
+      const get = () => {
+        const xv = readNumber(x, 255), yv = readNumber(y, 255);
+        return xv === null || yv === null ? null : pointValue(xv, yv);
+      };
+      const set = (v) => { x.value = pointX(v); y.value = pointY(v); };
+      set(value);
+      for (const input of [x, y]) input.addEventListener("input", () => { const v = get(); onEdit(v); });
+      return { el, get, set };
+    }
+
+    const input = numberInput(0, undefined, "prop-value-input");
+    input.value = value;
+    input.addEventListener("input", () => onEdit(readNumber(input, 0xffff)));
+    return { el: input, get: () => readNumber(input, 0xffff), set: (v) => { input.value = v; } };
+  }
+
+  function addPropertyValueInput(cell, index, type, value) {
+    const editor = makeValueEditor(type, value, (v) => {
+      renderValueCell(index);
+      if (v !== null) setFromTable(index, v);
+    });
+    cell.appendChild(editor.el);
+
+    const target = { index, editor };
     propertyResetRows.push(target);
     const info = savedInfo.get(index);
     info.type = type;
-    info.input = input;
-    info.highlightEl = highlightEl;
+    info.editor = editor;
+    info.highlightEl = editor.el;
 
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
@@ -2848,6 +2955,7 @@
     info.factoryBtn = factoryBtn;
     renderDefaultCell(index);
     const descCell = document.createElement("td");
+    descCell.className = "desc";
     descCell.textContent = desc.description;
     row.append(indexCell, nameCell, valueCell, defaultCell, descCell);
     row.addEventListener("focusout", () => setTimeout(() => updateRowVisibility(index)));
@@ -2917,7 +3025,7 @@
           const value = await requestPropertyValue(i);
           savedInfo.set(i, { name: desc.name, factoryValue: desc.factoryValue, savedValue: null,
                              persistent: savedValuesSupported, defaultEl: null, resetBtn: null, factoryBtn: null,
-                             type: desc.type, input: null, highlightEl: null, row: null });
+                             type: desc.type, editor: null, highlightEl: null, row: null });
           if (savedValuesSupported) applySavedResponse(i, await requestSavedValue(i));
           addPropertyRow(i, value, desc);
           fetched.set(i, { value, name: desc.name, description: desc.description });
@@ -3002,8 +3110,9 @@
   const BELLOW_CENTER_PROP_NAME = "bellow_center";
   const BELLOW_PROP_SUFFIX = {
     dead: "dead", pushTravel: "push_travel", pullTravel: "pull_travel",
-    pushX1: "push_curve_x1", pushY1: "push_curve_y1", pushX2: "push_curve_x2", pushY2: "push_curve_y2",
-    pullX1: "pull_curve_x1", pullY1: "pull_curve_y1", pullX2: "pull_curve_x2", pullY2: "pull_curve_y2",
+    // Control points: one point property each, x and y packed (pointValue).
+    pushP1: "push_curve_p1", pushP2: "push_curve_p2",
+    pullP1: "pull_curve_p1", pullP2: "pull_curve_p2",
   };
   const bellowPropName = (n, key) => "bellow_p" + n + "_" + BELLOW_PROP_SUFFIX[key];
   const PROP_INDEX = [];
@@ -3018,6 +3127,10 @@
   function writeBellowProp(key, value) {
     if (!bellowGraphLive) return;
     queueSetProperty(key === "center" ? BELLOW_CENTER_PROP_INDEX : PROP_INDEX[currentBellowProgram][key], value);
+  }
+  // Writes control point n (1 or 2) of a side ("push"/"pull") as one point.
+  function writeBellowPoint(side, n) {
+    writeBellowProp(side + "P" + n, pointValue(bg[side]["x" + n], bg[side]["y" + n]));
   }
   let liveAdcTotal = null;
 
@@ -3069,8 +3182,8 @@
   }
   function curveApply(intensity1024, cx1, cy1, cx2, cy2) {
     const x = intensity1024 / 1024;
-    const t = solveTForX(x, cx1 / 256, cx2 / 256);
-    let y = bezierComponent(t, cy1 / 256, cy2 / 256);
+    const t = solveTForX(x, cx1 / 255, cx2 / 255);
+    let y = bezierComponent(t, cy1 / 255, cy2 / 255);
     if (y < 0) y = 0; else if (y > 1) y = 1;
     return y * 1024;
   }
@@ -3083,8 +3196,8 @@
   // center - pushTravel, full pull at center + pullTravel.
   const bgProgramDefault = (pushTravel, pullTravel) => ({
     dead: 64, pushTravel, pullTravel,
-    push: { x1: 10, y1: 0, x2: 245, y2: 256 },
-    pull: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    push: { x1: 10, y1: 0, x2: 244, y2: 255 },
+    pull: { x1: 10, y1: 0, x2: 244, y2: 255 },
   });
   const bgPrograms = [
     bgProgramDefault(3123, 3028),
@@ -3093,14 +3206,14 @@
   ];
   const copyBellowProgram = (p) => ({ ...p, push: { ...p.push }, pull: { ...p.pull } });
   const bg = { center: 28972, ...copyBellowProgram(bgPrograms[0]) };
-  // Cubic-Bezier control points /256, applied to both push and pull.
+  // Cubic-Bezier control points 0..255 (255 is 1), applied to both push and pull.
   const bgPresets = {
-    linear: { x1: 85, y1: 85, x2: 171, y2: 171 },
+    linear: { x1: 85, y1: 85, x2: 170, y2: 170 },
     // The firmware's factory curve (BELLOW_PROGRAM in property_table.def).
-    normal: { x1: 10, y1: 0, x2: 245, y2: 256 },
+    normal: { x1: 10, y1: 0, x2: 244, y2: 255 },
     // Gentle at both ends, like CSS ease-in-out.
-    smooth: { x1: 108, y1: 0, x2: 148, y2: 256 },
-    firm: { x1: 200, y1: 20, x2: 235, y2: 50 },
+    smooth: { x1: 108, y1: 0, x2: 147, y2: 255 },
+    firm: { x1: 199, y1: 20, x2: 234, y2: 50 },
   };
 
   const bp = (id) => document.getElementById(id);
@@ -3354,12 +3467,12 @@
     // exact native SVG "C" commands rather than sampled.
     const p0 = toPx({ adc: xMin, cc: ccForAdc(xMin) });
     const pushStart = toPx(pushRampPoint(0, 0));
-    const push1 = toPx(pushRampPoint(bg.push.x1 / 256, bg.push.y1 / 256));
-    const push2 = toPx(pushRampPoint(bg.push.x2 / 256, bg.push.y2 / 256));
+    const push1 = toPx(pushRampPoint(bg.push.x1 / 255, bg.push.y1 / 255));
+    const push2 = toPx(pushRampPoint(bg.push.x2 / 255, bg.push.y2 / 255));
     const pushEnd = toPx(pushRampPoint(1, 1));
     const pullStart = toPx(pullRampPoint(0, 0));
-    const pull1 = toPx(pullRampPoint(bg.pull.x1 / 256, bg.pull.y1 / 256));
-    const pull2 = toPx(pullRampPoint(bg.pull.x2 / 256, bg.pull.y2 / 256));
+    const pull1 = toPx(pullRampPoint(bg.pull.x1 / 255, bg.pull.y1 / 255));
+    const pull2 = toPx(pullRampPoint(bg.pull.x2 / 255, bg.pull.y2 / 255));
     const pullEnd = toPx(pullRampPoint(1, 1));
     const pEnd = toPx({ adc: xMax, cc: ccForAdc(xMax) });
 
@@ -3487,8 +3600,8 @@
     hitEl.addEventListener("pointerdown", (e) => {
       dragging = true; hitEl.setPointerCapture(e.pointerId);
       lastClientX = e.clientX; lastClientY = e.clientY;
-      xfrac = bg[side]["x" + cpNum] / 256;
-      yfrac = bg[side]["y" + cpNum] / 256;
+      xfrac = bg[side]["x" + cpNum] / 255;
+      yfrac = bg[side]["y" + cpNum] / 255;
     });
     hitEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
@@ -3511,18 +3624,16 @@
       else if (e.key === "ArrowUp") dy = step; else if (e.key === "ArrowDown") dy = -step;
       else return;
       e.preventDefault();
-      bg[side]["x" + cpNum] = clamp(bg[side]["x" + cpNum] + dx, 0, 256);
-      bg[side]["y" + cpNum] = clamp(bg[side]["y" + cpNum] + dy, 0, 256);
-      writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
-      writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
+      bg[side]["x" + cpNum] = clamp(bg[side]["x" + cpNum] + dx, 0, 255);
+      bg[side]["y" + cpNum] = clamp(bg[side]["y" + cpNum] + dy, 0, 255);
+      writeBellowPoint(side, cpNum);
       redrawGraph();
     });
   }
   function applyCpFrac(side, cpNum, xfrac, yfrac) {
-    bg[side]["x" + cpNum] = clamp(Math.round(xfrac * 256), 0, 256);
-    bg[side]["y" + cpNum] = clamp(Math.round(yfrac * 256), 0, 256);
-    writeBellowProp(side + "X" + cpNum, bg[side]["x" + cpNum]);
-    writeBellowProp(side + "Y" + cpNum, bg[side]["y" + cpNum]);
+    bg[side]["x" + cpNum] = clamp(Math.round(xfrac * 255), 0, 255);
+    bg[side]["y" + cpNum] = clamp(Math.round(yfrac * 255), 0, 255);
+    writeBellowPoint(side, cpNum);
     redrawGraph();
   }
   makeDraggableCP(bpEls.hitCpPush1, bpEls.hCpPush1, "push", 1);
@@ -3534,9 +3645,9 @@
     const input = bp(id);
     input.addEventListener("input", () => {
       if (input.value === "") return;
-      const v = clamp(Math.round(+input.value), 0, 256);
+      const v = clamp(Math.round(+input.value), 0, 255);
       bg[side][axis] = v;
-      writeBellowProp(side + axis[0].toUpperCase() + axis.slice(1), v);
+      writeBellowPoint(side, axis[1]);
       redrawGraph();
     });
   }
@@ -3585,14 +3696,14 @@
   function updateSaveCenterButton() {
     const index = BELLOW_CENTER_PROP_INDEX;
     const info = index !== null ? savedInfo.get(index) : undefined;
-    const ready = bellowGraphLive && savedValuesSupported && !propertiesBusy && !!info && !!info.input && info.persistent;
-    btnSaveCenter.disabled = !ready || Math.round(+info.input.value) === effectiveDefault(index);
+    const ready = bellowGraphLive && savedValuesSupported && !propertiesBusy && !!info && !!info.editor && info.persistent;
+    btnSaveCenter.disabled = !ready || info.editor.get() === effectiveDefault(index);
   }
 
   btnSaveCenter.addEventListener("click", async () => {
     const index = BELLOW_CENTER_PROP_INDEX;
     const info = savedInfo.get(index);
-    if (!confirm("Save the bellows center (" + info.input.value + ") as default? The Bandolibre will start with it.")) return;
+    if (!confirm("Save the bellows center (" + info.editor.get() + ") as default? The Bandolibre will start with it.")) return;
     propertiesBusy = true;
     updateHeaderButtons();
     try {
@@ -3648,10 +3759,7 @@
     btn.addEventListener("click", () => {
       const p = bgPresets[btn.dataset.preset];
       bg.push = { ...p }; bg.pull = { ...p };
-      writeBellowProp("pushX1", p.x1); writeBellowProp("pushY1", p.y1);
-      writeBellowProp("pushX2", p.x2); writeBellowProp("pushY2", p.y2);
-      writeBellowProp("pullX1", p.x1); writeBellowProp("pullY1", p.y1);
-      writeBellowProp("pullX2", p.x2); writeBellowProp("pullY2", p.y2);
+      for (const side of ["push", "pull"]) { writeBellowPoint(side, 1); writeBellowPoint(side, 2); }
       redrawGraph();
     });
   });
@@ -3699,10 +3807,13 @@
       bg.center = fetched.get(BELLOW_CENTER_PROP_INDEX).value;
       for (let n = 0; n < BELLOW_PROGRAM_COUNT; n++) {
         const v = (key) => fetched.get(PROP_INDEX[n][key]).value;
+        const curve = (side) => ({
+          x1: pointX(v(side + "P1")), y1: pointY(v(side + "P1")),
+          x2: pointX(v(side + "P2")), y2: pointY(v(side + "P2")),
+        });
         bgPrograms[n] = {
           dead: v("dead"), pushTravel: v("pushTravel"), pullTravel: v("pullTravel"),
-          push: { x1: v("pushX1"), y1: v("pushY1"), x2: v("pushX2"), y2: v("pushY2") },
-          pull: { x1: v("pullX1"), y1: v("pullY1"), x2: v("pullX2"), y2: v("pullY2") },
+          push: curve("push"), pull: curve("pull"),
         };
       }
       bpEls.status.textContent = "Connected — live, dragging writes to the device.";
@@ -4583,9 +4694,10 @@
    * constant velocity, at the left edge.
    *
    * cfg: prefix of the element ids, props (key -> property name, with smin,
-   * smax, vmin, vmax, cx1..cy2, log and heldKey), defaults (the firmware's
+   * smax, vmin, vmax, the control points p1 and p2, log and heldKey),
+   * defaults (cx1..cy2 for the control points; the firmware's
    * factory values), numbers ([id suffix, key, lo, hi] for the inputs besides
-   * the four ranges), heldKey, name (for the log), describe(speed, velocity,
+   * the four ranges and the control points), heldKey, name (for the log), describe(speed, velocity,
    * held) for the readout. An element `<prefix>Source` (optional) holds the
    * velocity_source buttons. */
   const svgEl = (tag, attrs) => {
@@ -4736,8 +4848,8 @@
       // Control points live in the curve's own box: x between the two speed
       // lines, y between the two velocity lines.
       const cp = (n) => {
-        const x = xOfSpeed(fracToSpeed(g["cx" + n] / 256, g.smin, g.smax, g.log));
-        const y = yOfVel(g.vmin + (g["cy" + n] / 256) * (g.vmax - g.vmin));
+        const x = xOfSpeed(fracToSpeed(g["cx" + n] / 255, g.smin, g.smax, g.log));
+        const y = yOfVel(g.vmin + (g["cy" + n] / 255) * (g.vmax - g.vmin));
         return { x, y };
       };
       const p1 = cp(1), p2 = cp(2);
@@ -4771,7 +4883,9 @@
     }
 
     const numbers = [["-num-smin", "smin", 0, 65535], ["-num-smax", "smax", 1, 65535],
-                     ["-num-vmin", "vmin", 1, 127], ["-num-vmax", "vmax", 1, 127], ...cfg.numbers];
+                     ["-num-vmin", "vmin", 1, 127], ["-num-vmax", "vmax", 1, 127],
+                     ["-num-cx1", "cx1", 0, 255], ["-num-cy1", "cy1", 0, 255],
+                     ["-num-cx2", "cx2", 0, 255], ["-num-cy2", "cy2", 0, 255], ...cfg.numbers];
     const source = el("Source");
 
     function syncInputs() {
@@ -4784,9 +4898,24 @@
         b.setAttribute("aria-pressed", String(+b.dataset.source === g.source)));
     }
 
+    // The control points are point properties p1 and p2 (x | y << 8), kept
+    // here as separate cx1, cy1, cx2, cy2 coordinates.
+    function setField(key, value) {
+      const m = /^p([12])$/.exec(key);
+      if (m) { g["cx" + m[1]] = pointX(value); g["cy" + m[1]] = pointY(value); }
+      else g[key] = value;
+    }
+    const pointKey = (key) => { const m = /^c[xy]([12])$/.exec(key); return m ? "p" + m[1] : null; };
+    function sendField(key) {
+      if (!live) return;
+      const p = pointKey(key);
+      if (p) queueSetProperty(INDEX[p], pointValue(g["cx" + p[1]], g["cy" + p[1]]));
+      else queueSetProperty(INDEX[key], g[key]);
+    }
+
     function write(key, value) {
       g[key] = value;
-      if (live) queueSetProperty(INDEX[key], value);
+      sendField(key);
       redraw();
       syncInputs();
     }
@@ -4803,7 +4932,7 @@
         INDEX[key] = index;
       }
       live = ok;
-      if (ok) for (const [key, index] of Object.entries(INDEX)) g[key] = fetched.get(index).value;
+      if (ok) for (const [key, index] of Object.entries(INDEX)) setField(key, fetched.get(index).value);
       setStatus();
       redraw();
       syncInputs();
@@ -4814,7 +4943,7 @@
       if (!live) return false;
       for (const [key, idx] of Object.entries(INDEX)) {
         if (idx !== index) continue;
-        g[key] = value;
+        setField(key, value);
         redraw();
         syncInputs();
         return true;
@@ -4855,12 +4984,9 @@
         const fx = speedToFrac(s, g.smin, g.smax, g.log);
         const span = g.vmax - g.vmin;
         const fy = span === 0 ? 0 : (velOfY(p.y) - g.vmin) / span;
-        g["cx" + n] = clamp(Math.round(fx * 256), 0, 256);
-        g["cy" + n] = clamp(Math.round(fy * 256), 0, 256);
-        if (live) {
-          queueSetProperty(INDEX["cx" + n], g["cx" + n]);
-          queueSetProperty(INDEX["cy" + n], g["cy" + n]);
-        }
+        g["cx" + n] = clamp(Math.round(fx * 255), 0, 255);
+        g["cy" + n] = clamp(Math.round(fy * 255), 0, 255);
+        sendField("cx" + n); // the whole point, x and y
         redraw();
       });
       el("-hit-cp-" + n).addEventListener("keydown", (e) => {
@@ -4870,8 +4996,8 @@
         else if (e.key === "ArrowUp") dy = step; else if (e.key === "ArrowDown") dy = -step;
         else return;
         e.preventDefault();
-        write("cx" + n, clamp(g["cx" + n] + dx, 0, 256));
-        write("cy" + n, clamp(g["cy" + n] + dy, 0, 256));
+        g["cy" + n] = clamp(g["cy" + n] + dy, 0, 255);
+        write("cx" + n, clamp(g["cx" + n] + dx, 0, 255)); // sends the whole point
       });
     }
 
@@ -4970,11 +5096,11 @@
     prefix: "st", name: "key strike", heldKey: "defv",
     props: {
       source: "velocity_source", smin: "strike_speed_min", smax: "strike_speed_max",
-      vmin: "strike_vel_min", vmax: "strike_vel_max", cx1: "strike_cx1", cy1: "strike_cy1",
-      cx2: "strike_cx2", cy2: "strike_cy2", log: "strike_log", defv: "deferred_velocity",
+      vmin: "strike_vel_min", vmax: "strike_vel_max", p1: "strike_curve_p1", p2: "strike_curve_p2",
+      log: "strike_log", defv: "deferred_velocity",
     },
     defaults: { source: 0, smin: 50, smax: 1500, vmin: 20, vmax: 127,
-                cx1: 102, cy1: 0, cx2: 154, cy2: 256, log: 0, defv: 40 },
+                cx1: 102, cy1: 0, cx2: 153, cy2: 255, log: 0, defv: 40 },
     numbers: [["-num-defv", "defv", 1, 127]],
     describe: (speed, velocity, held) => held
       ? "bellows out of neutral → velocity " + velocity
@@ -4986,10 +5112,10 @@
     markClass: "release",
     props: {
       smin: "release_speed_min", smax: "release_speed_max", vmin: "release_vel_min", vmax: "release_vel_max",
-      cx1: "release_cx1", cy1: "release_cy1", cx2: "release_cx2", cy2: "release_cy2",
+      p1: "release_curve_p1", p2: "release_curve_p2",
       log: "release_log", neutv: "release_neutral_velocity",
     },
-    defaults: { smin: 20, smax: 800, vmin: 20, vmax: 127, cx1: 85, cy1: 85, cx2: 171, cy2: 171, log: 0, neutv: 64 },
+    defaults: { smin: 20, smax: 800, vmin: 20, vmax: 127, cx1: 85, cy1: 85, cx2: 170, cy2: 170, log: 0, neutv: 64 },
     numbers: [["-num-neutv", "neutv", 1, 127]],
     describe: (speed, velocity, held) => held
       ? "bellows back to neutral → velocity " + velocity

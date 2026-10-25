@@ -35,7 +35,7 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 95);
+  CHECK(property_count() == 79);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);
@@ -46,6 +46,32 @@ static void test_defaults(void)
   /* Same value via the index API. */
   uint16_t v = 0;
   CHECK(property_get_u16(idx("key_press"), &v) && v == 1900);
+}
+
+/* A point property: two bytes read directly as .x/.y, and as one 16-bit
+ * value (x low byte, y high byte) through the index API, sysex and flash. */
+static void test_point(void)
+{
+  size_t i = idx("strike_curve_p2");
+  CHECK(property_at(i)->type == PROPERTY_TYPE_POINT);
+  CHECK(g_properties->strike_curve_p2.x == 153 && g_properties->strike_curve_p2.y == 255);
+  CHECK(property_value(i) == PROPERTY_POINT(153, 255));
+  CHECK(property_value(i) == 0xFF99);
+
+  CHECK(property_set_value(i, PROPERTY_POINT(7, 200)));
+  CHECK(g_properties->strike_curve_p2.x == 7 && g_properties->strike_curve_p2.y == 200);
+  /* A point is not a u16: the typed u16 API refuses it. */
+  CHECK(!property_set_u16(i, 1));
+  CHECK(property_reset(i));
+  CHECK(property_value(i) == PROPERTY_POINT(153, 255));
+}
+
+/* Tags run 1..count in table order, as renumbered: a new property takes the
+ * next one. */
+static void test_tags_in_order(void)
+{
+  for (size_t i = 0; i < property_count(); i++)
+    CHECK(property_at(i)->tag == i + 1);
 }
 
 static void test_lookup(void)
@@ -239,9 +265,9 @@ static void test_complete(void)
 {
   const char *out[128];
   /* "bellow_" matches the bellow_* properties (shared center, 3 programs of
-   * 11, the program selector, hysteresis, CC, settle, sample rate, 1-euro
+   * 7, the program selector, hysteresis, CC, settle, sample rate, 1-euro
    * filter) */
-  CHECK(properties_complete("bellow_", out, 128) == 41);
+  CHECK(properties_complete("bellow_", out, 128) == 29);
   /* "key_" matches the two key_* properties, not keyboard_tuning */
   CHECK(properties_complete("key_", out, 128) == 2);
   /* empty prefix matches all (buffer is sized above property_count()) */
@@ -256,6 +282,8 @@ int main(void)
 {
   test_defaults();
   test_lookup();
+  test_point();
+  test_tags_in_order();
   test_description_payload_fits();
   test_set_clamp();
   test_type_guards();

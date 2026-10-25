@@ -40,10 +40,10 @@
  * ones the older generation is erased.
  *
  * Sizing: one 2 KB page per partition. A page is 256 slots, so 255 records.
- * The firmware has 71 persistent properties, so a compaction carries at most
- * 71 records and leaves at least 184 slots free. At the datasheet's minimum of
- * 10 k erase cycles per page that is 2 x 10 k x 184 ~= 3.7 M records over the
- * device's life, or 52 k Saves even if every Save changed all 71 values. A
+ * The firmware has 79 persistent properties, so a compaction carries at most
+ * 79 records and leaves at least 176 slots free. At the datasheet's minimum of
+ * 10 k erase cycles per page that is 2 x 10 k x 176 ~= 3.5 M records over the
+ * device's life, or 44 k Saves even if every Save changed all 79 values. A
  * second page per partition would cost 4 KB of application flash and double
  * the ~22 ms erase stall (code runs from the same flash) for headroom nobody
  * needs. If the flash is set to single-bank (DBANK=0), pages are 4 KB and both
