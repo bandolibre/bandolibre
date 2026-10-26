@@ -92,8 +92,9 @@ cd code/main-g474
 just flash_release
 ```
 
-`just flash_release` programs every connected ST-Link whose chip is registered
-as that board type, so both wings can be flashed in a single command.
+`just flash_release` programs the board on the connected ST-Link, and refuses
+if its chip is not registered as that board type. Connect one ST-Link at a
+time.
 
 The same recipe apply in `code/wing-g474`.
 
