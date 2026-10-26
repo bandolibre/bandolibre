@@ -812,7 +812,9 @@
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(8, 9, 12, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -848,45 +850,72 @@
   @media (prefers-reduced-motion: reduce) {
     .toast { transition: none; transform: none; }
   }
+  /* Same layout as BandoPM's About box: a title bar ruled off from the body,
+   * sections under small uppercase headings in the bellows-pull accent. */
   .info-modal {
     position: relative;
-    background: var(--card);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--fg) 3%, var(--card)) 0%, var(--card) 100%);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 440px;
+    border-radius: 14px;
+    padding: 20px 22px;
+    max-width: 520px;
     width: 100%;
     max-height: 85vh;
     overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
-  .info-modal h2 { margin: 0 0 12px; font-size: 1.15rem; }
-  .info-modal p { margin: 0 0 12px; font-size: 0.9rem; line-height: 1.5; }
+  @media (prefers-color-scheme: dark) {
+    .info-modal { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+  }
+  .info-modal h2 {
+    margin: 0 0 12px;
+    padding: 4px 40px 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .info-modal h3 {
+    margin: 14px 0 4px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--pull);
+  }
+  .info-modal h2 + h3 { margin-top: 0; }
+  .info-modal p { margin: 0 0 12px; font-size: 0.88rem; line-height: 1.55; }
   .info-modal p:last-child { margin-bottom: 0; }
-  .info-modal a { color: var(--push); }
+  .info-modal a {
+    color: var(--push);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid color-mix(in srgb, var(--push) 35%, transparent);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .info-modal a:hover { color: var(--fg); border-bottom-color: var(--fg); }
   .info-modal-close {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    top: 18px;
+    right: 20px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
     border: 1px solid var(--border);
-    background: var(--bg);
+    background: color-mix(in srgb, var(--fg) 5%, transparent);
     color: var(--muted);
     cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  .info-modal-close:hover { border-color: var(--muted); color: var(--fg); }
+  .info-modal-close:hover { background: color-mix(in srgb, var(--fg) 11%, transparent); color: var(--fg); }
 
   /* No-MIDI popup: one variant per data-show value, set by init() */
   #midiOverlay [data-reason] { display: none; }
   #midiOverlay[data-show="unsupported"] [data-reason="unsupported"],
   #midiOverlay[data-show="denied"] [data-reason="denied"] { display: block; }
-  .info-modal h3 { margin: 16px 0 6px; font-size: 0.95rem; }
   .compat-table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 0.85rem; }
   .compat-table th, .compat-table td {
     text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--border);
@@ -905,18 +934,20 @@
 <body>
 <div class="info-overlay" id="infoOverlay" hidden>
   <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
-    <button type="button" class="info-modal-close" id="infoModalClose" aria-label="Close">✕</button>
-    <h2 id="infoModalTitle">About Bandolibre</h2>
+    <button type="button" class="info-modal-close" id="infoModalClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 id="infoModalTitle">Bandolibre MIDI Connect &mdash; Configuration Tool</h2>
+    <h3>L'Atelier du Bandonéon Libre</h3>
     <p><strong>Bandolibre</strong> is an open-source digital Argentine bandoneon, built by <a href="https://bandolibre.github.io" target="_blank" rel="noopener">L'Atelier du Bandonéon Libre</a>. It uses Hall-effect sensors and MIDI to bring the bandoneon's playing feel to a fully open, buildable instrument.</p>
-    <p>This page is the <strong>configuration tool</strong>: connect your Bandolibre over USB-MIDI to view the keyboard live, tune the bellows and pedal response, and adjust firmware properties, no install needed.</p>
-    <p><a href="https://github.com/bandolibre/bandolibre" target="_blank" rel="noopener">Project on GitHub</a> · <a href="https://bandolibre.github.io" target="_blank" rel="noopener">L'Atelier du Bandonéon Libre</a></p>
-    <p>Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> (non-commercial, derivatives allowed).</p>
+    <h3>Configuration tool</h3>
+    <p>Connect your Bandolibre over USB-MIDI to view the keyboard live, tune the bellows and pedal response, and adjust firmware properties, no install needed.</p>
+    <h3>Open-source license</h3>
+    <p>Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a> (non-commercial, derivatives allowed). Source code is available on <a href="https://github.com/bandolibre/bandolibre" target="_blank" rel="noopener">GitHub</a>.</p>
   </div>
 </div>
 
 <div class="info-overlay" id="bwInfoOverlay" hidden>
   <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="bwInfoModalTitle">
-    <button type="button" class="info-modal-close" id="bwInfoModalClose" aria-label="Close">✕</button>
+    <button type="button" class="info-modal-close" id="bwInfoModalClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2 id="bwInfoModalTitle">MIDI bandwidth budget</h2>
     <p>This reading is raw MIDI byte throughput in both directions, not a hard link limit. Rough, reasonable budgets to keep in mind:</p>
     <p><strong>5-pin DIN MIDI (the original serial link):</strong> a fixed 31.25 kbit/s (~3.9 kB/s). A 3-byte note message takes ~1 ms to transmit, so dense traffic (fast pitch bend, CC sweeps, chords) can visibly lag behind the notes that trigger it. A safe sustained budget is well under that ceiling — roughly 15-20 kbit/s (~2-2.5 kB/s) keeps timing tight.</p>
@@ -927,7 +958,7 @@
 
 <div class="info-overlay" id="midiOverlay" hidden>
   <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="midiModalTitle">
-    <button type="button" class="info-modal-close" id="midiModalClose" aria-label="Close">✕</button>
+    <button type="button" class="info-modal-close" id="midiModalClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div data-reason="unsupported">
       <h2 id="midiModalTitle">This browser has no MIDI</h2>
       <p>This browser does not support Web MIDI, so this page cannot talk to the Bandolibre. Open it in one of the browsers below.</p>
