@@ -881,6 +881,25 @@
     justify-content: center;
   }
   .info-modal-close:hover { border-color: var(--muted); color: var(--fg); }
+
+  /* No-MIDI popup: one variant per data-show value, set by init() */
+  #midiOverlay [data-reason] { display: none; }
+  #midiOverlay[data-show="unsupported"] [data-reason="unsupported"],
+  #midiOverlay[data-show="denied"] [data-reason="denied"] { display: block; }
+  .info-modal h3 { margin: 16px 0 6px; font-size: 0.95rem; }
+  .compat-table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 0.85rem; }
+  .compat-table th, .compat-table td {
+    text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--border);
+  }
+  .compat-table th { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+  .compat-table td:first-child { white-space: nowrap; font-weight: 600; }
+  .compat-table .yes { color: var(--ok); }
+  .compat-table .no { color: var(--bad); }
+  .compat-table tr.current td { background: var(--saved-bg); }
+  .compat-table tr.current td:first-child::after { content: " (this device)"; font-weight: 400; color: var(--muted); }
+  .midi-error { font-family: var(--mono); font-size: 0.8rem !important; color: var(--muted); }
+  .midi-error:empty { display: none; }
+  .status-details { color: var(--push); font-weight: 400; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -903,6 +922,35 @@
     <p><strong>5-pin DIN MIDI (the original serial link):</strong> a fixed 31.25 kbit/s (~3.9 kB/s). A 3-byte note message takes ~1 ms to transmit, so dense traffic (fast pitch bend, CC sweeps, chords) can visibly lag behind the notes that trigger it. A safe sustained budget is well under that ceiling — roughly 15-20 kbit/s (~2-2.5 kB/s) keeps timing tight.</p>
     <p><strong>USB-MIDI, Full Speed (this board's transport, 12 Mbit/s link, shared with the console):</strong> messages are packed into 4-byte USB-MIDI event packets and polled every 1 ms USB frame. That's a huge step up from DIN-5 - a comfortable budget for glitch-free performance is on the order of a few hundred kbit/s (tens of kB/s), leaving the link mostly idle.</p>
     <p><strong>USB-MIDI 2.0 / UMP (Full Speed or High Speed):</strong> richer per-note/high-resolution packets cost more bytes per event, but even a busy MPE performance stays a small fraction of the link. Budgeting in the low Mbit/s range is generous.</p>
+  </div>
+</div>
+
+<div class="info-overlay" id="midiOverlay" hidden>
+  <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="midiModalTitle">
+    <button type="button" class="info-modal-close" id="midiModalClose" aria-label="Close">✕</button>
+    <div data-reason="unsupported">
+      <h2 id="midiModalTitle">This browser has no MIDI</h2>
+      <p>This browser does not support Web MIDI, so this page cannot talk to the Bandolibre. Open it in one of the browsers below.</p>
+      <table class="compat-table">
+        <thead><tr><th>Device</th><th>Works</th><th>Does not work</th></tr></thead>
+        <tbody>
+          <tr data-os="windows"><td>Windows</td><td class="yes">Chrome, Edge, Opera, Firefox</td><td>—</td></tr>
+          <tr data-os="mac"><td>macOS</td><td class="yes">Chrome, Edge, Firefox</td><td class="no">Safari</td></tr>
+          <tr data-os="linux"><td>Linux</td><td class="yes">Chrome, Chromium, Edge, Firefox</td><td>—</td></tr>
+          <tr data-os="android"><td>Android</td><td class="yes">Chrome, Edge, Samsung Internet</td><td class="no">Firefox</td></tr>
+          <tr data-os="ios"><td>iPhone, iPad</td><td>—</td><td class="no">Every browser: Apple does not allow Web MIDI on iOS</td></tr>
+        </tbody>
+      </table>
+      <p>Firefox asks you to allow a site permission the first time. On Android, connect the instrument with a USB-C cable or an OTG adapter.</p>
+    </div>
+    <div data-reason="denied">
+      <h2 id="midiModalTitleDenied">MIDI access is blocked</h2>
+      <p>This browser supports MIDI, but access was refused for this page, so it cannot talk to the Bandolibre.</p>
+      <h3>Allow MIDI</h3>
+      <p><strong>Chrome, Edge, Opera:</strong> click the icon at the left of the address bar, set <em>MIDI devices</em> to <em>Allow</em>, then reload the page.</p>
+      <p><strong>Firefox:</strong> reload the page and accept the site permission it offers to install.</p>
+      <p class="midi-error" id="midiModalError"></p>
+    </div>
   </div>
 </div>
 
@@ -5883,17 +5931,78 @@
     updateStatus();
   });
 
+  function currentOs() {
+    const ua = navigator.userAgent;
+    // iPadOS reports itself as a Mac; touch points tell them apart.
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/.test(ua)) return "android";
+    if (/Macintosh|Mac OS X/.test(ua)) return "mac";
+    if (/Windows/.test(ua)) return "windows";
+    if (/Linux/.test(ua) && !/CrOS/.test(ua)) return "linux";
+    return "";
+  }
+
+  /* Opens the no-MIDI popup: "unsupported" lists the browsers that have Web
+   * MIDI, with this device's row highlighted; "denied" explains how to allow
+   * it. A "Details" link after the status text reopens it. */
+  function showMidiHelp(reason, err) {
+    const overlay = document.getElementById("midiOverlay");
+    const closeBtn = document.getElementById("midiModalClose");
+    overlay.dataset.show = reason;
+    overlay.firstElementChild.setAttribute(
+      "aria-labelledby", reason === "denied" ? "midiModalTitleDenied" : "midiModalTitle");
+    const row = overlay.querySelector('tr[data-os="' + currentOs() + '"]');
+    if (row) row.classList.add("current");
+    if (err) document.getElementById("midiModalError").textContent = err.name + ": " + err.message;
+
+    const details = document.createElement("a");
+    details.href = "#";
+    details.textContent = "Details";
+    details.className = "status-details";
+    statusText.append(" ", details);
+
+    const open = () => {
+      overlay.hidden = false;
+      closeBtn.focus();
+    };
+    const close = () => {
+      overlay.hidden = true;
+      details.focus();
+    };
+    details.addEventListener("click", (e) => {
+      e.preventDefault();
+      open();
+    });
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !overlay.hidden) close();
+    });
+    open();
+  }
+
   async function init() {
     if (!navigator.requestMIDIAccess) {
       clearProperties(); // drops the placeholder rows
-      setStatus("bad", "Web MIDI is not supported in this browser (try Chrome or Edge).");
+      setStatus("bad", "Web MIDI is not supported in this browser.");
+      showMidiHelp("unsupported");
       return;
     }
     try {
       midiAccess = await navigator.requestMIDIAccess({ sysex: true });
     } catch (err) {
       clearProperties();
-      setStatus("bad", "MIDI access denied: " + err.message);
+      // NotAllowedError (SecurityError in older browsers): the user or a site
+      // setting refused. Anything else is the browser failing to reach the OS
+      // MIDI service, which no permission change fixes.
+      if (err.name === "NotAllowedError" || err.name === "SecurityError") {
+        setStatus("bad", "MIDI access is blocked for this page.");
+        showMidiHelp("denied", err);
+      } else {
+        setStatus("bad", "MIDI could not start: " + err.message);
+      }
       return;
     }
 
