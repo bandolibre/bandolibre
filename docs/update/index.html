@@ -77,7 +77,15 @@
   .info-btn svg { width: 18px; height: 18px; }
   .status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
-  .dot.ok { background: var(--ok); }
+  /* Connected: a soft halo breathes around the dot. */
+  .dot.ok { background: var(--ok); animation: dot-glow 2.4s ease-in-out infinite; }
+  @keyframes dot-glow {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent), 0 0 2px 0 color-mix(in srgb, var(--ok) 40%, transparent); }
+    50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent), 0 0 8px 2px color-mix(in srgb, var(--ok) 45%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot.ok { animation: none; box-shadow: 0 0 6px 1px color-mix(in srgb, var(--ok) 40%, transparent); }
+  }
   .dot.warn { background: var(--warn); }
   .dot.bad { background: var(--bad); }
   #statusText { font-weight: 600; }
@@ -88,16 +96,41 @@
   }
   /* author display:flex/grid would otherwise beat the UA [hidden] rule */
   [hidden] { display: none !important; }
-  .device-row { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
-  .device-row select { flex: 1 1 240px; width: auto; min-width: 0; }
+  /* The status has a column of its own, so a longer message doesn't
+   * narrow the select or wrap it onto another line. */
+  .device-row { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); align-items: center; gap: 8px 16px; }
+  .device-row .status-row { flex-wrap: nowrap; min-width: 0; }
+  @media (max-width: 560px) { .device-row { grid-template-columns: minmax(0, 1fr); } }
   .facts {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    /* One label width for every card, so the values line up down the page. */
+    grid-template-columns: 7.5rem minmax(0, 1fr);
     gap: 6px 16px;
     margin: 14px 0 0;
     font-size: 0.9rem;
+    /* Labels and the smaller monospace values share one text line. */
+    align-items: baseline;
   }
   .facts dt { color: var(--muted); }
+  /* Installed firmware compared with the one offered below it. The badge
+   * keeps its place while hidden (visibility), so the card doesn't grow when
+   * it appears; it wraps under the version, left-aligned, when needed. */
+  .facts dd.with-badge { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .badge {
+    display: inline-block; padding: 3px 12px; border-radius: 999px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.85rem; font-weight: 600; white-space: nowrap; vertical-align: 0;
+    color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent);
+  }
+  .badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .badge.new { color: var(--push); background: color-mix(in srgb, var(--push) 16%, transparent); }
+  /* Facts with a button at the top right, level with the first row. */
+  .facts-row { display: flex; align-items: flex-start; gap: 12px; }
+  .facts-row .facts { flex: 1; min-width: 0; margin-top: 0; }
+  .facts-row .btn { margin-top: -6px; flex: none; }
+  .install-actions { margin: 6px 0 20px; justify-content: center; }
+  .install-actions .btn { font-size: 1.05rem; padding: 12px 32px; border-radius: 10px; min-width: 220px; }
+  .card h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
   .facts dd { margin: 0; font-family: var(--mono); font-size: 0.85rem; overflow-wrap: anywhere; }
   .notice {
     margin: 12px 0 0;
@@ -117,12 +150,27 @@
   .btn:hover:not(:disabled) { border-color: var(--muted); }
   .btn:disabled { opacity: 0.5; cursor: default; }
   .btn.primary { background: var(--push); border-color: var(--push); color: #fff; font-weight: 600; }
+  .btn.icon { padding: 7px 9px; display: inline-flex; align-items: center; justify-content: center; }
   .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
-  .drop-zone {
-    margin-top: 12px; padding: 14px; border: 1.5px dashed var(--border); border-radius: 8px;
-    text-align: center; color: var(--muted); font-size: 0.85rem;
+  /* The whole "Latest firmware" card takes a dropped .uf2. */
+  /* A file dragged anywhere over the page: the card pulses to draw it in,
+   * and lights up fully once the file is over it. */
+  .card.drop-ready {
+    border-color: var(--push);
+    animation: drop-pulse 1.2s ease-in-out infinite;
   }
-  .drop-zone.over { border-color: var(--push); color: var(--fg); }
+  .card.drop-ready.drop-over {
+    animation: none;
+    background: color-mix(in srgb, var(--push) 10%, var(--card));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--push) 55%, transparent);
+  }
+  @keyframes drop-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--push) 25%, transparent); }
+    50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--push) 12%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card.drop-ready { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--push) 30%, transparent); }
+  }
 
   /* The progress grid: one cell per write chunk of the application region,
    * like the disk maps of old formatters and defragmenters. */
@@ -187,9 +235,67 @@
     border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted);
     cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
+
+  /* Celebration when an update completes: fireworks on a
+   * canvas behind the cards, and a banner that pops in and fades. */
+  #fireworks { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  main { position: relative; z-index: 1; }
+  .card { transition: background-color 0.8s ease; }
+  /* While the show plays, the bursts glow through the cards. */
+  body.celebrating .card {
+    background: color-mix(in srgb, var(--card) 62%, transparent);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .celebrate {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .celebrate-badge {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 18px 28px; border-radius: 18px; text-align: center;
+    background: color-mix(in srgb, var(--card) 82%, transparent);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, #f5c542 60%, var(--border));
+    box-shadow: 0 0 0 6px color-mix(in srgb, #f5c542 18%, transparent), 0 18px 50px rgba(0, 0, 0, 0.25);
+    animation: badge 2.6s cubic-bezier(.2, .9, .3, 1.2) forwards;
+  }
+  .celebrate-badge .goal { font-size: 2.6rem; line-height: 1; }
+  .celebrate-badge strong { font-size: 1.35rem; }
+  .celebrate-badge span { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+  @keyframes badge {
+    0% { opacity: 0; transform: scale(0.4) rotate(-6deg); }
+    12% { opacity: 1; transform: scale(1.08) rotate(1deg); }
+    20% { transform: scale(1) rotate(0); }
+    80% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.96) translateY(-12px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .celebrate-badge { animation-duration: 3s; animation-timing-function: linear; } }
+
+  /* Phones: the whole page fits one screen without scrolling (about 780 px
+   * of a 412 px wide Chrome on Android). The progress grid gives the most:
+   * smaller cells halve its rows. */
+  @media (max-width: 560px) {
+    body { padding-block: 14px; }
+    main { gap: 10px; }
+    h1 { font-size: 1.3rem; }
+    h2 { margin-bottom: 8px; }
+    .card { padding: 12px 14px; }
+    .device-row { gap: 6px; }
+    .facts { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 4px 12px; margin-top: 10px; }
+    /* Whether a version fits next to its badge depends on its length: the
+     * badge always takes a line of its own, so the height never changes. */
+    .facts dd.with-badge { flex-direction: column; align-items: flex-start; }
+    .install-actions { margin: 2px 0 12px; }
+    .install-actions .btn { padding: 10px 28px; }
+    .cells { grid-template-columns: repeat(auto-fill, minmax(8px, 1fr)); gap: 2px; margin-bottom: 8px; }
+    .progress-line { margin-top: 6px; }
+    details { margin-top: 8px; }
+  }
 </style>
 </head>
 <body>
+<canvas id="fireworks" aria-hidden="true"></canvas>
+<div class="celebrate" id="celebrate" aria-live="polite" hidden></div>
 <div class="info-overlay" id="infoOverlay" hidden>
   <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
     <button type="button" class="info-modal-close" id="infoClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -225,11 +331,8 @@
         <span id="statusText">Starting…</span>
       </div>
     </div>
-    <dl class="facts" id="facts" hidden>
-      <dt>Mode</dt><dd id="factMode"></dd>
-      <dt>Firmware</dt><dd id="factFirmware"></dd>
-      <dt id="factBootLabel" hidden>Update mode</dt><dd id="factBoot" hidden></dd>
-      <dt>Saved settings</dt><dd id="factGeneration"></dd>
+    <dl class="facts" id="facts">
+      <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
     </dl>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
     <p class="notice" id="idleUpdateNotice" hidden>The instrument is waiting in firmware update mode. Update it below, or go back to playing without updating.</p>
@@ -238,24 +341,23 @@
     </div>
   </section>
 
-  <section class="card" aria-labelledby="firmwareTitle">
-    <h2 id="firmwareTitle">Firmware to install</h2>
-    <dl class="facts">
-      <dt>Version</dt><dd id="imageVersion">—</dd>
-      <dt>Source</dt><dd id="imageSource">—</dd>
-      <dt>Size</dt><dd id="imageSize">—</dd>
-    </dl>
-    <div class="drop-zone" id="dropZone">Drop a <code>.uf2</code> file here to install your own build.</div>
-    <div class="actions">
-      <button type="button" class="btn primary" id="updateBtn" disabled>Update firmware</button>
-      <button type="button" class="btn" id="fileBtn">Use a file…</button>
+  <section class="card" id="firmwareCard" aria-labelledby="firmwareTitle">
+    <h2 id="firmwareTitle">Latest firmware</h2>
+    <div class="facts-row">
+      <dl class="facts">
+        <dt>Version</dt><dd id="imageVersion">—</dd>
+        <dt>Source</dt><dd id="imageSource">—</dd>
+      </dl>
+      <button type="button" class="btn icon" id="fileBtn" title="Load a .uf2 file (or drop it onto this card)" aria-label="Load a .uf2 file, or drop it onto this card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
       <input type="file" id="fileInput" accept=".uf2" hidden>
     </div>
-    <p class="hint" id="updateHint">Values you changed in the configuration tool without saving them are lost when the instrument restarts.</p>
   </section>
 
   <section class="card" aria-labelledby="progressTitle">
-    <h2 id="progressTitle">Progress</h2>
+    <div class="actions install-actions">
+      <button type="button" class="btn primary" id="updateBtn" disabled>Update firmware</button>
+    </div>
+    <h3 id="progressTitle">Progress</h3>
     <div class="cells" id="cells" aria-hidden="true"></div>
     <div class="legend" aria-hidden="true">
       <span><i class="cell"></i>to write</span>
@@ -421,12 +523,14 @@
 
   /* [major, minor, patch] from "...v1.2-alpha..." or "bandolibre-v1.2.1", or
    * null. Same as ../connect/index.html. */
+  /* [major, minor, patch, commits since the tag]: a development build,
+   * "v1.2-alpha-108-g4b091e8" (git describe), sorts after the tag's release. */
   function parseFirmwareVersion(text) {
-    const m = /\bv(\d+)\.(\d+)(?:\.(\d+))?/.exec(text || "");
-    return m ? [Number(m[1]), Number(m[2]), Number(m[3] || 0)] : null;
+    const m = /\bv(\d+)\.(\d+)(?:\.(\d+))?\S*?(?:-(\d+)-g[0-9a-f]+)?(?:-dirty)?$/.exec(text || "");
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3] || 0), Number(m[4] || 0)] : null;
   }
   function compareVersions(a, b) {
-    for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
+    for (let i = 0; i < 4; i++) if (a[i] !== b[i]) return a[i] - b[i];
     return 0;
   }
   const shortVersion = (v) => (v || "").replace(/^Bandolibre (bootloader )?/, "");
@@ -641,7 +745,8 @@
     try {
       device = await identify();
       log("connected to \"" + d.name + "\": " + device.version +
-          (device.mode === MODE_UPDATE ? ", update mode" : ", instrument mode"));
+          (device.mode === MODE_UPDATE ? ", update mode" : ", instrument mode") +
+          ", saved settings generation " + device.generation);
       setConnectedStatus();
     } catch (err) {
       if (port !== d) return;
@@ -652,47 +757,72 @@
     showDevice();
   }
 
+  /* "Connected" for a playing instrument, else the update mode's name. The
+   * bootloader exposes the BANDOLIBRE drive only when entered with FN2 or for
+   * a recovery, not after a reboot from this page. */
   function setConnectedStatus() {
-    setStatus("ok", "Connected");
-  }
-
-  /* The bootloader exposes the BANDOLIBRE drive only when entered with FN2
-   * or for a recovery, not after a reboot from this page. */
-  function modeText(d) {
-    if (d.mode !== MODE_UPDATE) return "Instrument";
-    return d.info.drive ? "Firmware update (MIDI + BANDOLIBRE drive)" : "Firmware update (MIDI only)";
+    setStatus("ok", device.mode !== MODE_UPDATE ? "Connected"
+      : device.info.drive ? "Update mode (MIDI + drive)" : "Update mode (MIDI only)");
   }
 
   function showDevice() {
-    const known = !!device;
-    $("facts").hidden = !known;
+    // The rows stay in place, with "—" until known, so the page doesn't
+    // reflow when the device answers.
     $("interruptedNotice").hidden = true;
     $("idleUpdateNotice").hidden = true;
-    if (known) {
+    $("factFirmware").textContent = "—";
+    if (device) {
       const upd = device.mode === MODE_UPDATE;
-      $("factMode").textContent = modeText(device);
       $("factFirmware").textContent = upd
         ? (device.info.appVersion ? shortVersion(device.info.appVersion) :
-           device.info.appState === APP_INTERRUPTED ? "none (an update was interrupted)" : "none")
+           device.info.appState === APP_INTERRUPTED ? "none (interrupted)" : "none")
         : shortVersion(device.version);
-      $("factBootLabel").hidden = $("factBoot").hidden = !upd;
-      $("factBoot").textContent = upd ? shortVersion(device.version) : "";
-      $("factGeneration").textContent = device.generation
-        ? "generation " + device.generation + ", kept by the update" : "none saved";
       if (upd && !busy) {
         if (device.info.appState === APP_VALID) $("idleUpdateNotice").hidden = false;
         else $("interruptedNotice").hidden = false;
       }
     }
     $("leaveRow").hidden = $("idleUpdateNotice").hidden;
+    showFirmwareBadge();
     refreshButton();
   }
 
+  /* Next to the installed firmware: whether the firmware to install is the
+   * same build, a newer or an older one. */
+  /* The firmware below compared with the installed one: "same", "newer",
+   * "older", "different" (same version, another build), or null when either
+   * is unknown. */
+  function firmwareRelation() {
+    const installed = device && (device.mode === MODE_UPDATE ? device.info.appVersion : device.version);
+    if (!installed || !image || !image.version) return null;
+    if (image.version === installed) return "same";
+    const a = parseFirmwareVersion(image.version), b = parseFirmwareVersion(installed);
+    const order = a && b ? compareVersions(a, b) : 0;
+    return order > 0 ? "newer" : order < 0 ? "older" : "different";
+  }
+
+  function showFirmwareBadge() {
+    const badge = $("firmwareBadge");
+    const [text, kind] = {
+      same: ["up to date", "ok"],
+      newer: ["update available", "new"],
+      older: ["newer than the one below", ""],
+      different: ["different build", ""],
+    }[firmwareRelation()] || [];
+    badge.style.visibility = text ? "visible" : "hidden";
+    if (text) badge.textContent = text;
+    badge.className = "badge" + (kind ? " " + kind : "");
+  }
+
+  /* The button is the highlighted action only when there is something to do:
+   * a newer firmware, or an update to finish. Otherwise it stays plain. */
   function refreshButton() {
     const ready = !!device && !!image && !busy;
     updateBtn.disabled = !ready;
     const resume = device && device.mode === MODE_UPDATE && device.info.appState !== APP_VALID;
-    updateBtn.textContent = resume ? "Resume update" : "Update firmware";
+    const relation = firmwareRelation();
+    updateBtn.textContent = resume ? "Resume update" : relation === "same" ? "Reinstall firmware" : "Update firmware";
+    updateBtn.classList.toggle("primary", resume || !relation || relation === "newer");
   }
 
   /* Prefers the bootloader, then the instrument; never replaces a device
@@ -804,13 +934,14 @@
       image = { bytes, size, crc: crc32(bytes), version, source, uf2: buffer };
       $("imageVersion").textContent = version ? shortVersion(version) : "unknown";
       $("imageSource").textContent = source;
-      $("imageSize").textContent = (size / 1024).toFixed(1) + " KB, CRC-32 " + hex32(image.crc);
-      log("firmware: " + source + ", " + size + " bytes, " + (version || "no version record"));
+      log("firmware: " + source + ", " + size + " bytes, CRC-32 " + hex32(image.crc) + ", " +
+          (version || "no version record"));
       showError("");
       drawCells();
     } catch (err) {
       showError(source + ": " + err.message);
     }
+    showFirmwareBadge();
     refreshButton();
   }
 
@@ -819,10 +950,10 @@
       const latest = await (await fetch(LATEST_URL, { cache: "no-store" })).json();
       const response = await fetch("firmware/" + latest.file, { cache: "no-store" });
       if (!response.ok) throw new Error("HTTP " + response.status);
-      setImage(await response.arrayBuffer(), "latest release (" + latest.tag.replace(/^bandolibre-/, "") + ")");
+      setImage(await response.arrayBuffer(), "latest release");
     } catch (err) {
       log("no published firmware: " + err.message);
-      $("imageSource").textContent = "no published firmware found; use a file";
+      $("imageSource").textContent = "none published";
     }
   }
 
@@ -832,14 +963,52 @@
     if (f) setImage(await f.arrayBuffer(), f.name);
     $("fileInput").value = "";
   });
-  const dropZone = $("dropZone");
-  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("over"); });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
-  dropZone.addEventListener("drop", async (e) => {
+  /* Dropping onto the "Latest firmware" card loads the file. While a file
+   * is dragged over the page the card is highlighted, and a drop elsewhere is
+   * swallowed rather than letting the browser navigate to the file.
+   *
+   * Every element crossed fires dragenter (on the new one) then dragleave (on
+   * the old one), so a count of the two reaches 0 only when the file leaves
+   * the window. dragover is not used for the highlight: the browser sends it
+   * only every ~350 ms while the pointer is still, which made it flicker. The
+   * timer is a fallback for a leave the browser never reports. */
+  const dropZone = $("firmwareCard");
+  let dragDepth = 0, dragTimer = 0;
+  const isFileDrag = (e) => e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files");
+  function endDrag() {
+    dragDepth = 0;
+    clearTimeout(dragTimer);
+    dropZone.classList.remove("drop-ready", "drop-over");
+  }
+  function keepDrag() {
+    clearTimeout(dragTimer);
+    dragTimer = setTimeout(endDrag, 3000);
+  }
+  document.addEventListener("dragenter", (e) => {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
-    dropZone.classList.remove("over");
+    dragDepth++;
+    keepDrag();
+    dropZone.classList.toggle("drop-ready", !busy);
+    dropZone.classList.toggle("drop-over", !busy && dropZone.contains(e.target));
+  });
+  document.addEventListener("dragleave", (e) => {
+    if (!isFileDrag(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) endDrag();
+  });
+  document.addEventListener("dragover", (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    keepDrag();
+    e.dataTransfer.dropEffect = !busy && dropZone.contains(e.target) ? "copy" : "none";
+  });
+  document.addEventListener("drop", async (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    endDrag();
     const f = e.dataTransfer.files[0];
-    if (f && !busy) setImage(await f.arrayBuffer(), f.name);
+    if (f && !busy && dropZone.contains(e.target)) setImage(await f.arrayBuffer(), f.name);
   });
 
   // ---- Progress grid ----
@@ -1031,6 +1200,7 @@
     setPhase("Update complete");
     setProgress(shortVersion(device.version));
     setConnectedStatus();
+    celebrate(shortVersion(device.version));
   }
 
   async function onUpdateClick() {
@@ -1112,6 +1282,179 @@
   $("infoClose").addEventListener("click", () => { infoOverlay.hidden = true; });
   infoOverlay.addEventListener("click", (e) => { if (e.target === infoOverlay) infoOverlay.hidden = true; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") infoOverlay.hidden = true; });
+
+  // ---- Celebration: fireworks behind the page when an update completes ----
+  const fireworks = (() => {
+    const canvas = $("fireworks");
+    const ctx = canvas.getContext("2d");
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dark = matchMedia("(prefers-color-scheme: dark)");
+    const PALETTE = ["#ff4d6d", "#ffb703", "#f5c542", "#2ec4b6", "#4cc9f0", "#9d4edd", "#ff7bd5", "#7cff6b", "#ffffff"];
+    const GRAVITY = 0.045;
+    const ROCKET_GRAVITY = 0.2;   // a fast climb: the bursts come quickly
+    const SPEED = 1.6;            // simulation time per real time
+    let rockets = [], sparks = [], timers = [], frame = 0, w = 0, h = 0, dpr = 1, flash = 0, last = 0;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = innerWidth; h = innerHeight;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+    function launch(x, finale) {
+      const targetY = rand(h * 0.12, h * 0.45);
+      const vy = -Math.sqrt(2 * ROCKET_GRAVITY * (h - targetY)) * rand(0.98, 1.04);
+      rockets.push({ x: x ?? rand(w * 0.1, w * 0.9), y: h + 4, vx: rand(-0.6, 0.6), vy,
+                     color: pick(PALETTE), finale: !!finale });
+    }
+
+    /* Bursts: a sphere of sparks, a ring, a five-armed star, or a slow gold
+     * willow; every burst also throws a few spinning stars and glitter. */
+    function explode(r) {
+      const kind = r.finale ? pick(["sphere", "ring", "star"]) : pick(["sphere", "sphere", "ring", "star", "willow"]);
+      const color = kind === "willow" ? "#f5c542" : r.color;
+      const second = pick(PALETTE);
+      const n = (reduced ? 40 : kind === "willow" ? 90 : 110) * (r.finale ? 1.2 : 1);
+      const power = rand(3.2, 4.6) * Math.min(1.3, Math.max(0.75, w / 1100));
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + (kind === "sphere" ? rand(-0.2, 0.2) : 0);
+        let s = power;
+        if (kind === "sphere") s *= Math.cbrt(Math.random());
+        else if (kind === "star") s *= 0.55 + 0.45 * Math.pow(Math.abs(Math.cos(a * 2.5)), 3);
+        else if (kind === "willow") s *= rand(0.5, 0.9);
+        sparks.push({
+          x: r.x, y: r.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+          life: 0, max: kind === "willow" ? rand(110, 150) : rand(55, 85),
+          drag: kind === "willow" ? 0.965 : 0.975, size: kind === "willow" ? 1.6 : rand(1.6, 2.4),
+          color: i % 3 === 0 ? second : color, shape: "dot", twinkle: kind === "willow" || Math.random() < 0.25,
+        });
+      }
+      for (let i = 0; i < (reduced ? 4 : 9); i++) {
+        const a = rand(0, Math.PI * 2), s = rand(1, power * 0.8);
+        sparks.push({
+          x: r.x, y: r.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.6,
+          life: 0, max: rand(80, 120), drag: 0.97, size: rand(5, 9), color: pick(["#fff4b0", "#f5c542", "#ffffff"]),
+          shape: "star", rot: rand(0, Math.PI), vr: rand(-0.15, 0.15), twinkle: true,
+        });
+      }
+      flash = Math.max(flash, r.finale ? 0.16 : 0.08);
+    }
+
+    function drawStar(x, y, radius, rot) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const rr = i % 2 ? radius * 0.42 : radius;
+        const a = rot + (i * Math.PI) / 5;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    /* Speeds, lifetimes and decays below are per 60 Hz frame; `k` scales them
+     * to the real frame time, so the show runs the same at 120 Hz. */
+    function step(now) {
+      const k = SPEED * (last ? Math.min(3, (now - last) / (1000 / 60)) : 1);
+      last = now;
+      // Fade the previous frame rather than clearing it, which leaves trails.
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0,0,0," + (1 - Math.pow(reduced ? 0.6 : 0.8, k)) + ")";
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = dark.matches ? "lighter" : "source-over";
+
+      if (flash > 0.005) {
+        const g = ctx.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.35, Math.max(w, h) * 0.7);
+        g.addColorStop(0, "rgba(255,220,140," + flash + ")");
+        g.addColorStop(1, "rgba(255,220,140,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        flash *= Math.pow(0.86, k);
+      }
+
+      rockets = rockets.filter((r) => {
+        r.x += r.vx * k; r.y += r.vy * k; r.vy += ROCKET_GRAVITY * k;
+        if (!reduced && Math.random() < 0.8 * Math.min(1, k)) {
+          sparks.push({ x: r.x, y: r.y, vx: rand(-0.3, 0.3), vy: rand(0.2, 0.9), life: 0, max: rand(14, 24),
+                        drag: 0.95, size: 1.3, color: "#ffd38a", shape: "dot", twinkle: false });
+        }
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(r.x, r.y, 2.2, 0, Math.PI * 2); ctx.fill();
+        if (r.vy >= -0.4) { explode(r); return false; }
+        return true;
+      });
+
+      sparks = sparks.filter((p) => {
+        p.life += k;
+        if (p.life >= p.max) return false;
+        const drag = Math.pow(p.drag, k);
+        p.vx *= drag; p.vy = p.vy * drag + GRAVITY * k * (p.shape === "star" ? 0.5 : 1);
+        p.x += p.vx * k; p.y += p.vy * k;
+        const t = 1 - p.life / p.max;
+        let alpha = Math.min(1, t * 1.6);
+        if (p.twinkle && Math.random() < 0.3) alpha *= 0.25;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        if (p.shape === "star") {
+          p.rot += p.vr * k;
+          drawStar(p.x, p.y, p.size * (0.6 + 0.4 * t), p.rot);
+        } else {
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * t), 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        return true;
+      });
+
+      if (rockets.length || sparks.length || timers.length || flash > 0.005) {
+        frame = requestAnimationFrame(step);
+      } else {
+        frame = 0;
+        last = 0;
+        ctx.clearRect(0, 0, w, h);
+        document.body.classList.remove("celebrating");
+      }
+    }
+
+    /* A show of about three seconds: a volley from both sides, a quick
+     * salvo, then a finale of several rockets at once. */
+    function play() {
+      resize();
+      document.body.classList.add("celebrating");
+      const plan = [];
+      const salvo = reduced ? 3 : 8;
+      plan.push([0, w * 0.2], [60, w * 0.8], [220, w * 0.5]);
+      for (let i = 0; i < salvo; i++) plan.push([350 + i * rand(120, 170), null]);
+      const end = 350 + salvo * 145 + 150;
+      for (let i = 0; i < (reduced ? 2 : 6); i++) plan.push([end + i * 40, w * (0.15 + 0.7 * (i / 5)), true]);
+      for (const [delay, x, finale] of plan) {
+        const t = setTimeout(() => {
+          timers = timers.filter((id) => id !== t);
+          launch(x, finale);
+          if (!frame) frame = requestAnimationFrame(step);
+        }, delay);
+        timers.push(t);
+      }
+      if (!frame) frame = requestAnimationFrame(step);
+    }
+
+    addEventListener("resize", () => { if (frame) resize(); });
+    return { play };
+  })();
+
+  function celebrate(version) {
+    fireworks.play();
+    const box = $("celebrate");
+    box.innerHTML = "";
+    const badge = document.createElement("div");
+    badge.className = "celebrate-badge";
+    badge.innerHTML = '<div class="goal" aria-hidden="true">🎉</div><strong>Update complete</strong><span></span>';
+    badge.querySelector("span").textContent = version || "";
+    box.appendChild(badge);
+    box.hidden = false;
+    badge.addEventListener("animationend", () => { box.hidden = true; box.innerHTML = ""; });
+  }
 
   // ---- Start ----
   async function init() {

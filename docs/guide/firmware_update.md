@@ -13,7 +13,8 @@ file onto a USB drive the instrument shows (no browser needed).
    [update tool](https://bandolibre.github.io/bandolibre/update/) in Chrome,
    Edge or Firefox (Safari and iOS have no Web MIDI).
 2. The tool finds the instrument and shows its firmware and the latest release.
-   **Use a file…** (or a drop onto the page) installs a `.uf2` of your own.
+   To install a `.uf2` of your own, use the upload button of the "Latest
+   firmware" card, or drop the file onto that card.
 3. Click **Update firmware**. The instrument restarts into its firmware update
    mode, where it appears as the MIDI device "Bandolibre firmware update". The
    grid fills in as each page of the firmware is written, then checked.
