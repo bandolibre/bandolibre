@@ -98,26 +98,25 @@ time.
 
 The same recipe apply in `code/wing-g474`.
 
-## Main board: two images, two memory maps
+## Main board: bootloader and application
 
-The main board carries a UF2 bootloader at `0x08000000` so it can be updated by
-copying a file onto a USB drive — see
+The main board carries a bootloader at `0x08000000` so it can be updated from
+the browser or by copying a file onto a USB drive — see
 [firmware_update.md](firmware_update.md) and
-[code/boot-g474/README.md](https://github.com/bandolibre/bandolibre/blob/main/code/boot-g474/README.md). That splits its 128 KB
-of flash, and the Debug build does not fit in the application's share of it:
-at `-O0` it is ~116 KB against the 92 KB available above the bootloader. So the
-two configurations link differently, and the recipes differ accordingly:
+[code/boot-g474/README.md](https://github.com/bandolibre/bandolibre/blob/main/code/boot-g474/README.md).
+Both builds of the application (Debug and Release, both `-Os`) link above it,
+at `0x08008000`, in the 92 KB below the saved settings:
 
-| Recipe | Builds | Links at | Bootloader after |
+| Recipe | Builds | Writes at | Bootloader after |
 |---|---|---|---|
-| `just flash` | Debug, `-O0 -g3` | `0x08000000` | **erased** — this image takes its place |
-| `just flash_release` | bootloader + Release, `-Os -flto` | `0x08008000` | installed |
-| `just dfu` | Release, packaged as `.uf2` | `0x08008000` | (no flashing; copy over USB) |
+| `just flash` | Debug, `-Os -g2` | `0x08008000` | untouched |
+| `just flash_release` | bootloader + Release, `-Os -flto` | `0x08000000`, `0x08008000` | installed |
+| `just dfu` | Release, packaged as `.uf2` | `0x08008000` | (no flashing; update over USB) |
+| `cd ../boot-g474 && just flash` | the bootloader only | `0x08000000` | installed |
 
-Day-to-day development is unchanged: `just flash` still gives a full `-O0 -g3`
-image with all its debug information, it just has no DFU drive. Run
-`just flash_release` when you want the bootloader back, and once per board
-before handing it to anyone who will update it over USB.
+Install the bootloader once per board (`just flash_release`, or the
+bootloader-only recipe); `just flash` then never touches it, and a Debug board
+can still be updated from the browser.
 
 `just dfu` is the one to use for a release: it builds the Release
 configuration and writes `build/Release/main-g474.uf2`.

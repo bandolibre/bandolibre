@@ -161,7 +161,7 @@ With it you can:
 
 Changes apply immediately, so you can adjust the feel while playing.
 
-<a href="https://bandolibre.github.io/tools/midi.html"><img width="385" alt="Open the configuration tool" src="https://img.shields.io/badge/Open_the_configuration_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
+<a href="https://bandolibre.github.io/bandolibre/connect/"><img width="385" alt="Open the configuration tool" src="https://img.shields.io/badge/Open_the_configuration_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
   <img src="images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
@@ -297,7 +297,27 @@ setting works well for you, or doesn't, please keep us posted at
 ## Updating the firmware
 
 The firmware is the software inside the instrument. You update it over the same
-USB cable, without any extra tool or software.
+USB cable, without installing anything.
+
+### From the browser
+
+1. Connect the Bandolibre and open the
+   [update tool](https://bandolibre.github.io/bandolibre/update/) in Chrome,
+   Edge or Firefox.
+2. The tool finds the instrument and shows its firmware version next to the
+   latest one.
+3. Click **Update firmware**. The instrument restarts into its update mode, and
+   squares fill in as the new firmware is written and checked.
+4. When it is done, the instrument restarts with the new firmware.
+
+Your saved settings are kept. Settings you changed in the configuration tool
+without saving them are lost when the instrument restarts. The configuration
+tool and BandoPM can stay open: they wait during the update and reconnect
+afterwards.
+
+### With the BANDOLIBRE drive
+
+This way works without a browser.
 
 1. Download the latest `main-g474.uf2` from the
    [releases page](https://github.com/bandolibre/bandolibre/releases).
@@ -315,6 +335,10 @@ stay there.
 
 ### If something goes wrong
 
+- **The update from the browser stopped: the page closed, or the cable came
+  out.** Nothing is damaged: the instrument waits in its update mode until it
+  gets a complete firmware. Open the update tool again and click **Resume
+  update**.
 - **The copy was interrupted, or the cable came out.** Nothing is damaged: the
   new firmware is only installed once the whole file has arrived. Start again
   from step 2.

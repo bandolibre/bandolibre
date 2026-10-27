@@ -15,10 +15,11 @@
 
 /* Write `len` bytes to APP_BASE, erasing every page it covers first.
  *
- * The page holding the vector table is programmed LAST, so an interruption
- * (power loss, a reset) leaves the application's first two words erased and
- * the validity check in main.c rejects the image — the board comes back up in
- * DFU mode rather than jumping into a half-written application.
+ * The page holding the vector table is programmed LAST, and its first double
+ * word (initial SP and reset PC) last of all, so an interruption (power loss,
+ * a reset) leaves those two words erased and the validity check in main.c
+ * rejects the image — the board comes back up in update mode rather than
+ * jumping into a half-written application.
  *
  * `len` is rounded up to a multiple of 8; the padding is 0xFF.
  * Returns false if any erase or program step reported an error.

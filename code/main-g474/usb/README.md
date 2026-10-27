@@ -19,12 +19,14 @@ revisions used TinyUSB's development ids `0xCafe` / `0x4008` (`0x4000 |`
 interface bitmap, computed by a `PID_MAP` macro); that macro is gone, the
 product id is now fixed.
 
-The board also carries a [UF2 bootloader](../../boot-g474/README.md), which
-enumerates while firmware is being updated — mass storage, product string
-"Bandolibre DFU". It shares this VID/PID (one product id covers the product)
-and is told apart by `bcdDevice`: `0x0100` here, `0x0200` in the bootloader.
-The revisions must differ because hosts cache a driver per VID/PID/revision and
-the two devices expose different classes.
+The board also carries a [bootloader](../../boot-g474/README.md), which
+enumerates while firmware is being updated: MIDI, plus mass storage unless the
+web update tool asked for the reboot, with manufacturer and product "Bandolibre
+firmware update" (the web tools exclude that name from auto-connect). It
+shares this VID/PID (one product id covers the product) and is told apart by
+`bcdDevice`: `0x0100` here, `0x0201` / `0x0202` in the bootloader. The
+revisions must differ because hosts cache a driver set per VID/PID/revision
+and the devices expose different interfaces.
 
 ## Files
 
@@ -45,8 +47,10 @@ followed by the payload, then repacked into 7-bit groups: each run of up to 7
 bytes becomes 8, a leading byte holding the seven bit-7s, then the bytes with
 bit 7 cleared. ALSA and Web MIDI read any byte with bit 7 set as a new status
 byte, so escaping only 0xF0/0xF7 is not enough. `CFG_TUD_MIDI_TX_BUFSIZE` is
-sized to hold one full encoded response. `docs/tools/midi.html` implements the
-host side; change both together.
+sized to hold one full encoded response. The codec and the message ids are in
+[`code/common/sysex/`](../../common/sysex), shared with the bootloader;
+`docs/connect/index.html` and `docs/update/index.html` implement the host side.
+Change them together.
 
 The TinyUSB sources, include paths, and the `CFG_TUSB_MCU=OPT_MCU_STM32G4`
 define are listed in the user sections of [CMakeLists.txt](../CMakeLists.txt).

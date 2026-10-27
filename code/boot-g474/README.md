@@ -1,13 +1,20 @@
-# UF2 bootloader (main board)
+# Bootloader (main board)
 
-Lets the main board be reflashed by copying a file onto a USB drive, with no
-ST-Link, no toolchain and no cable other than the one already carrying MIDI.
+Lets the main board be reflashed over the USB cable already carrying MIDI, with
+no ST-Link and no toolchain, two ways:
 
-Hold **FN2** (the leftmost function button) while powering the instrument on,
-and a drive called `BANDOLIBRE` appears. Drop `main-g474.uf2` on it; when the
-copy finishes the drive disappears and the instrument restarts on the new
-firmware. End-user instructions are in
-[docs/guide/firmware_update.md](../../docs/guide/firmware_update.md).
+- **From the browser.** The update tool (`docs/update/`) asks the application
+  to restart into update mode, where this bootloader shows up as the MIDI
+  device "Bandolibre firmware update" and takes the firmware page by page over
+  SysEx ([`midi_update.c`](midi_update.c)).
+- **By copying a file.** Hold **FN2** (the leftmost function button) while
+  powering the instrument on, and a drive called `BANDOLIBRE` appears next to
+  the MIDI device. Drop `main-g474.uf2` on it; when the copy finishes the drive
+  disappears and the instrument restarts on the new firmware.
+
+End-user instructions are in
+[docs/guide/firmware_update.md](../../docs/guide/firmware_update.md), which
+also summarises the SysEx protocol.
 
 ## Flash layout
 
@@ -15,8 +22,8 @@ The STM32G474CBT6 has 128 KB of flash, shared:
 
 | Address | Size | Contents |
 |---|---|---|
-| `0x08000000` | 32 KB | this bootloader (currently ~14 KB used) |
-| `0x08008000` | 92 KB | application, Release build (currently ~78 KB used) |
+| `0x08000000` | 32 KB | this bootloader (currently ~28 KB used) |
+| `0x08008000` | 92 KB | application, Debug or Release build (~85 / ~78 KB used) |
 | `0x0801F000` | 2 KB | saved properties, partition A |
 | `0x0801F800` | 2 KB | saved properties, partition B |
 
@@ -27,18 +34,12 @@ firmware update never erases the saved properties.
 other files repeat them and [`code/tests/test_dfu_config.py`](../tests/test_dfu_config.py)
 fails if any of them drifts.
 
-**The Debug build of the application does not fit in this layout.** At `-O0` it
-is ~116 KB, more than the 92 KB above the bootloader and more than what is left
-above any bootloader large enough to hold TinyUSB and the MSC class. So there
-are two application memory maps:
-
-| | Linker script | Links at | Installed by |
-|---|---|---|---|
-| Debug | `STM32G474XX_FLASH.ld` | `0x08000000`, 124 KB | `just flash` — **replaces the bootloader** |
-| Release | `STM32G474XX_FLASH_APP.ld` | `0x08008000`, 92 KB | `just flash_release`, or a `.uf2` over USB |
-
-`just flash` therefore leaves a board with no DFU support; `just flash_release`
-in `../main-g474` puts the bootloader and a Release image back.
+Both builds of the application are `-Os` and link above the bootloader with
+`STM32G474XX_FLASH_APP.ld`, so `just flash` in `../main-g474` (Debug) leaves
+the bootloader in place, and a Debug board updates from the browser like any
+other. The linker script also places the application's version record
+(`app_info_t`, `.app_info`) at `APP_BASE + 0x200`, right after the vector
+table, so update mode can report what is installed.
 
 ## Boot sequence
 
@@ -48,14 +49,45 @@ in `../main-g474` puts the bootloader and a Release image back.
    start-of-frame. The board is crystal-less, so the CRS is not optional.
 3. `HAL_MspInit()` clears the UCPD dead-battery pull-down — see the warning
    below.
-4. DFU mode is entered if **any** of:
-   - PB4 (`SW_FN2`) reads low, i.e. the button is held;
-   - the word at `BOOT_FLAG_ADDR` holds `BOOT_FLAG_MAGIC`, written by the
-     application's `dfu` console command just before a system reset;
+4. Update mode is entered if **any** of:
+   - the word at `BOOT_FLAG_ADDR` holds `BOOT_FLAG_MAGIC_MIDI`, written by the
+     application when the update tool sends `ENTER_UPDATE_MODE`: MIDI only;
+   - it holds `BOOT_FLAG_MAGIC`, written by the application's `dfu` console
+     command: MIDI and the drive;
+   - PB4 (`SW_FN2`) reads low, i.e. the button is held: MIDI and the drive;
    - the application's vector table fails a sanity check, so a board with
-     missing or half-written firmware recovers on its own.
+     missing or half-written firmware recovers on its own: MIDI and the drive.
 5. Otherwise it de-initialises everything, points `SCB->VTOR` at `APP_BASE`,
    loads the application's stack pointer and jumps to its reset handler.
+
+The flag is cleared as soon as it is read, so a reset or power cycle before an
+update starts returns to the application.
+
+## Update over MIDI
+
+[`midi_update.c`](midi_update.c) answers HELLO (with `mode` = update) and the
+update commands of [`../common/sysex/sysex_ids.h`](../common/sysex/sysex_ids.h);
+the framing is shared with the application through
+[`../common/sysex/sysex_codec.h`](../common/sysex/sysex_codec.h). Two
+orderings make it safe to interrupt at any point:
+
+- `UPDATE_BEGIN` erases page 0 before anything else, so from then on the
+  vector table check fails and the board boots back into update mode;
+- the image's first double word (initial SP and reset PC) is held in RAM and
+  written only by `UPDATE_COMMIT`, after the CRC-32 of the whole image in
+  flash matches the one given to `UPDATE_BEGIN`.
+
+Writes are idempotent, so the tool simply retries any request whose reply it
+lost. Every request carries a sequence number echoed by its reply and every
+write the session number from `UPDATE_BEGIN`, so the configuration tool or a
+second update tab on the same port cannot take a reply meant for another
+client, nor interleave pages. Anything else (the configuration tool's and
+BandoPM's requests) is ignored without a reply.
+
+A double ECC error on a flash read (a double word torn by a power cut while it
+was programmed) raises an NMI; the bootloader's `NMI_Handler` clears it and
+`flash_read()` reports it, so a torn vector table reads as invalid instead of
+hanging the boot.
 
 ## Why UF2 rather than copying a `.bin`
 
@@ -77,9 +109,9 @@ Blocks are staged in RAM and only written to flash once all of them have
 arrived, so an interrupted or truncated copy never reaches the chip. The
 bootloader has the RAM to spare: the application uses 8 KB of the 128 KB.
 `flash_write_app()` then programs the page holding the vector table **last**,
-so a power cut during the ~1 s write leaves an image that fails the validity
-check and the board comes back up in DFU mode rather than jumping into
-something half-written.
+and its first double word last of all, so a power cut during the ~1 s write
+leaves an image that fails the validity check and the board comes back up in
+update mode rather than jumping into something half-written.
 
 ## ⚠ PB4 needs the UCPD dead-battery pull-down cleared
 
@@ -101,19 +133,28 @@ when pressed, which would collide with ST's own boot-mode selection if the
 
 ## USB identity
 
-| | Application | Bootloader |
-|---|---|---|
-| VID:PID | `0483:a5b4` | `0483:a5b4` |
-| bcdDevice | `0x0100` | `0x0200` |
-| Class | MIDI (IAD) | Mass storage |
-| Product | Bandolibre | Bandolibre DFU |
-| Serial | 96-bit chip UID, 24 hex digits | same |
+| | Application | Bootloader, web update | Bootloader, otherwise |
+|---|---|---|---|
+| VID:PID | `0483:a5b4` | `0483:a5b4` | `0483:a5b4` |
+| bcdDevice | `0x0100` | `0x0201` | `0x0202` |
+| Interfaces | MIDI | MIDI | MIDI + mass storage |
+| Manufacturer = product | Bandolibre | Bandolibre firmware update | Bandolibre firmware update |
+| Serial | 96-bit chip UID, 24 hex digits | same | same |
 
 The VID/PID is ST's vendor id with a product id sublicensed to this project
 (see [`../main-g474/usb/README.md`](../main-g474/usb/README.md)). One product id
 covers the whole product, so application and bootloader share it and differ by
-`bcdDevice` instead: hosts cache a driver per VID/PID/revision, and the two
-expose different classes.
+`bcdDevice` instead: hosts cache a driver set per VID/PID/revision, and the
+three expose different interfaces.
+
+Manufacturer and product are the same string because the MIDI port name comes
+from the product on Linux and macOS and from the manufacturer on Windows. With
+"firmware update" in both, the configuration tool and BandoPM, which only
+auto-connect to a port matching `/bandolibre/i` and not `/firmware update/i`,
+leave the bootloader to the update tool on every OS. The drive is shown only
+when the bootloader may be a recovery (FN2, console `dfu`, no valid
+application): a web update gets MIDI alone, so no drive pops up and macOS has
+no unejected disk to complain about at the restart.
 
 ## Build
 
@@ -124,7 +165,7 @@ vendored HAL and startup file rather than carrying a second copy, the same way
 both boards reuse `../common`.
 
 ```sh
-just build          # Debug (also -Os; the bootloader must fit either way)
+just build          # Debug (also -Os and LTO; the bootloader must fit either way)
 just build_release  # what ships
 just size           # how much of the 32 KB region is used
 just flash          # install at 0x08000000, leaving the application intact
@@ -136,7 +177,8 @@ so the chip-UID registry still refuses to write main board firmware to a wing.
 ## Testing
 
 ```sh
-lsusb -d 0483:a5b4              # bootloader enumerated (bcdDevice 0200)
+lsusb -v -d 0483:a5b4 | grep bcdDevice   # 0201 web update, 0202 with the drive
+amidi -l                        # "Bandolibre firmware update"
 cat /media/*/BANDOLIBRE/INFO_UF2.TXT
 ```
 
@@ -145,8 +187,8 @@ The bootloader prints to the same console as the application (USART1 on PA9,
 take:
 
 ```
-boot-g474: soft_request=0 button=1 app_valid=1
-boot-g474: entering DFU mode
+boot-g474: web=0 console=0 button=1 app_valid=1
+boot-g474: entering update mode with the drive
 uf2: all 270 blocks received (image_len=69116)
 flash: writing 69116 bytes, page=2048 bytes, 34 pages, DBANK=1, FLASHSIZE=128 KB
 ```
@@ -157,4 +199,8 @@ corrupt image.
 
 Things worth exercising after a change, all of which must leave a working
 board: unplug mid-copy; copy an unrelated file; copy a `.uf2` built for
-`0x08000000`; delete a file from the volume.
+`0x08000000`; delete a file from the volume; close the update tool mid-write
+and power-cycle (the board must come back in update mode, and Resume update
+must finish); install a `.uf2` with one corrupted byte through the tool (the
+commit must be refused); select the bootloader by hand in the configuration
+tool during an update (the update must still finish).

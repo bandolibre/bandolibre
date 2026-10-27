@@ -67,13 +67,52 @@ class TestLicensedIds(unittest.TestCase):
 
 class TestDeviceRevision(unittest.TestCase):
     def test_revisions_differ(self):
-        app = field_value(APP_DESCRIPTORS, "bcdDevice")
-        boot = field_value(BOOT_DESCRIPTORS, "bcdDevice")
-        self.assertNotEqual(
-            app, boot,
-            "application and bootloader share VID:PID, so bcdDevice is all that "
-            "keeps a host from caching one device's driver for the other",
+        """The bootloader has two configurations (MIDI only, MIDI + drive),
+        each with its own revision, and the application a third."""
+        revisions = {
+            "application": field_value(APP_DESCRIPTORS, "bcdDevice"),
+            "bootloader MIDI only": defined_value(BOOT_DESCRIPTORS, "BCD_DEVICE_MIDI"),
+            "bootloader MIDI + drive": defined_value(BOOT_DESCRIPTORS, "BCD_DEVICE_DRIVE"),
+        }
+        self.assertEqual(
+            len(set(revisions.values())), len(revisions),
+            f"bcdDevice values collide: {revisions}. Application and bootloader "
+            "share VID:PID, so bcdDevice is all that keeps a host from caching "
+            "one interface layout's drivers for another",
         )
+
+
+def device_name_strings(path: Path) -> list[str]:
+    """The manufacturer and product strings (indices 1 and 2) of a descriptor
+    file, with a #define'd name resolved."""
+    text = path.read_text()
+    array = re.search(r"string_desc_arr\[\]\s*=\s*\{(.*?)\};", text, re.S)
+    assert array, f"no string_desc_arr in {path}"
+    entries = [line.split("//")[0].strip().rstrip(",")
+               for line in array.group(1).splitlines() if line.strip()]
+    defines = dict(re.findall(r'^#define\s+(\w+)\s+"([^"]*)"', text, re.M))
+    names = []
+    for entry in entries[1:3]:
+        literal = re.fullmatch(r'"([^"]*)"', entry)
+        names.append(literal.group(1) if literal else defines[entry])
+    return names
+
+
+class TestDeviceNames(unittest.TestCase):
+    """The web tools pick the instrument by its MIDI port name and leave the
+    bootloader alone: /bandolibre/i and not /firmware update/i. Windows names
+    the port after the manufacturer, Linux and macOS after the product, so
+    both strings must follow the rule (see the midi-autoconnect skill)."""
+
+    def test_application_is_plain_bandolibre(self):
+        for name in device_name_strings(APP_DESCRIPTORS):
+            self.assertRegex(name, r"(?i)bandolibre")
+            self.assertNotRegex(name, r"(?i)firmware update")
+
+    def test_bootloader_says_firmware_update(self):
+        for name in device_name_strings(BOOT_DESCRIPTORS):
+            self.assertRegex(name, r"(?i)bandolibre")
+            self.assertRegex(name, r"(?i)firmware update")
 
 
 if __name__ == "__main__":

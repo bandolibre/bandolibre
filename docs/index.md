@@ -110,7 +110,7 @@ navigateur, de dialoguer avec l'appareil en **MIDI Sysex**, de visualiser le
 clavier en direct et de régler les propriétés du firmware, sans rien
 installer.
 
-<a href="{{ '/tools/midi.html' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-sliders-h"></i> Ouvrir l'outil de configuration</a>
+<a href="{{ '/connect/' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-sliders-h"></i> Ouvrir l'outil de configuration</a>
 
 ## Jouer avec BandoPM, le synthétiseur en ligne
 

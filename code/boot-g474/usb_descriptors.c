@@ -1,32 +1,55 @@
 /*
- * USB descriptors for the Bandolibre UF2 bootloader.
- * Full-speed mass storage device, one interface, one bulk endpoint pair.
+ * USB descriptors for the Bandolibre bootloader.
+ *
+ * Two configurations, picked once at boot by usb_descriptors_set_drive():
+ *
+ *   MIDI only     entered from the web update tool (ENTER_UPDATE_MODE). No
+ *                 drive appears, so the OS shows nothing but a MIDI port and
+ *                 macOS has no unejected disk to complain about at the reset.
+ *   MIDI + MSC    entered with FN2 held, from the console `dfu`, or because
+ *                 the application is missing or interrupted: the BANDOLIBRE
+ *                 drive takes a .uf2 copy, and MIDI still serves the web tool.
  */
 
 #include "tusb.h"
 #include "stm32g4xx_hal.h"
+#include "usb_descriptors.h"
 
 /* Same sublicensed ST ids as the application (main-g474/usb/usb_descriptors.c):
  * one product id covers the whole product, so the bootloader is told apart by
- * bcdDevice instead. Hosts cache a driver per VID/PID/revision and the two
- * devices expose different classes, so the revisions must stay distinct.
+ * bcdDevice instead. Hosts cache a driver set per VID/PID/revision and the
+ * three interface layouts differ, so the revisions must stay distinct.
  *
- *   application (MIDI)   bcdDevice 0x0100
- *   bootloader  (MSC)    bcdDevice 0x0200
+ *   application              bcdDevice 0x0100
+ *   bootloader, MIDI only    bcdDevice 0x0201
+ *   bootloader, MIDI + MSC   bcdDevice 0x0202
  */
 #define USB_VID  0x0483  /* STMicroelectronics */
 #define USB_PID  0xA5B4  /* Bandolibre */
+#define BCD_DEVICE_MIDI   0x0201
+#define BCD_DEVICE_DRIVE  0x0202
+
+static bool with_drive;
+
+void usb_descriptors_set_drive(bool drive)
+{
+  with_drive = drive;
+}
+
+bool usb_descriptors_has_drive(void)
+{
+  return with_drive;
+}
 
 //--------------------------------------------------------------------+
 // Device Descriptor
 //--------------------------------------------------------------------+
-static tusb_desc_device_t const desc_device = {
+static tusb_desc_device_t desc_device = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
 
-    /* Class is declared per interface, not per device: a plain MSC device
-     * needs no IAD (unlike the application, which uses one for MIDI). */
+    /* Class is declared per interface, not per device. */
     .bDeviceClass       = 0x00,
     .bDeviceSubClass    = 0x00,
     .bDeviceProtocol    = 0x00,
@@ -34,7 +57,7 @@ static tusb_desc_device_t const desc_device = {
 
     .idVendor           = USB_VID,
     .idProduct          = USB_PID,
-    .bcdDevice          = 0x0200,
+    .bcdDevice          = BCD_DEVICE_MIDI,
 
     .iManufacturer      = 0x01,
     .iProduct           = 0x02,
@@ -44,49 +67,65 @@ static tusb_desc_device_t const desc_device = {
 };
 
 uint8_t const *tud_descriptor_device_cb(void) {
+  desc_device.bcdDevice = with_drive ? BCD_DEVICE_DRIVE : BCD_DEVICE_MIDI;
   return (uint8_t const *) &desc_device;
 }
 
 //--------------------------------------------------------------------+
-// Configuration Descriptor
+// Configuration Descriptors
 //--------------------------------------------------------------------+
 enum {
-  ITF_NUM_MSC = 0,
-  ITF_NUM_TOTAL
+  ITF_NUM_MIDI = 0,
+  ITF_NUM_MIDI_STREAMING,
+  ITF_NUM_MSC,
 };
-
-#define CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define ITF_COUNT_MIDI_ONLY   2
+#define ITF_COUNT_MIDI_DRIVE  3
 
 /* Endpoint addresses (STM32 fsdev: each number is a bidirectional pair). */
-#define EPNUM_MSC_OUT   0x01
-#define EPNUM_MSC_IN    0x81
+#define EPNUM_MIDI_OUT  0x01
+#define EPNUM_MIDI_IN   0x81
+#define EPNUM_MSC_OUT   0x02
+#define EPNUM_MSC_IN    0x82
 
-static uint8_t const desc_configuration[] = {
+#define STRID_INTERFACE 4
+
+static uint8_t const desc_midi_only[] = {
     /* config number, interface count, string index, total length, attribute, power in mA */
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
+    TUD_CONFIG_DESCRIPTOR(1, ITF_COUNT_MIDI_ONLY, 0, TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN, 0x00, 100),
+    TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, STRID_INTERFACE, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64),
+};
 
-    /* interface number, string index, EP Out & EP In address, EP size */
-    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 4, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
+static uint8_t const desc_midi_drive[] = {
+    TUD_CONFIG_DESCRIPTOR(1, ITF_COUNT_MIDI_DRIVE, 0,
+                          TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN + TUD_MSC_DESC_LEN, 0x00, 100),
+    TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, STRID_INTERFACE, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64),
+    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, STRID_INTERFACE, EPNUM_MSC_OUT, EPNUM_MSC_IN, 64),
 };
 
 uint8_t const *tud_descriptor_configuration_cb(uint8_t index) {
   (void) index;
-  return desc_configuration;
+  return with_drive ? desc_midi_drive : desc_midi_only;
 }
 
 //--------------------------------------------------------------------+
 // String Descriptors
 //--------------------------------------------------------------------+
 
-/* Indices match iManufacturer/iProduct/iSerialNumber above, plus the MSC
- * interface string. ASCII only — unlike the application's descriptors there is
- * no accented text here, so no UTF-8 decoding is needed. */
+/* Manufacturer, product and interface are the same string on purpose: the MIDI
+ * port name comes from the product on Linux and macOS and from the
+ * manufacturer on Windows, so on every OS it says "firmware update", which the
+ * configuration tool and bandopm exclude from their auto-connect (the
+ * application's strings are plain "Bandolibre"). ASCII only, so no UTF-8
+ * decoding is needed. */
+#define DEVICE_NAME "Bandolibre firmware update"
+
 static char const *string_desc_arr[] = {
     (const char[]) { 0x09, 0x04 },  // 0: supported language is English (0x0409)
-    "L'Atelier du Bandoneon Libre", // 1: Manufacturer
-    "Bandolibre DFU",               // 2: Product
+    DEVICE_NAME,                    // 1: Manufacturer
+    DEVICE_NAME,                    // 2: Product
     NULL,                           // 3: Serial, derived from the chip UID
-    "Bandolibre Firmware Update",   // 4: MSC interface
+    DEVICE_NAME,                    // 4: MIDI and MSC interfaces
 };
 
 /* 96-bit chip UID as 24 hex digits, the same serial the application reports.

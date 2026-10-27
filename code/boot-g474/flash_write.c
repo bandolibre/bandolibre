@@ -7,12 +7,13 @@
 #include "memmap.h"
 #include "stm32g4xx_hal.h"
 
-/* Program one page's worth of the staged image. `offset` is relative to
- * APP_BASE and page-aligned; `len` is the number of bytes of `image` that fall
- * in this page (the last page is usually short). */
-static bool program_page(const uint8_t *image, uint32_t offset, uint32_t len)
+/* Program one page's worth of the staged image, from byte `from` of the page
+ * on. `offset` is relative to APP_BASE and page-aligned; `len` is the number
+ * of bytes of `image` that fall in this page (the last page is usually
+ * short). */
+static bool program_page(const uint8_t *image, uint32_t offset, uint32_t len, uint32_t from)
 {
-  for (uint32_t i = 0; i < len; i += 8U) {
+  for (uint32_t i = from; i < len; i += 8U) {
     /* HAL_FLASH_Program takes the doubleword by value, and the staging buffer
      * is only 4-byte aligned, so copy through a local rather than casting. */
     uint64_t word = 0xFFFFFFFFFFFFFFFFULL;
@@ -60,14 +61,17 @@ bool flash_write_app(const uint8_t *image, size_t len)
   for (uint32_t p = 1; p < pages && ok; p++) {
     uint32_t const offset = p * page;
     uint32_t const chunk = ((uint32_t) len - offset < page) ? ((uint32_t) len - offset) : page;
-    ok = program_page(image, offset, chunk);
+    ok = program_page(image, offset, chunk, 0U);
   }
   printf("flash: program pages 1..%lu %s\r\n", (unsigned long) (pages - 1U),
          ok ? "done" : "FAILED");
 
+  /* Page 0 last, and within it the first double word (initial SP and reset
+   * PC) after everything else: a power cut while page 0 is programmed leaves
+   * those two words erased, and app_valid() rejects the image. */
   if (ok) {
     uint32_t const chunk = ((uint32_t) len < page) ? (uint32_t) len : page;
-    ok = program_page(image, 0U, chunk);
+    ok = program_page(image, 0U, chunk, 8U) && program_page(image, 0U, 8U, 0U);
     printf("flash: program vector table page (0) %s\r\n", ok ? "done" : "FAILED");
   }
 

@@ -47,16 +47,13 @@ extern "C" {
 #define CFG_TUD_MIDI              1
 #define CFG_TUD_VENDOR            0
 
-// MIDI FIFO size of TX and RX. TX must hold a full sysex response frame in
-// one go: usb_app_midi_send_sysex() writes header/body/footer back-to-back
-// with no draining in between, so anything that doesn't fit here gets
-// silently truncated by tud_midi_stream_write() rather than queued. Sized to
-// match MAX_ENCODED_SYSEX + 2 (usb_app.cc: the 7-bit-encoded body, plus the
-// leading 0xF0 and trailing 0xF7), the protocol's own max frame size on the
-// wire - larger than MAX_SYSEX itself since 7-bit encoding costs ~14%
-// overhead.
+// MIDI FIFO size of TX and RX, in 4-byte USB-MIDI packets of 3 MIDI bytes.
+// A frame larger than the free TX space no longer gets cut: midi_tx_send()
+// (common/sysex/midi_tx.h) waits for the host to drain it. 400 still holds
+// the largest sysex frame whole (MAX_FRAME in usb_app.cc, ~300 bytes on the
+// wire), so a reply rarely has to wait while notes are flowing.
 #define CFG_TUD_MIDI_RX_BUFSIZE   64
-#define CFG_TUD_MIDI_TX_BUFSIZE   298
+#define CFG_TUD_MIDI_TX_BUFSIZE   400
 
 #ifdef __cplusplus
 }

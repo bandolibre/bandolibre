@@ -12,15 +12,17 @@ test:
     cmake --build build/host_tests
     ctest --test-dir build/host_tests --output-on-failure
 
-# Flash the Debug build over SWD. Links at 0x08000000, so it REPLACES the bootloader.
-flash: _flash
+# Flash the Debug build over SWD, above the bootloader (install that once with `cd ../boot-g474 && just flash`).
+flash:
+    arm-none-eabi-objcopy -O binary build/Debug/main-g474.elf build/Debug/main-g474.bin
+    ../tool/flash.py main-g474 build/Debug/main-g474.bin --address 0x08008000
 
 # Package the Release firmware as a .uf2 to copy onto the BANDOLIBRE drive.
 dfu: init_build_release build_release
     arm-none-eabi-objcopy -O binary build/Release/main-g474.elf build/Release/main-g474.bin
     ../tool/uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2
 
-# Install bootloader + Release application over SWD. Once per board, and after `just flash`.
+# Install bootloader + Release application over SWD. Once per board.
 flash_release: init_build_release build_release
     cd ../boot-g474 && just flash
     arm-none-eabi-objcopy -O binary build/Release/main-g474.elf build/Release/main-g474.bin

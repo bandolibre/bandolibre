@@ -6,7 +6,7 @@ extern "C" {
 #include <string.h>
 
 #include "main.h"
-#include "memmap.h"
+#include "bootloader.h"
 #include "usb_app.h"
 #include "bellow.h"
 #include "properties.h"
@@ -53,15 +53,8 @@ int console_execute(int argc, const char *const *argv)
   }
   else if (strcmp(argv[0], "dfu") == 0)
   {
-#ifndef USER_VECT_TAB_ADDRESS
-    printf("This is a Debug image flashed over the bootloader; there is no\r\n"
-           "DFU mode to enter. Reinstall it with 'just flash_release'.\r\n");
-#else
-    printf("Rebooting into DFU mode; the BANDOLIBRE drive will appear.\r\n");
-    HAL_Delay(50);
-    *(volatile uint32_t *)BOOT_FLAG_ADDR = BOOT_FLAG_MAGIC;
-    NVIC_SystemReset();
-#endif
+    printf("Rebooting into the bootloader; the BANDOLIBRE drive will appear.\r\n");
+    reboot_to_bootloader(true);
   }
   else if (strcmp(argv[0], "bellow_tune") == 0) bellow_tune();
   else if (strcmp(argv[0], "help") == 0)

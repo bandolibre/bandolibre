@@ -35,12 +35,13 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TARGET_FLAGS}")
 set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS} -x assembler-with-cpp -MMD -MP")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fdata-sections -ffunction-sections -fstack-usage")
 
-set(CMAKE_C_FLAGS_DEBUG "-Os -g3")
+set(CMAKE_C_FLAGS_DEBUG "-Os -g3 -flto=auto")
 set(CMAKE_C_FLAGS_RELEASE "-Os -g0 -flto=auto")
 
 # Link-time optimization: the link step re-runs optimization on the merged IR,
-# so it needs -flto and the optimization level. Only the Release config compiles
-# objects with -flto; Debug links normally.
+# so it needs -flto and the optimization level. Debug needs it too: with MIDI
+# and the mass storage class, a Debug build without LTO no longer fits 32 KB.
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-flto=auto -Os")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-flto=auto -Os")
 
 set(CMAKE_EXE_LINKER_FLAGS "${TARGET_FLAGS}")

@@ -1,6 +1,7 @@
 /*
- * TinyUSB configuration for the Bandolibre UF2 bootloader (STM32G474, USB FS
- * device). Mass storage only — the application's MIDI stack is not built here.
+ * TinyUSB configuration for the Bandolibre bootloader (STM32G474, USB FS
+ * device): MIDI for the web update tool, plus mass storage for the UF2 drive
+ * when the configuration includes it (usb_descriptors.c).
  */
 
 #ifndef TUSB_CONFIG_H_
@@ -40,8 +41,16 @@ extern "C" {
 #define CFG_TUD_CDC               0
 #define CFG_TUD_MSC               1
 #define CFG_TUD_HID               0
-#define CFG_TUD_MIDI              0
+#define CFG_TUD_MIDI              1
 #define CFG_TUD_VENDOR            0
+
+/* A whole reply fits the TX FIFO, which stores 4-byte USB-MIDI packets of 3
+ * sysex bytes (midi_update.c checks it against its longest possible reply),
+ * so midi_tx_send() never has to wait for the host.
+ * RX holds a couple of packets; while a page erase stalls the CPU the
+ * endpoint simply NAKs. */
+#define CFG_TUD_MIDI_RX_BUFSIZE   128
+#define CFG_TUD_MIDI_TX_BUFSIZE   160
 
 /* One disk sector per transfer. The bulk endpoints stay at the full-speed
  * maximum of 64 bytes; this is the class driver's RAM buffer, and matching it

@@ -1,8 +1,21 @@
-# Build and run checks for the web MIDI/config app. The app itself lives in
-# docs/tools/ because the site publishes it from there (GitHub Pages ignores
-# symlinks, so it cannot be a link). It is single-file with no build step of
-# its own - this just catches JS syntax errors in midi.html's inline <script>
-# blocks before they'd otherwise only surface in a browser console.
+# Build and run checks for the web tools: the configuration tool
+# (docs/connect/) and the firmware update tool (docs/update/). They live under
+# docs/ because the site publishes them from there (GitHub Pages ignores
+# symlinks, so they cannot be links). Each is single-file with no build step of
+# its own - this just catches JS syntax errors in their inline <script> blocks
+# before they'd otherwise only surface in a browser console. `bun build` of the
+# HTML itself does not parse classic inline scripts, so each block is pulled
+# out into its own .js file and built on its own.
 test:
-    mkdir -p build
-    bun build ../../docs/tools/midi.html --outdir build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf build && mkdir -p build
+    for page in connect update; do
+        awk -v out="build/$page" '/<script>/ { n++; f = 1; next } /<\/script>/ { f = 0 } f { print > (out "-" n ".js") }' \
+            ../../docs/$page/index.html
+    done
+    for js in build/*.js; do
+        # Bare imports come from the page's import map, not node_modules.
+        bun build "$js" --packages external --outdir build/out > /dev/null
+        echo "ok $js"
+    done

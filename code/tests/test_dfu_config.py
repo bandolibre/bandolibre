@@ -11,14 +11,10 @@ tests are the thing that catches it.
 Layout under test (see code/boot-g474/memmap.h):
 
     0x08000000  bootloader          32 KB
-    0x08008000  application         92 KB   Release build
+    0x08008000  application         92 KB   Debug and Release builds
     0x0801F000  properties A         2 KB   saved property values
     0x0801F800  properties B         2 KB
     0x08020000  end
-
-The Debug build of main-g474 is deliberately outside that split: it links at
-0x08000000 over the bootloader, because at -O0 it is ~116 KB and cannot fit
-above one.
 """
 
 import re
@@ -149,20 +145,29 @@ class TestLinkerScripts(unittest.TestCase):
                              "the bootloader region runs into the application region")
         self.assertLessEqual(app[0] + app[1], FLASH_ORIGIN + FLASH_TOTAL)
 
-    def test_debug_map_spans_flash_below_the_properties_pages(self):
-        """The Debug image intentionally replaces the bootloader, but must still
-        leave the saved-properties pages alone."""
+    def test_application_has_a_single_map(self):
+        """Debug and Release both link above the bootloader; a second map at
+        0x08000000 would overwrite it on `just flash`."""
+        self.assertFalse((MAIN_DIR / "STM32G474XX_FLASH.ld").exists(),
+                         "main-g474 must not have a Debug map over the bootloader")
+
+    def test_app_info_at_its_fixed_address(self):
+        """The bootloader reads the installed version at APP_INFO_ADDR, right
+        after the vector table (~0x1D8 bytes)."""
         m = memmap_defines()
-        flash = parse_memory_regions(MAIN_DIR / "STM32G474XX_FLASH.ld")["FLASH"]
-        self.assertEqual(flash[0], FLASH_ORIGIN)
-        self.assertEqual(flash[0] + flash[1], m["PROPS_BASE"])
+        self.assertEqual(m["APP_INFO_ADDR"], m["APP_BASE"] + 0x200)
+        script = (MAIN_DIR / "STM32G474XX_FLASH_APP.ld").read_text()
+        self.assertRegex(script, r"\.app_info\s+ORIGIN\(FLASH\)\s*\+\s*0x200\s*:",
+                         "the linker script must place .app_info at APP_INFO_ADDR")
+        self.assertIn("KEEP(*(.app_info))", script)
+        source = (MAIN_DIR / "app" / "bootloader.c").read_text()
+        self.assertIn('section(".app_info")', source)
 
     def test_boot_flag_region_matches_in_every_script(self):
-        """All three images must agree on where the hand-off word lives, and
-        none of them may let the stack or .bss reach it."""
+        """Both images must agree on where the hand-off word lives, and
+        neither may let the stack or .bss reach it."""
         m = memmap_defines()
         for script in ("boot-g474/STM32G474XX_FLASH.ld",
-                       "main-g474/STM32G474XX_FLASH.ld",
                        "main-g474/STM32G474XX_FLASH_APP.ld"):
             with self.subTest(script=script):
                 regions = parse_memory_regions(REPO_ROOT / "code" / script)
@@ -212,7 +217,7 @@ class TestBuildConfiguration(unittest.TestCase):
         drivers = (MAIN_DIR / "cmake" / "stm32cubemx" / "CMakeLists.txt").read_text()
         self.assertIn("system_stm32g4xx.c", drivers)
 
-    def test_release_links_against_the_relocated_script(self):
+    def test_both_configurations_link_against_the_relocated_script(self):
         toolchain = (MAIN_DIR / "cmake" / "gcc-arm-none-eabi.cmake").read_text()
 
         # The values embed escaped quotes around ${CMAKE_SOURCE_DIR}, so match
@@ -225,9 +230,8 @@ class TestBuildConfiguration(unittest.TestCase):
         self.assertIsNotNone(debug, "Debug config sets no linker script")
         self.assertIn("STM32G474XX_FLASH_APP.ld", release.group(1),
                       "Release must link with the relocated map")
-        self.assertIn("STM32G474XX_FLASH.ld", debug.group(1))
-        self.assertNotIn("STM32G474XX_FLASH_APP.ld", debug.group(1),
-                         "Debug must link at 0x08000000, not above the bootloader")
+        self.assertIn("STM32G474XX_FLASH_APP.ld", debug.group(1),
+                      "Debug must link above the bootloader too")
 
         # A -T left in the common flags would be passed to both configurations
         # and silently win or conflict.

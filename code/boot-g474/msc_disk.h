@@ -10,7 +10,8 @@
  * copy is ready to be written to flash. */
 bool uf2_commit_ready(void);
 
-/* True while blocks are arriving but the image is not yet complete. */
+/* True while blocks are arriving but the image is not yet complete: the last
+ * block came less than 2 s ago. */
 bool uf2_receiving(void);
 
 /* Write the staged image to the application region and clear the ready flag.

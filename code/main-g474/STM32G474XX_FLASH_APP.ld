@@ -9,17 +9,19 @@
 **  Abstract    : Linker script for STM32G474CBTx series
 **                128Kbytes FLASH and 128Kbytes RAM
 **
-**                RELEASE map: the application is relocated to 0x08008000,
-**                above the 32 KB UF2 bootloader, and gets the 92 KB up to the
-**                two saved-properties pages. This is the image `just dfu`
-**                packages and the bootloader writes.
+**                The application map, for Debug and Release alike: relocated
+**                to 0x08008000, above the 32 KB bootloader, with the 92 KB up
+**                to the two saved-properties pages. This is the image `just
+**                dfu` packages and the bootloader writes.
 **
 **                The vector table moves with it: main-g474/CMakeLists.txt
-**                defines USER_VECT_TAB_ADDRESS and VECT_TAB_OFFSET=0x8000 for
-**                the Release config, which makes SystemInit() point VTOR here.
+**                defines USER_VECT_TAB_ADDRESS and VECT_TAB_OFFSET=0x8000,
+**                which makes SystemInit() point VTOR here.
 **
-**                STM32G474XX_FLASH.ld is the Debug map (0x08000000, no
-**                bootloader). See boot-g474/memmap.h for the full split.
+**                .app_info (app/bootloader.c) sits at a fixed 0x200 past the
+**                start, right after the vector table, so the bootloader can
+**                read the installed version. See boot-g474/memmap.h for the
+**                full split.
 **
 **                Set heap size, stack size and stack location according
 **                to application requirements.
@@ -89,6 +91,13 @@ SECTIONS
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
   } >FLASH
+
+  /* Version record read by the bootloader at APP_INFO_ADDR (memmap.h). */
+  .app_info ORIGIN(FLASH) + 0x200 :
+  {
+    KEEP(*(.app_info))
+  } >FLASH
+  ASSERT(SIZEOF(.app_info) > 0, ".app_info is missing (app/bootloader.c)")
 
   /* The program code and other data goes into FLASH */
   .text :

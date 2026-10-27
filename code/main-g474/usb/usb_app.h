@@ -57,7 +57,7 @@ void usb_app_midi_active_sensing(void);
  * identifier and body (matching what midi_sysex_received expects on the way
  * in), wrapped with a leading 0xF0 + 2-byte checksum and a trailing 0xF7.
  * The checksum and data bytes are repacked into 7-bit groups in between (see
- * sysex_encode7 in usb_app.cc) so every byte between the markers has its
+ * common/sysex/sysex_codec.h) so every byte between the markers has its
  * high bit clear - required for the frame to survive transports that
  * reconstruct a standard MIDI byte stream (the Linux kernel's own USB-MIDI
  * driver feeding ALSA/Web MIDI does this and corrupts any 8-bit-clean byte

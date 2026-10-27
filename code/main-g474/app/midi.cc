@@ -1,11 +1,13 @@
 #include "midi.h"
 #include "main.h"        /* HAL_GetTick */
 #include "properties.h"
+#include "sysex_ids.h"   /* message ids, shared with the bootloader */
 #include "usb_app.h"
 #include "version.h"     /* FIRMWARE_VERSION_STRING, generated from the git tag */
 
 extern "C" {
 #include "bellow.h"
+#include "bootloader.h"
 #include "keyboard.h"
 #include "lease.h"
 #include "pedals.h"
@@ -19,38 +21,6 @@ extern "C" {
 #include <gsl/span>
 
 namespace {
-
-enum sysex_message_id : uint8_t {
-  SYSEX_MSG_HELLO                    = 0x00,
-  SYSEX_MSG_GET_PROPERTY             = 0x01,
-  SYSEX_MSG_GET_PROPERTY_DESCRIPTION = 0x02,
-  SYSEX_MSG_SET_PROPERTY             = 0x03,
-  /* The tool's live poll: answers with the live peripheral state, and renews
-   * the monitor lease that gates the push notifications below (see
-   * monitor_leased). */
-  SYSEX_MSG_MONITOR_LEASE            = 0x04,
-  /* Device -> host push notification, not a request/response: sent whenever
-   * the effective bellows direction changes (see midi_send_bellows_direction
-   * below and its call site in keyboard.cpp). */
-  SYSEX_MSG_BELLOWS_DIRECTION        = 0x05,
-  /* Saved values (flash, property_persist.cc): read or write the value a
-   * property boots with, and forget them all. */
-  SYSEX_MSG_GET_SAVED_VALUE          = 0x06,
-  SYSEX_MSG_SET_SAVED_VALUE          = 0x07,
-  SYSEX_MSG_FACTORY_RESET            = 0x08,
-  /* Device -> host push notification: a property the device changed and
-   * saved on its own (see midi_send_property_changed). */
-  SYSEX_MSG_PROPERTY_CHANGED         = 0x09,
-  /* Device -> host push notification: one per NOTE ON, with the key strike
-   * that caused it (see midi_send_key_strike). */
-  SYSEX_MSG_KEY_STRIKE               = 0x0A,
-  /* Device -> host push notification: one per NOTE OFF of a key, with the
-   * release that caused it (see midi_send_key_release). */
-  SYSEX_MSG_KEY_RELEASE              = 0x0B,
-  /* A synth asking for key-speed velocities (bandopm's attack & release
-   * mode): renews the velocity lease (see renew_velocity_lease). No reply. */
-  SYSEX_MSG_VELOCITY_LEASE           = 0x0C,
-};
 
 /* Status byte of the GET/SET_SAVED_VALUE response. */
 enum saved_value_status : uint8_t {
@@ -149,8 +119,14 @@ void send_hello_response()
   std::array<uint8_t, 128> payload;
   DataWriter writer(payload);
 
+  /* The part common to both modes (the bootloader answers HELLO too, see
+   * sysex_ids.h): version, mode, then the generation of the saved-values
+   * store (property_store.h), 0 if nothing is saved. */
   writer.write((uint8_t)SYSEX_MSG_HELLO);
   writer.write(gsl::span<const char>(FIRMWARE_VERSION_STRING, strlen(FIRMWARE_VERSION_STRING)));
+  writer.write((uint8_t)SYSEX_MODE_INSTRUMENT);
+  writer.write(property_store_status().generation);
+  /* Instrument mode only. */
   writer.write((uint16_t)property_count());
   /* Wing id of each keyboard (0 if that side hasn't sent a good frame yet,
    * e.g. not connected), left then right. */
@@ -160,9 +136,6 @@ void send_hello_response()
    * so a client that just connected knows the initial state without waiting
    * for the next midi_send_bellows_direction() change notification. */
   writer.write((uint8_t)keyboard_bellows_direction());
-  /* Generation of the saved-values store (property_store.h), 0 if nothing is
-   * saved. Last, so a client that stops reading early is unaffected. */
-  writer.write(property_store_status().generation);
 
   gsl::span<const uint8_t> body = writer.getSpan();
   usb_app_midi_send_sysex(body.data(), body.size());
@@ -439,6 +412,22 @@ void handle_factory_reset()
   usb_app_midi_send_sysex(payload, sizeof(payload));
 }
 
+/* [u8 seq, magic "UPDT"] -> [id, seq, status], then reboot into the
+ * bootloader's MIDI-only update mode (the web update tool). The magic keeps a
+ * stray or garbled frame from rebooting the instrument mid-tune. */
+void handle_enter_update_mode(gsl::span<const uint8_t> body)
+{
+  size_t const magic_len = sizeof(SYSEX_UPDATE_MAGIC) - 1;
+  if (body.size() != 1 + magic_len || memcmp(body.data() + 1, SYSEX_UPDATE_MAGIC, magic_len) != 0) {
+    printf("sysex: ENTER_UPDATE_MODE without its magic, ignored\r\n");
+    return;
+  }
+  uint8_t payload[3] = { (uint8_t)SYSEX_MSG_ENTER_UPDATE_MODE, body[0], (uint8_t)UPDATE_OK };
+  usb_app_midi_send_sysex(payload, sizeof(payload));
+  printf("sysex: rebooting into firmware update mode\r\n");
+  reboot_to_bootloader(false);   /* serves USB for 50 ms first, so the reply leaves */
+}
+
 }  /* namespace */
 
 void midi_sysex_received(gsl::span<const uint8_t> data)
@@ -480,6 +469,9 @@ void midi_sysex_received(gsl::span<const uint8_t> data)
       break;
     case SYSEX_MSG_FACTORY_RESET:
       handle_factory_reset();
+      break;
+    case SYSEX_MSG_ENTER_UPDATE_MODE:
+      handle_enter_update_mode(body);
       break;
     default:
       printf("sysex: unknown message id %u\r\n", message_id);

@@ -25,6 +25,9 @@ function(add_host_test name)
         ${FW}/app
         ${FW}/properties
         ${FW}/../common/console
+        ${FW}/../common/sysex
+        ${FW}/../common/crc
+        ${FW}/../common/flash
         ${FW}/../third_party/gsl/include)
     target_link_libraries(${name} PRIVATE m)
     add_test(NAME ${name} COMMAND ${name})
@@ -48,3 +51,7 @@ add_host_test(bellow_curve_test app/bellow_curve.c app/bellow_curve_test.c)
 add_host_test(key_strike_test app/key_strike.c app/bellow_curve.c app/key_strike_test.c)
 add_host_test(keyboard_layout_test app/keyboard_layout.c app/keyboard_layout_test.c)
 add_host_test(fixed_format_test app/fixed_format.c app/fixed_format_test.c)
+add_host_test(sysex_codec_test
+    ../common/sysex/sysex_codec.c
+    ../common/crc/crc32.c
+    ../common/sysex/sysex_codec_test.c)

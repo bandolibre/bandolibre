@@ -1,14 +1,18 @@
 /*
- * Bandolibre UF2 bootloader.
+ * Bandolibre bootloader.
  *
- * Reset always lands here. If nothing asks for DFU mode and the application
- * above looks valid, this hands over to it immediately; otherwise it brings up
- * USB as a mass storage device called BANDOLIBRE and waits for a .uf2 file to
- * be copied onto it.
+ * Reset always lands here. If nothing asks for update mode and the
+ * application above looks valid, this hands over to it immediately;
+ * otherwise it brings up USB as "Bandolibre firmware update": a MIDI device
+ * the web update tool talks to (midi_update.c), plus, unless the web tool
+ * asked for the reboot, a mass storage device called BANDOLIBRE that takes a
+ * .uf2 file.
  *
- * Three things ask for DFU mode:
- *   - SW_FN2 (PB4) held down at power-on;
+ * Four things ask for update mode:
+ *   - ENTER_UPDATE_MODE from the web update tool, via BOOT_FLAG_ADDR: MIDI
+ *     only;
  *   - the console `dfu` command in the application, via BOOT_FLAG_ADDR;
+ *   - SW_FN2 (PB4) held down at power-on;
  *   - an application that fails its vector table check, so a board whose
  *     firmware is missing or half-written recovers by itself.
  *
@@ -17,12 +21,15 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "debug.h"
 #include "memmap.h"
+#include "midi_update.h"
 #include "msc_disk.h"
 #include "stm32g4xx_hal.h"
 #include "tusb.h"
+#include "usb_descriptors.h"
 
 /* SW_FN2, the leftmost function button. Active low. */
 #define DFU_BUTTON_PORT   GPIOB
@@ -158,15 +165,29 @@ static bool dfu_button_pressed(void)
   return HAL_GPIO_ReadPin(DFU_BUTTON_PORT, DFU_BUTTON_PIN) == GPIO_PIN_RESET;
 }
 
+volatile bool flash_ecc_fault;
+
+bool flash_read(uint32_t addr, void *dst, size_t len)
+{
+  flash_ecc_fault = false;
+  memcpy(dst, (const void *) addr, len);
+  bool const ok = !flash_ecc_fault;
+  flash_ecc_fault = false;
+  return ok;
+}
+
 /* Cheap sanity check on the application's vector table: a plausible initial
  * stack pointer and a reset handler inside the application region. This is
- * what catches a missing or half-written image — flash_write_app() programs
- * the vector table page last precisely so that an interrupted update fails
- * here rather than jumping into nothing. */
-static bool app_valid(void)
+ * what catches a missing or half-written image: both update paths program the
+ * first double word (these two words) last, so an interrupted update fails
+ * here rather than jumping into nothing. A power cut during that very write
+ * leaves it torn, which reads as an ECC error and fails too. */
+bool app_valid(void)
 {
-  uint32_t const sp = ((uint32_t const *) APP_BASE)[0];
-  uint32_t const pc = ((uint32_t const *) APP_BASE)[1];
+  uint32_t words[2];
+  if (!flash_read(APP_BASE, words, sizeof(words))) return false;
+  uint32_t const sp = words[0];
+  uint32_t const pc = words[1];
 
   if (sp < 0x20000000UL || sp > 0x20020000UL) return false;
   if (pc < APP_BASE || pc >= APP_BASE + APP_SIZE) return false;
@@ -264,21 +285,29 @@ static uint32_t pulse_duty(uint32_t now_ms, uint32_t period)
   return (level * level >> 10) * LED_PEAK_DUTY >> 10;
 }
 
-/* Pulse at 2 Hz while waiting, 5 Hz while blocks are arriving. */
+/* Pulse at 2 Hz while waiting, 5 Hz while an image is arriving. */
 static void led_task(void)
 {
-  led_set(pulse_duty(HAL_GetTick(), uf2_receiving() ? 200U : 500U));
+  bool const busy = uf2_receiving() || midi_update_active();
+  led_set(pulse_duty(HAL_GetTick(), busy ? 200U : 500U));
 }
 
-static void dfu_mode(void)
+/* `drive`: also expose the BANDOLIBRE drive (see usb_descriptors.c). */
+static void dfu_mode(bool drive)
 {
+  usb_descriptors_set_drive(drive);
   usb_init();
 
   while (1) {
     tud_task();
+    midi_update_task();
     led_task();
 
     if (uf2_commit_ready()) {
+      /* The drive rewrites the whole application; a web update in progress
+       * must not carry on over it. */
+      midi_update_cancel();
+
       /* Keep servicing USB briefly so the transfer that completed the image
        * gets its status stage and the host is not left waiting mid-command;
        * programming blocks for about a second. */
@@ -309,17 +338,22 @@ int main(void)
   gpio_init();
   debug_init();
 
-  bool const soft_request = (*boot_flag == BOOT_FLAG_MAGIC);
-  *boot_flag = 0;   /* one shot: never trap the board in DFU mode */
+  uint32_t const flag = *boot_flag;
+  *boot_flag = 0;   /* one shot: never trap the board in update mode */
+  bool const web_request = (flag == BOOT_FLAG_MAGIC_MIDI);
+  bool const console_request = (flag == BOOT_FLAG_MAGIC);
   bool const button = dfu_button_pressed();
   bool const valid = app_valid();
 
-  printf("\r\nboot-g474: soft_request=%d button=%d app_valid=%d\r\n",
-         soft_request, button, valid);
+  printf("\r\nboot-g474: web=%d console=%d button=%d app_valid=%d\r\n",
+         web_request, console_request, button, valid);
 
-  if (soft_request || button || !valid) {
-    printf("boot-g474: entering DFU mode\r\n");
-    dfu_mode();
+  if (web_request || console_request || button || !valid) {
+    /* Only a reboot the web tool asked for, onto a valid application, goes
+     * without the drive: any other way in may be a recovery that needs it. */
+    bool const drive = !web_request || !valid || button;
+    printf("boot-g474: entering update mode%s\r\n", drive ? " with the drive" : "");
+    dfu_mode(drive);
   }
 
   printf("boot-g474: jumping to application at 0x%08lx\r\n", (unsigned long) APP_BASE);
@@ -330,6 +364,21 @@ int main(void)
 void Error_Handler(void)
 {
   __disable_irq();
+  while (1) { }
+}
+
+/* A double ECC error on a flash read: a double word torn by a power cut while
+ * it was programmed (an update's last write, or a saved-settings record).
+ * Clear it (ECCD is write-1-to-clear), flag it for flash_read(), and resume;
+ * without this the default handler would hang the bootloader on a board that
+ * only needs a new image. */
+void NMI_Handler(void)
+{
+  if ((FLASH->ECCR & FLASH_ECCR_ECCD) != 0U) {
+    FLASH->ECCR |= FLASH_ECCR_ECCD;
+    flash_ecc_fault = true;
+    return;
+  }
   while (1) { }
 }
 

@@ -12,11 +12,16 @@
  * USB-IF certification, so the device must not carry the USB logo.
  *
  * The bootloader (boot-g474) shares this VID/PID and is told apart by
- * bcdDevice: hosts cache a driver per VID/PID/revision, and the two devices
- * expose different classes (MIDI here, MSC there).
+ * bcdDevice: hosts cache a driver set per VID/PID/revision, and the
+ * interface layouts differ (MIDI here; MIDI, or MIDI plus mass storage
+ * there).
  *
- *   application  bcdDevice 0x0100
- *   bootloader   bcdDevice 0x0200
+ *   application              bcdDevice 0x0100
+ *   bootloader, MIDI only    bcdDevice 0x0201
+ *   bootloader, MIDI + MSC   bcdDevice 0x0202
+ *
+ * Its strings say "Bandolibre firmware update", which the web tools exclude
+ * from auto-connect; keep these plain "Bandolibre".
  */
 #define USB_VID  0x0483  /* STMicroelectronics */
 #define USB_PID  0xA5B4  /* Bandolibre */

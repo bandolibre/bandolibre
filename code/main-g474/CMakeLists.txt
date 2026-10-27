@@ -36,7 +36,7 @@ enable_language(C CXX ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
-# The Release image lives above the UF2 bootloader at 0x08008000, so its vector
+# The image lives above the bootloader at 0x08008000, so its vector
 # table has to move with it. These are the knobs the generated
 # Core/Src/system_stm32g4xx.c already has: with USER_VECT_TAB_ADDRESS defined,
 # SystemInit() sets SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET. Using them keeps
@@ -48,13 +48,14 @@ add_executable(${CMAKE_PROJECT_NAME})
 # STM32_Drivers object library rather than into this executable, and a
 # target_compile_definitions() on ${CMAKE_PROJECT_NAME} would never reach it.
 #
-# Debug defines neither and keeps VTOR at 0x08000000, matching
-# STM32G474XX_FLASH.ld. The offset must equal BOOT_SIZE in ../boot-g474/memmap.h.
-# The bootloader also sets VTOR itself before jumping, so the application is
-# safe either way; this makes the image correct on its own terms.
+# Debug and Release both link there (STM32G474XX_FLASH_APP.ld), so either can
+# be updated from the web tool. The offset must equal BOOT_SIZE in
+# ../boot-g474/memmap.h. The bootloader also sets VTOR itself before jumping, so
+# the application is safe either way; this makes the image correct on its own
+# terms.
 add_compile_definitions(
-    $<$<CONFIG:Release>:USER_VECT_TAB_ADDRESS>
-    $<$<CONFIG:Release>:VECT_TAB_OFFSET=0x8000U>
+    USER_VECT_TAB_ADDRESS
+    VECT_TAB_OFFSET=0x8000U
 )
 
 # Add STM32CubeMX generated sources
@@ -88,6 +89,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     properties/property_persist.cc
     properties/property_store.cc
     ../common/flash/flash_page.c
+    ../common/sysex/sysex_codec.c
+    ../common/sysex/midi_tx.c
+    app/bootloader.c
     ../third_party/microrl/src/microrl.c
     ../common/console/console.c
     ../common/hall_report/hall_report.c
@@ -151,6 +155,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/spi_link
     ../common/hall_report
     ../common/flash
+    ../common/sysex
     usb
     ../third_party/tinyusb/src
     # memmap.h: the flash split and the DFU hand-off flag, shared with the

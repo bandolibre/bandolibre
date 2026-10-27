@@ -167,7 +167,7 @@ Con ella puedes:
 Los cambios se aplican al instante, así que puedes ajustar el tacto mientras
 tocas.
 
-<a href="https://bandolibre.github.io/tools/midi.html"><img width="505" alt="Abrir la herramienta de configuración" src="https://img.shields.io/badge/Abrir_la_herramienta_de_configuraci%C3%B3n-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
+<a href="https://bandolibre.github.io/bandolibre/connect/"><img width="505" alt="Abrir la herramienta de configuración" src="https://img.shields.io/badge/Abrir_la_herramienta_de_configuraci%C3%B3n-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
   <img src="images/configuration_tool.webp" alt="Herramienta de configuración, curva del fuelle" width="49%">
@@ -310,7 +310,28 @@ soundfont o un ajuste te funciona bien, o no, cuéntanoslo en
 ## Actualizar el firmware
 
 El firmware es el software interno del instrumento. Se actualiza por el mismo
-cable USB, sin herramientas ni software adicional.
+cable USB, sin instalar nada.
+
+### Desde el navegador
+
+1. Conecta el Bandolibre y abre la
+   [herramienta de actualización](https://bandolibre.github.io/bandolibre/update/)
+   en Chrome, Edge o Firefox.
+2. La herramienta encuentra el instrumento y muestra su versión del firmware
+   junto a la más reciente.
+3. Pulsa **Update firmware**. El instrumento se reinicia en su modo de
+   actualización, y unos cuadrados se rellenan a medida que el nuevo firmware
+   se escribe y se comprueba.
+4. Al terminar, el instrumento se reinicia con el nuevo firmware.
+
+Tus ajustes guardados se conservan. Los ajustes que cambiaste en la herramienta
+de configuración sin guardarlos se pierden al reiniciarse el instrumento. La
+herramienta de configuración y BandoPM pueden quedar abiertas: esperan durante
+la actualización y se vuelven a conectar después.
+
+### Con la unidad BANDOLIBRE
+
+Este método funciona sin navegador.
 
 1. Descarga el último `main-g474.uf2` desde la
    [página de versiones](https://github.com/bandolibre/bandolibre/releases).
@@ -329,6 +350,10 @@ se conservan.
 
 ### Si algo sale mal
 
+- **La actualización desde el navegador se detuvo: se cerró la página, o se
+  desconectó el cable.** No se daña nada: el instrumento espera en su modo de
+  actualización hasta recibir un firmware completo. Vuelve a abrir la
+  herramienta de actualización y pulsa **Resume update**.
 - **La copia se interrumpió, o se desconectó el cable.** No se daña nada: el
   nuevo firmware solo se instala cuando el archivo ha llegado completo. Vuelve
   a empezar desde el paso 2.

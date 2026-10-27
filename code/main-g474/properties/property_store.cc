@@ -2,12 +2,14 @@
 
 #include <string.h>
 
+#include "store_header.h"
+
 volatile bool property_store_ecc_armed = false;
 volatile bool property_store_ecc_fault = false;
 
 namespace {
 
-constexpr uint32_t kMagic = 0x53504C42u;  /* "BLPS" little-endian */
+constexpr uint32_t kMagic = STORE_MAGIC;
 constexpr uint64_t kErased = ~uint64_t{0};
 constexpr uint8_t kPad = 0xFF;
 
@@ -19,17 +21,11 @@ struct alignas(8) StoreHeader {
 };
 static_assert(sizeof(StoreHeader) == sizeof(uint64_t), "the header is one flash double word");
 
-/* CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) over the first 6 bytes. */
+/* CRC-16/CCITT-FALSE over the first 6 bytes, shared with the bootloader's
+ * reading of the header (common/flash/store_header.h). */
 uint16_t crc16(const void *data)
 {
-  const uint8_t *b = static_cast<const uint8_t *>(data);
-  uint16_t crc = 0xFFFF;
-  for (int i = 0; i < 6; i++) {
-    crc ^= static_cast<uint16_t>(b[i] << 8);
-    for (int bit = 0; bit < 8; bit++)
-      crc = (crc & 0x8000) ? static_cast<uint16_t>((crc << 1) ^ 0x1021) : static_cast<uint16_t>(crc << 1);
-  }
-  return crc;
+  return store_header_crc16(static_cast<const uint8_t *>(data));
 }
 
 template <typename T>

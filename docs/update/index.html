@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bandolibre MIDI Update</title>
+<meta name="description" content="Firmware update tool for Bandolibre, the open-source digital Argentine bandoneon. Updates the instrument over USB-MIDI from the browser, on Windows, macOS and Linux.">
+<meta name="author" content="L'Atelier du bandonéon libre">
+<link rel="canonical" href="https://bandolibre.github.io/bandolibre/update/">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#2f7d78">
+<style>
+  /* Tokens and components from the configuration tool (../connect/). */
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --fg: #1c1c1e;
+    --muted: #6b7280;
+    --card: #ffffff;
+    --border: #e2e2e6;
+    --ok: #1f9d55;
+    --warn: #b45309;
+    --bad: #c0392b;
+    --push: #2f7d78;
+    --pull: #b3591a;
+    --saved-bg: #fdf0cf;
+    --cell-wait: #d9dade;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --fg: #eaeaec;
+      --muted: #9aa0a6;
+      --card: #202124;
+      --border: #333436;
+      --push: #6cb3ad;
+      --pull: #d99a52;
+      --saved-bg: #43381c;
+      --cell-wait: #3a3b3e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding-block: 32px;
+    padding-inline: 16px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1rem; margin: 0 0 12px; }
+  .subtitle { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .info-btn {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .info-btn:hover { border-color: var(--muted); color: var(--fg); }
+  .info-btn svg { width: 18px; height: 18px; }
+  .status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--ok); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad { background: var(--bad); }
+  #statusText { font-weight: 600; }
+  label.small { display: block; font-size: 0.8rem; color: var(--muted); margin: 0 0 6px; }
+  select {
+    width: 100%; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 0.95rem;
+  }
+  /* author display:flex/grid would otherwise beat the UA [hidden] rule */
+  [hidden] { display: none !important; }
+  .device-row { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+  .device-row select { flex: 1 1 240px; width: auto; min-width: 0; }
+  .facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 16px;
+    margin: 14px 0 0;
+    font-size: 0.9rem;
+  }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: 0.85rem; overflow-wrap: anywhere; }
+  .notice {
+    margin: 12px 0 0;
+    padding: 8px 12px;
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    background: var(--saved-bg);
+    font-size: 0.9rem;
+  }
+  .notice.bad { border-left-color: var(--bad); }
+  .notice a { color: inherit; font-weight: 600; }
+  .hint { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
+  .btn {
+    font: inherit; font-size: 0.9rem; padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn.primary { background: var(--push); border-color: var(--push); color: #fff; font-weight: 600; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .drop-zone {
+    margin-top: 12px; padding: 14px; border: 1.5px dashed var(--border); border-radius: 8px;
+    text-align: center; color: var(--muted); font-size: 0.85rem;
+  }
+  .drop-zone.over { border-color: var(--push); color: var(--fg); }
+
+  /* The progress grid: one cell per write chunk of the application region,
+   * like the disk maps of old formatters and defragmenters. */
+  .cells {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13px, 1fr));
+    gap: 3px;
+    margin: 4px 0 10px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: var(--cell-wait);
+  }
+  .cell.out {
+    background: repeating-linear-gradient(45deg, var(--cell-wait) 0 2px, transparent 2px 4px);
+    opacity: 0.6;
+  }
+  .cell.write { background: var(--push); animation: blink 0.5s steps(2) infinite; }
+  .cell.written { background: color-mix(in srgb, var(--push) 55%, var(--cell-wait)); }
+  .cell.ok { background: var(--ok); }
+  .cell.retry { background: var(--warn); }
+  .cell.fail { background: var(--bad); }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .cell.write { animation: none; } }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .cell { width: 11px; animation: none; }
+  .progress-line { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.9rem; margin-top: 10px; }
+  #phaseText { font-weight: 600; }
+  #progressText { color: var(--muted); font-variant-numeric: tabular-nums; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
+  #log {
+    margin: 8px 0 0; max-height: 220px; overflow: auto; padding: 8px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--mono); font-size: 0.75rem; white-space: pre-wrap;
+  }
+
+  .info-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(8, 9, 12, 0.45);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .info-overlay[hidden] { display: none; }
+  .info-modal {
+    position: relative;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px; max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  }
+  .info-modal h2 { margin: 0 0 12px; padding: 4px 40px 10px 0; border-bottom: 1px solid var(--border); font-size: 1.05rem; }
+  .info-modal h3 {
+    margin: 14px 0 4px; font-size: 0.74rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--pull);
+  }
+  .info-modal p { margin: 0 0 12px; font-size: 0.88rem; line-height: 1.55; }
+  .info-modal a { color: var(--push); }
+  .info-modal-close {
+    position: absolute; top: 18px; right: 20px; width: 30px; height: 30px; padding: 0;
+    border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div class="info-overlay" id="infoOverlay" hidden>
+  <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <button type="button" class="info-modal-close" id="infoClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 id="infoTitle">About the update</h2>
+    <h3>How it works</h3>
+    <p>The instrument restarts into its <strong>firmware update mode</strong>, where it shows up as the MIDI device "Bandolibre firmware update". This page writes the new firmware page by page, checks each page, then checks the whole image before making it bootable. The instrument then restarts with it. Your saved settings are kept.</p>
+    <h3>If something goes wrong</h3>
+    <p>Closing this page, losing the cable or the power during an update is safe: the instrument comes back in firmware update mode instead of starting a half-written firmware. Open this page again and choose <strong>Resume update</strong>.</p>
+    <p>Without a browser that supports Web MIDI, hold the leftmost function button (FN2) while plugging the instrument in: a drive called BANDOLIBRE appears. Copy the <code>.uf2</code> file onto it.</p>
+    <h3>Other pages</h3>
+    <p>The <a href="../connect/">configuration tool</a> and BandoPM can stay open: they leave the instrument alone during the update and reconnect afterwards.</p>
+  </div>
+</div>
+
+<main>
+  <div class="page-header">
+    <div>
+      <h1>Bandolibre MIDI Update</h1>
+      <p class="subtitle">Updates the instrument's firmware over USB, from this page.</p>
+    </div>
+    <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="About the update">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="11" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>
+    </button>
+  </div>
+
+  <section class="card" aria-labelledby="instrumentTitle">
+    <h2 id="instrumentTitle">Instrument</h2>
+    <label class="small" for="deviceSelect">MIDI device</label>
+    <div class="device-row">
+      <select id="deviceSelect"></select>
+      <div class="status-row">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Starting…</span>
+      </div>
+    </div>
+    <dl class="facts" id="facts" hidden>
+      <dt>Mode</dt><dd id="factMode"></dd>
+      <dt>Firmware</dt><dd id="factFirmware"></dd>
+      <dt id="factBootLabel" hidden>Update mode</dt><dd id="factBoot" hidden></dd>
+      <dt>Saved settings</dt><dd id="factGeneration"></dd>
+    </dl>
+    <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
+    <p class="notice" id="idleUpdateNotice" hidden>The instrument is waiting in firmware update mode. Update it below, or go back to playing without updating.</p>
+    <div class="actions" id="leaveRow" hidden>
+      <button type="button" class="btn" id="leaveBtn">Return to playing</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="firmwareTitle">
+    <h2 id="firmwareTitle">Firmware to install</h2>
+    <dl class="facts">
+      <dt>Version</dt><dd id="imageVersion">—</dd>
+      <dt>Source</dt><dd id="imageSource">—</dd>
+      <dt>Size</dt><dd id="imageSize">—</dd>
+    </dl>
+    <div class="drop-zone" id="dropZone">Drop a <code>.uf2</code> file here to install your own build.</div>
+    <div class="actions">
+      <button type="button" class="btn primary" id="updateBtn" disabled>Update firmware</button>
+      <button type="button" class="btn" id="fileBtn">Use a file…</button>
+      <input type="file" id="fileInput" accept=".uf2" hidden>
+    </div>
+    <p class="hint" id="updateHint">Values you changed in the configuration tool without saving them are lost when the instrument restarts.</p>
+  </section>
+
+  <section class="card" aria-labelledby="progressTitle">
+    <h2 id="progressTitle">Progress</h2>
+    <div class="cells" id="cells" aria-hidden="true"></div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="cell"></i>to write</span>
+      <span><i class="cell write"></i>writing</span>
+      <span><i class="cell written"></i>written</span>
+      <span><i class="cell ok"></i>checked</span>
+      <span><i class="cell retry"></i>rewritten</span>
+      <span><i class="cell fail"></i>failed</span>
+      <span><i class="cell out"></i>unused</span>
+    </div>
+    <div class="progress-line" role="status" aria-live="polite">
+      <span id="phaseText">Idle</span>
+      <span id="progressText"></span>
+    </div>
+    <p class="notice bad" id="errorNotice" hidden></p>
+    <details>
+      <summary>Details</summary>
+      <pre id="log"></pre>
+    </details>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed", err));
+    });
+  }
+
+  // ---- Device names. Same rule as ../connect/ and bandopm/docs/app.js: the
+  // instrument's MIDI port is named "Bandolibre", its bootloader's "Bandolibre
+  // firmware update" (code/boot-g474/usb_descriptors.c). The name is only a
+  // hint: HELLO's mode byte decides, since an OS may keep an old port name. ----
+  const BANDOLIBRE_RE = /bandolibre/i;
+  const UPDATE_MODE_RE = /firmware update/i;
+
+  // ---- Protocol: code/common/sysex/sysex_ids.h. Keep in sync. ----
+  const MSG_HELLO = 0x00;
+  const MSG_ENTER_UPDATE_MODE = 0x20;
+  const MSG_UPDATE_INFO = 0x21;
+  const MSG_UPDATE_BEGIN = 0x22;
+  const MSG_UPDATE_WRITE = 0x23;
+  const MSG_UPDATE_CRC = 0x24;
+  const MSG_UPDATE_ERASE = 0x25;
+  const MSG_UPDATE_COMMIT = 0x26;
+  const MSG_UPDATE_LEAVE = 0x27;
+  const MODE_INSTRUMENT = 0, MODE_UPDATE = 1;
+  const STATUS = ["ok", "bad session", "bad arguments", "flash error", "CRC mismatch", "busy"];
+  const ST_OK = 0, ST_BAD_SESSION = 1, ST_FLASH_ERROR = 3, ST_BUSY = 5;
+  const APP_VALID = 0, APP_INTERRUPTED = 2;
+  const UPDATE_MAGIC = [0x55, 0x50, 0x44, 0x54]; // "UPDT"
+
+  // ---- Image constraints: code/boot-g474/memmap.h. UPDATE_INFO gives the
+  // real ones; these let a file be checked before an instrument is found. ----
+  const DEFAULT_APP_BASE = 0x08008000;
+  const DEFAULT_APP_SIZE = 92 * 1024;
+  const DEFAULT_PAGE_SIZE = 2048;
+  const DEFAULT_CHUNK = 256;
+  const UF2_FAMILY_STM32G4 = 0x4c71240a;
+  const APP_INFO_OFFSET = 0x200, APP_INFO_MAGIC = 0x49414c42; // "BLAI"
+
+  const LATEST_URL = "firmware/latest.json";
+
+  // ---- SysEx framing: code/common/sysex/sysex_codec.h. Identical to the
+  // copy in ../connect/index.html. ----
+  function sysexChecksum(bytes) {
+    let cs = 0;
+    let i = 0;
+    for (; i + 1 < bytes.length; i += 2) cs ^= bytes[i] | (bytes[i + 1] << 8);
+    if (i < bytes.length) cs ^= bytes[i];
+    return cs & 0xffff;
+  }
+
+  function encode7Sysex(bytes) {
+    const out = [];
+    for (let i = 0; i < bytes.length; i += 7) {
+      const group = bytes.slice(i, i + 7);
+      let msb = 0;
+      for (let j = 0; j < group.length; j++) if (group[j] & 0x80) msb |= 1 << j;
+      out.push(msb);
+      for (const b of group) out.push(b & 0x7f);
+    }
+    return out;
+  }
+
+  function decode7Sysex(bytes) {
+    const out = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const msb = bytes[i++];
+      const group = bytes.slice(i, i + 7);
+      if (group.length === 0 && i < bytes.length) return null;
+      for (let j = 0; j < group.length; j++) out.push(group[j] | ((msb & (1 << j)) ? 0x80 : 0));
+      i += group.length;
+    }
+    return out;
+  }
+
+  function buildSysexFrame(payload) {
+    const cs = sysexChecksum(payload);
+    const body = encode7Sysex([cs & 0xff, cs >> 8, ...payload]);
+    return Uint8Array.from([0xf0, ...body, 0xf7]);
+  }
+
+  function unpackSysexFrame(frame) {
+    if (frame.length < 5 || frame[0] !== 0xf0 || frame[frame.length - 1] !== 0xf7) return null;
+    const body = decode7Sysex(frame.slice(1, frame.length - 1));
+    if (body === null || body.length < 3) return null;
+    const receivedChecksum = body[0] | (body[1] << 8);
+    const covered = Uint8Array.from(body.slice(2));
+    if (sysexChecksum(covered) !== receivedChecksum) return null;
+    return covered;
+  }
+
+  // Little-endian fields, as in the firmware.
+  const u16 = (v) => [v & 0xff, (v >>> 8) & 0xff];
+  const u32 = (v) => [v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff];
+
+  class Reader {
+    constructor(bytes, pos = 0) { this.bytes = bytes; this.pos = pos; }
+    u8() { return this.pos < this.bytes.length ? this.bytes[this.pos++] : null; }
+    u16() {
+      if (this.pos + 2 > this.bytes.length) return null;
+      const v = this.bytes[this.pos] | (this.bytes[this.pos + 1] << 8);
+      this.pos += 2;
+      return v;
+    }
+    u32() {
+      if (this.pos + 4 > this.bytes.length) return null;
+      const b = this.bytes, p = this.pos;
+      this.pos += 4;
+      return (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0;
+    }
+    str() {
+      const start = this.pos;
+      while (this.pos < this.bytes.length && this.bytes[this.pos] !== 0) this.pos++;
+      if (this.pos >= this.bytes.length) return null;
+      const text = new TextDecoder().decode(this.bytes.slice(start, this.pos));
+      this.pos++;
+      return text;
+    }
+  }
+
+  // CRC-32 as zlib, matching code/common/crc/crc32.c.
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(bytes) {
+    let c = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  }
+  const hex32 = (v) => v.toString(16).padStart(8, "0");
+
+  /* [major, minor, patch] from "...v1.2-alpha..." or "bandolibre-v1.2.1", or
+   * null. Same as ../connect/index.html. */
+  function parseFirmwareVersion(text) {
+    const m = /\bv(\d+)\.(\d+)(?:\.(\d+))?/.exec(text || "");
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3] || 0)] : null;
+  }
+  function compareVersions(a, b) {
+    for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
+    return 0;
+  }
+  const shortVersion = (v) => (v || "").replace(/^Bandolibre (bootloader )?/, "");
+
+  // ---- UI ----
+  const $ = (id) => document.getElementById(id);
+  const select = $("deviceSelect");
+  const statusDot = $("statusDot");
+  const statusText = $("statusText");
+  const updateBtn = $("updateBtn");
+  const cellsEl = $("cells");
+  const logEl = $("log");
+
+  function setStatus(kind, text) {
+    statusDot.className = "dot" + (kind ? " " + kind : "");
+    statusText.textContent = text;
+  }
+
+  function log(text) {
+    const t = new Date().toLocaleTimeString();
+    logEl.textContent += "[" + t + "] " + text + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log("[update]", text);
+  }
+
+  function setPhase(text) { $("phaseText").textContent = text; }
+  function setProgress(text) { $("progressText").textContent = text; }
+  function showError(text) {
+    $("errorNotice").textContent = text;
+    $("errorNotice").hidden = !text;
+    if (text) log("error: " + text);
+  }
+
+  // ---- State ----
+  let midiAccess = null;
+  let port = null;      // { key, name, input, output }
+  let device = null;    // { mode, version, generation, info } from HELLO (+ UPDATE_INFO)
+  let image = null;     // { bytes, size, crc, version, source }
+  let busy = false;     // an update is running
+  // Random start, so two tabs or browsers never use the same numbers.
+  let seq = Math.floor(Math.random() * 256);
+
+  function collectDevices() {
+    if (!midiAccess) return [];
+    const ins = new Map(), outs = new Map();
+    for (const p of midiAccess.inputs.values()) {
+      if (p.state !== "connected") continue;
+      const n = p.name || "(unnamed)";
+      if (!ins.has(n)) ins.set(n, []);
+      ins.get(n).push(p);
+    }
+    for (const p of midiAccess.outputs.values()) {
+      if (p.state !== "connected") continue;
+      const n = p.name || "(unnamed)";
+      if (!outs.has(n)) outs.set(n, []);
+      outs.get(n).push(p);
+    }
+    const devices = [];
+    for (const name of new Set([...ins.keys(), ...outs.keys()])) {
+      const i = ins.get(name) || [], o = outs.get(name) || [];
+      for (let k = 0; k < Math.max(i.length, o.length); k++) {
+        const input = i[k] || null, output = o[k] || null;
+        devices.push({ key: (input && input.id) || output.id, name, input, output });
+      }
+    }
+    return devices;
+  }
+
+  const isUpdaterName = (d) => BANDOLIBRE_RE.test(d.name) && UPDATE_MODE_RE.test(d.name);
+  const isBandolibreName = (d) => BANDOLIBRE_RE.test(d.name);
+
+  function renderSelector() {
+    const devices = collectDevices();
+    select.innerHTML = "";
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = devices.length ? "— select a device —" : "(no MIDI devices found)";
+    select.appendChild(empty);
+    for (const d of devices) {
+      const opt = document.createElement("option");
+      opt.value = d.key;
+      opt.textContent = d.name + (isUpdaterName(d) ? " — update mode" : isBandolibreName(d) ? " — Bandolibre" : "");
+      select.appendChild(opt);
+    }
+    select.value = port ? port.key : "";
+  }
+
+  // ---- Requests: one in flight, matched on id (and seq for the update
+  // commands), so a reply meant for the configuration tool or another tab on
+  // the same port is never taken for ours. ----
+  let pending = null;
+  let rxBuf = [];
+  let inSysex = false;
+
+  function onMidiMessage(event) {
+    for (const b of event.data) {
+      if (b === 0xf0) { inSysex = true; rxBuf = [b]; continue; }
+      if (!inSysex) continue;           // notes, CCs, active sensing
+      if (b >= 0xf8) continue;          // real-time bytes may interleave
+      rxBuf.push(b);
+      if (b !== 0xf7) continue;
+      inSysex = false;
+      const payload = unpackSysexFrame(Uint8Array.from(rxBuf));
+      rxBuf = [];
+      if (payload && pending && pending.match(payload)) {
+        const p = pending;
+        pending = null;
+        clearTimeout(p.timer);
+        p.resolve(payload);
+      }
+    }
+  }
+
+  class Timeout extends Error {}
+
+  function request(payload, { timeout = 1000, match } = {}) {
+    return new Promise((resolve, reject) => {
+      if (!port || !port.output) { reject(new Error("no MIDI output")); return; }
+      if (pending) { reject(new Error("another request is in flight")); return; }
+      const timer = setTimeout(() => {
+        pending = null;
+        reject(new Timeout("no answer after " + timeout + " ms"));
+      }, timeout);
+      pending = { resolve, reject, timer, match: match || ((p) => p[0] === payload[0]) };
+      try {
+        port.output.send(buildSysexFrame(payload));
+      } catch (err) {
+        clearTimeout(timer);
+        pending = null;
+        reject(err);
+      }
+    });
+  }
+
+  function dropPending(reason) {
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pending.reject(new Error(reason));
+    pending = null;
+  }
+
+  /* An update command: [id, seq, ...body] -> Reader positioned after
+   * [id, seq, status], with .status. */
+  async function command(id, body, timeout) {
+    const s = seq = (seq + 1) & 0xff;
+    const payload = await request([id, s, ...body], { timeout, match: (p) => p[0] === id && p[1] === s });
+    const r = new Reader(payload, 2);
+    r.status = r.u8();
+    return r;
+  }
+
+  /* Retries a lost reply: every update command but BEGIN and COMMIT is
+   * idempotent on the device. */
+  async function commandRetry(id, body, timeout, tries = 3) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await command(id, body, timeout);
+      } catch (err) {
+        if (!(err instanceof Timeout) || attempt >= tries) throw err;
+        log("no answer, retrying (" + attempt + ")");
+      }
+    }
+  }
+
+  async function hello(timeout = 1000) {
+    const payload = await request([MSG_HELLO], { timeout });
+    const r = new Reader(payload, 1);
+    const version = r.str();
+    const mode = r.u8();
+    const generation = r.u16();
+    if (version === null || mode === null) throw new Error("malformed HELLO reply");
+    return { version, mode, generation };
+  }
+
+  async function updateInfo() {
+    const r = await commandRetry(MSG_UPDATE_INFO, [], 1000);
+    const info = {
+      pageSize: r.u16(), appBase: r.u32(), appSize: r.u32(), maxChunk: r.u16(),
+      appState: r.u8(), appVersion: r.str(), session: r.u16(), drive: r.u8() === 1,
+    };
+    if (info.session === null) throw new Error("malformed UPDATE_INFO reply");
+    return info;
+  }
+
+  // ---- Connecting ----
+  function usePort(d) {
+    if (port && port.input) port.input.onmidimessage = null;
+    dropPending("device changed");
+    port = d;
+    device = null;
+    inSysex = false;
+    if (port && port.input) port.input.onmidimessage = onMidiMessage;
+    renderSelector();
+  }
+
+  /* HELLO the port, then UPDATE_INFO in update mode. */
+  async function identify() {
+    const h = await hello();
+    const d = { ...h, info: null };
+    if (h.mode === MODE_UPDATE) d.info = await updateInfo();
+    return d;
+  }
+
+  async function connectAndIdentify(d) {
+    usePort(d);
+    if (!d.input || !d.output) {
+      setStatus("bad", "Needs a MIDI input and output");
+      showDevice();
+      return;
+    }
+    setStatus("warn", "Checking device…");
+    try {
+      device = await identify();
+      log("connected to \"" + d.name + "\": " + device.version +
+          (device.mode === MODE_UPDATE ? ", update mode" : ", instrument mode"));
+      setConnectedStatus();
+    } catch (err) {
+      if (port !== d) return;
+      device = null;
+      setStatus("bad", "Not responding — wrong device?");
+      log("\"" + d.name + "\" did not answer: " + err.message);
+    }
+    showDevice();
+  }
+
+  function setConnectedStatus() {
+    setStatus("ok", "Connected");
+  }
+
+  /* The bootloader exposes the BANDOLIBRE drive only when entered with FN2
+   * or for a recovery, not after a reboot from this page. */
+  function modeText(d) {
+    if (d.mode !== MODE_UPDATE) return "Instrument";
+    return d.info.drive ? "Firmware update (MIDI + BANDOLIBRE drive)" : "Firmware update (MIDI only)";
+  }
+
+  function showDevice() {
+    const known = !!device;
+    $("facts").hidden = !known;
+    $("interruptedNotice").hidden = true;
+    $("idleUpdateNotice").hidden = true;
+    if (known) {
+      const upd = device.mode === MODE_UPDATE;
+      $("factMode").textContent = modeText(device);
+      $("factFirmware").textContent = upd
+        ? (device.info.appVersion ? shortVersion(device.info.appVersion) :
+           device.info.appState === APP_INTERRUPTED ? "none (an update was interrupted)" : "none")
+        : shortVersion(device.version);
+      $("factBootLabel").hidden = $("factBoot").hidden = !upd;
+      $("factBoot").textContent = upd ? shortVersion(device.version) : "";
+      $("factGeneration").textContent = device.generation
+        ? "generation " + device.generation + ", kept by the update" : "none saved";
+      if (upd && !busy) {
+        if (device.info.appState === APP_VALID) $("idleUpdateNotice").hidden = false;
+        else $("interruptedNotice").hidden = false;
+      }
+    }
+    $("leaveRow").hidden = $("idleUpdateNotice").hidden;
+    refreshButton();
+  }
+
+  function refreshButton() {
+    const ready = !!device && !!image && !busy;
+    updateBtn.disabled = !ready;
+    const resume = device && device.mode === MODE_UPDATE && device.info.appState !== APP_VALID;
+    updateBtn.textContent = resume ? "Resume update" : "Update firmware";
+  }
+
+  /* Prefers the bootloader, then the instrument; never replaces a device
+   * that is still there, and never runs during an update (the update drives
+   * the connection itself). */
+  function maybeAutoConnect() {
+    if (busy || port) return;
+    const devices = collectDevices().filter((d) => d.input && d.output);
+    const d = devices.find(isUpdaterName) || devices.find(isBandolibreName);
+    if (d) connectAndIdentify(d);
+  }
+
+  function reconcile() {
+    if (port && !collectDevices().some((d) => d.key === port.key)) {
+      log("\"" + port.name + "\" disconnected");
+      usePort(null);
+      if (!busy) {
+        setStatus("", "Waiting for Bandolibre…");
+        showDevice();
+      }
+    }
+    renderSelector();
+    maybeAutoConnect();
+    if (!port && !busy) setStatus(collectDevices().length ? "warn" : "", "Waiting for Bandolibre…");
+  }
+
+  select.addEventListener("change", () => {
+    if (busy) { renderSelector(); return; }
+    const d = collectDevices().find((x) => x.key === select.value);
+    if (d) connectAndIdentify(d);
+    else { usePort(null); showDevice(); }
+  });
+
+  /* After a reboot the ports are new: polls for a Bandolibre answering HELLO
+   * in `mode`, for up to `timeoutMs`. Windows may take a while the first
+   * time, to install the driver for the other mode. */
+  const REBOOT_TIMEOUT_MS = 90000;
+  async function waitForMode(mode, timeoutMs) {
+    const start = Date.now();
+    const deadline = start + timeoutMs;
+    while (Date.now() < deadline) {
+      if (Date.now() - start > 10000) {
+        setProgress("Waiting for the instrument… The first time, the computer may be installing a driver.");
+      }
+      const devices = collectDevices().filter((d) => d.input && d.output && isBandolibreName(d));
+      devices.sort((a, b) => Number(isUpdaterName(b) === (mode === MODE_UPDATE)) -
+                             Number(isUpdaterName(a) === (mode === MODE_UPDATE)));
+      for (const d of devices) {
+        usePort(d);
+        try {
+          const found = await identify();
+          if (found.mode === mode) {
+            device = found;
+            log("found \"" + d.name + "\": " + found.version);
+            return;
+          }
+        } catch (_) { /* the old port lingering, or not up yet */ }
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    usePort(null);
+    throw new Error(mode === MODE_UPDATE ? "the instrument did not come back in firmware update mode"
+                                         : "the instrument did not restart");
+  }
+
+  // ---- Firmware image ----
+  /* Flattens a UF2 file into the application image, checking what the
+   * bootloader's uf2_consume() checks. Returns { bytes, size } with size a
+   * multiple of 8, padded with 0xFF. */
+  function parseUf2(buffer, appBase = DEFAULT_APP_BASE, appSize = DEFAULT_APP_SIZE) {
+    const view = new DataView(buffer);
+    if (buffer.byteLength === 0 || buffer.byteLength % 512 !== 0) throw new Error("not a UF2 file");
+    const flat = new Uint8Array(appSize).fill(0xff);
+    let end = 0, blocks = 0;
+    for (let off = 0; off < buffer.byteLength; off += 512) {
+      if (view.getUint32(off, true) !== 0x0a324655 || view.getUint32(off + 4, true) !== 0x9e5d5157 ||
+          view.getUint32(off + 508, true) !== 0x0ab16f30) throw new Error("not a UF2 file");
+      const flags = view.getUint32(off + 8, true);
+      if (flags & 0x1) continue; // not for flash
+      if (!(flags & 0x2000) || view.getUint32(off + 28, true) !== UF2_FAMILY_STM32G4) {
+        throw new Error("this file is not for the Bandolibre's chip (STM32G4)");
+      }
+      const addr = view.getUint32(off + 12, true);
+      const len = view.getUint32(off + 16, true);
+      if (len > 476 || addr < appBase || addr + len > appBase + appSize) {
+        throw new Error("this file writes outside the firmware area (0x" + addr.toString(16) + ")");
+      }
+      flat.set(new Uint8Array(buffer, off + 32, len), addr - appBase);
+      end = Math.max(end, addr - appBase + len);
+      blocks++;
+    }
+    if (!blocks) throw new Error("the file has no firmware blocks");
+    const size = Math.ceil(end / 8) * 8;
+    return { bytes: flat.slice(0, size), size };
+  }
+
+  /* The version record (code/boot-g474/memmap.h app_info_t), or null. */
+  function imageVersion(bytes) {
+    if (bytes.length < APP_INFO_OFFSET + 52) return null;
+    const v = new DataView(bytes.buffer, bytes.byteOffset);
+    if (v.getUint32(APP_INFO_OFFSET, true) !== APP_INFO_MAGIC) return null;
+    return new Reader(bytes.slice(APP_INFO_OFFSET + 4, APP_INFO_OFFSET + 52)).str();
+  }
+
+  function setImage(buffer, source) {
+    try {
+      const { bytes, size } = parseUf2(buffer);
+      const version = imageVersion(bytes);
+      image = { bytes, size, crc: crc32(bytes), version, source, uf2: buffer };
+      $("imageVersion").textContent = version ? shortVersion(version) : "unknown";
+      $("imageSource").textContent = source;
+      $("imageSize").textContent = (size / 1024).toFixed(1) + " KB, CRC-32 " + hex32(image.crc);
+      log("firmware: " + source + ", " + size + " bytes, " + (version || "no version record"));
+      showError("");
+      drawCells();
+    } catch (err) {
+      showError(source + ": " + err.message);
+    }
+    refreshButton();
+  }
+
+  async function loadPublished() {
+    try {
+      const latest = await (await fetch(LATEST_URL, { cache: "no-store" })).json();
+      const response = await fetch("firmware/" + latest.file, { cache: "no-store" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      setImage(await response.arrayBuffer(), "latest release (" + latest.tag.replace(/^bandolibre-/, "") + ")");
+    } catch (err) {
+      log("no published firmware: " + err.message);
+      $("imageSource").textContent = "no published firmware found; use a file";
+    }
+  }
+
+  $("fileBtn").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", async () => {
+    const f = $("fileInput").files[0];
+    if (f) setImage(await f.arrayBuffer(), f.name);
+    $("fileInput").value = "";
+  });
+  const dropZone = $("dropZone");
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("over"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
+  dropZone.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("over");
+    const f = e.dataTransfer.files[0];
+    if (f && !busy) setImage(await f.arrayBuffer(), f.name);
+  });
+
+  // ---- Progress grid ----
+  let geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: DEFAULT_APP_SIZE, chunk: DEFAULT_CHUNK };
+  let cells = [];
+
+  function drawCells() {
+    const { appSize, chunk } = geometry;
+    const used = image ? Math.ceil(image.size / chunk) : 0;
+    cellsEl.innerHTML = "";
+    cells = [];
+    for (let i = 0; i < appSize / chunk; i++) {
+      const c = document.createElement("div");
+      c.className = "cell" + (image && i >= used ? " out" : "");
+      cellsEl.appendChild(c);
+      cells.push(c);
+    }
+  }
+
+  function markChunk(offset, state) {
+    const c = cells[Math.floor(offset / geometry.chunk)];
+    if (c) c.className = "cell " + state;
+  }
+
+  function markPage(page, state) {
+    const { pageSize, chunk } = geometry;
+    for (let o = page * pageSize; o < Math.min((page + 1) * pageSize, image.size); o += chunk) markChunk(o, state);
+  }
+
+  // ---- The update ----
+  class UpdateError extends Error {}
+
+  function check(r, what) {
+    if (r.status === ST_OK) return;
+    if (r.status === ST_BAD_SESSION) {
+      throw new UpdateError("another update took over the instrument (" + what + ")");
+    }
+    if (r.status === ST_BUSY) throw new UpdateError("a file is being copied onto the BANDOLIBRE drive");
+    throw new UpdateError(what + " failed: " + (STATUS[r.status] || "status " + r.status));
+  }
+
+  async function writePage(session, page) {
+    const { pageSize, chunk } = geometry;
+    const start = page * pageSize;
+    const end = Math.min(start + pageSize, image.size);
+    for (let off = start; off < end; off += chunk) {
+      const data = image.bytes.subarray(off, Math.min(off + chunk, end));
+      // Erased flash needs no writing, but the page's first chunk always
+      // goes: it is what makes the bootloader erase the page.
+      if (off !== start && data.every((b) => b === 0xff)) {
+        markChunk(off, "written");
+        bytesDone += data.length;
+        continue;
+      }
+      markChunk(off, "write");
+      const r = await commandRetry(MSG_UPDATE_WRITE, [...u16(session), ...u32(off), ...data],
+                                   off === start ? 1500 : 500);
+      if (r.status === ST_FLASH_ERROR) return false;
+      check(r, "writing at 0x" + off.toString(16));
+      markChunk(off, "written");
+      bytesDone += data.length;
+      showRate();
+    }
+    return true;
+  }
+
+  const pageLength = (page) => Math.min(geometry.pageSize, image.size - page * geometry.pageSize);
+
+  async function pageCrcMatches(session, page) {
+    const start = page * geometry.pageSize;
+    const len = pageLength(page);
+    const r = await commandRetry(MSG_UPDATE_CRC, [...u16(session), ...u32(start), ...u32(len)], 1000);
+    check(r, "checking page " + page);
+    return r.u32() === crc32(image.bytes.subarray(start, start + len));
+  }
+
+  let bytesDone = 0;
+  let startedAt = 0;
+  function showRate() {
+    const pct = Math.floor((100 * bytesDone) / image.size);
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const left = bytesDone ? Math.ceil((elapsed * (image.size - bytesDone)) / bytesDone) : null;
+    setProgress(pct + " %" + (left !== null && bytesDone < image.size ? ", about " + left + " s left" : ""));
+  }
+
+  /* Sends the instrument back to playing from update mode, when nothing has
+   * been erased yet (the bootloader refuses otherwise). */
+  async function leaveUpdateMode() {
+    setPhase("Returning to playing…");
+    check(await commandRetry(MSG_UPDATE_LEAVE, [], 1000), "leaving update mode");
+    await waitForMode(MODE_INSTRUMENT, REBOOT_TIMEOUT_MS);
+    setPhase("Idle");
+    setProgress("");
+    setConnectedStatus();
+  }
+
+  // Set by runUpdate(): whether this page rebooted the instrument into update
+  // mode, and whether BEGIN has erased anything since.
+  let enteredUpdateMode = false;
+  let begun = false;
+
+  async function runUpdate() {
+    showError("");
+    enteredUpdateMode = false;
+    begun = false;
+
+    if (device.mode === MODE_INSTRUMENT) {
+      setPhase("Restarting into update mode…");
+      let answered = true;
+      try {
+        check(await command(MSG_ENTER_UPDATE_MODE, UPDATE_MAGIC, 1500), "entering update mode");
+      } catch (err) {
+        if (!(err instanceof Timeout)) throw err;
+        answered = false;   // the reply may be lost while the reboot happened anyway
+      }
+      try {
+        await waitForMode(MODE_UPDATE, answered ? REBOOT_TIMEOUT_MS : 8000);
+      } catch (err) {
+        if (!answered) {
+          throw new UpdateError("this instrument's firmware cannot be updated from the browser yet. " +
+              "Update it once with the drive: hold the leftmost button (FN2) while plugging it in, " +
+              "then copy the .uf2 file onto the BANDOLIBRE drive.");
+        }
+        throw new UpdateError(err.message + ". If a BANDOLIBRE drive appeared instead, the update " +
+            "mode predates this tool: copy the .uf2 file onto the drive.");
+      }
+      enteredUpdateMode = true;
+      log("instrument in update mode");
+      showDevice();
+    }
+
+    const info = device.info;
+    if (image.size > info.appSize) throw new UpdateError("the firmware is larger than the instrument's firmware area");
+    geometry = { pageSize: info.pageSize, appSize: info.appSize, chunk: Math.min(info.maxChunk, info.pageSize) };
+    // Re-check the file against the instrument's real layout.
+    parseUf2(image.uf2, info.appBase, info.appSize);
+    if (info.session && !confirm("Another update of this instrument seems to be running, in another tab " +
+        "or browser, or one stopped halfway. Take over? The other one will stop.")) {
+      throw new UpdateError("left to the other update");
+    }
+    drawCells();
+
+    setPhase("Erasing…");
+    const begin = await command(MSG_UPDATE_BEGIN, [...u32(image.size), ...u32(image.crc)], 3000);
+    check(begin, "starting the update");
+    begun = true;
+    const session = begin.u16();
+    log("session " + session.toString(16) + ": " + image.size + " bytes, CRC-32 " + hex32(image.crc));
+
+    setPhase("Writing…");
+    bytesDone = 0;
+    startedAt = Date.now();
+    const pages = Math.ceil(image.size / geometry.pageSize);
+    for (let page = 0; page < pages; page++) {
+      let ok = (await writePage(session, page)) && (await pageCrcMatches(session, page));
+      if (ok) { markPage(page, "ok"); continue; }
+
+      // One more go: erase the page and write it again.
+      log("page " + page + " did not check out, rewriting it");
+      markPage(page, "retry");
+      bytesDone = page * geometry.pageSize;   // its bytes count again on the rewrite
+      check(await commandRetry(MSG_UPDATE_ERASE, [...u16(session), ...u32(page * geometry.pageSize)], 1500),
+            "erasing page " + page);
+      ok = (await writePage(session, page)) && (await pageCrcMatches(session, page));
+      if (!ok) {
+        markPage(page, "fail");
+        throw new UpdateError("page " + page + " could not be written correctly");
+      }
+      markPage(page, "retry");
+    }
+
+    setPhase("Checking the whole firmware…");
+    setProgress("");
+    try {
+      const commit = await command(MSG_UPDATE_COMMIT, u16(session), 5000);
+      check(commit, "finishing the update");
+    } catch (err) {
+      // A lost reply to a COMMIT that worked: the instrument restarts anyway.
+      if (!(err instanceof Timeout)) throw err;
+      log("no answer to the commit; waiting to see whether the instrument restarts");
+    }
+
+    setPhase("Restarting the instrument…");
+    log("firmware committed, instrument restarting");
+    await waitForMode(MODE_INSTRUMENT, REBOOT_TIMEOUT_MS);
+    if (image.version && device.version !== image.version) {
+      throw new UpdateError("the instrument restarted with " + device.version + " instead of " + image.version);
+    }
+    setPhase("Update complete");
+    setProgress(shortVersion(device.version));
+    setConnectedStatus();
+  }
+
+  async function onUpdateClick() {
+    if (!device || !image || busy) return;
+    const installed = parseFirmwareVersion(device.mode === MODE_UPDATE ? device.info.appVersion : device.version);
+    const offered = parseFirmwareVersion(image.version);
+    if (installed && offered && compareVersions(offered, installed) < 0 &&
+        !confirm("This firmware (" + shortVersion(image.version) + ") is older than the installed one. Install it anyway?")) {
+      return;
+    }
+
+    busy = true;
+    refreshButton();
+    $("interruptedNotice").hidden = true;
+    $("idleUpdateNotice").hidden = true;
+    try {
+      const go = async (lock) => {
+        if (lock === null) throw new UpdateError("an update is already running in another tab");
+        await runUpdate();
+      };
+      if (navigator.locks) await navigator.locks.request("bandolibre-update", { ifAvailable: true }, go);
+      else await go(true);
+    } catch (err) {
+      let next = "";
+      if (device && device.mode === MODE_UPDATE) {
+        next = " The instrument stays in firmware update mode; press Resume update to try again.";
+        // Nothing erased yet, and this page put it there: send it back to
+        // playing rather than leave it waiting.
+        if (enteredUpdateMode && !begun && device.info.appState === APP_VALID) {
+          try {
+            await leaveUpdateMode();
+            next = " Nothing was changed; the instrument is back to playing.";
+          } catch (leaveErr) {
+            log("could not leave update mode: " + leaveErr.message);
+          }
+        }
+      }
+      setPhase("Update failed");
+      showError(err.message.replace(/\.?$/, ".") + next);
+    } finally {
+      busy = false;
+      // Re-read the state after a failure (an interrupted update shows as
+      // such, and the button offers to resume).
+      if (port) {
+        try { device = await identify(); } catch (_) { device = null; }
+      }
+      showDevice();
+      renderSelector();
+    }
+  }
+
+  updateBtn.addEventListener("click", onUpdateClick);
+
+  $("leaveBtn").addEventListener("click", async () => {
+    if (!device || busy) return;
+    busy = true;
+    $("leaveRow").hidden = true;
+    refreshButton();
+    try {
+      await leaveUpdateMode();
+    } catch (err) {
+      showError("could not return to playing: " + err.message + ". Unplug and replug the instrument.");
+    } finally {
+      busy = false;
+      showDevice();
+      renderSelector();
+    }
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!busy) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
+  // ---- About box ----
+  const infoOverlay = $("infoOverlay");
+  $("infoBtn").addEventListener("click", () => { infoOverlay.hidden = false; $("infoClose").focus(); });
+  $("infoClose").addEventListener("click", () => { infoOverlay.hidden = true; });
+  infoOverlay.addEventListener("click", (e) => { if (e.target === infoOverlay) infoOverlay.hidden = true; });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") infoOverlay.hidden = true; });
+
+  // ---- Start ----
+  async function init() {
+    drawCells();
+    loadPublished();
+    if (!navigator.requestMIDIAccess) {
+      setStatus("bad", "This browser has no Web MIDI: use Chrome, Edge or Firefox.");
+      return;
+    }
+    try {
+      midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+    } catch (err) {
+      setStatus("bad", err.name === "NotAllowedError" || err.name === "SecurityError"
+        ? "MIDI access is blocked for this page." : "MIDI could not start: " + err.message);
+      return;
+    }
+    midiAccess.onstatechange = () => { if (!busy) reconcile(); else renderSelector(); };
+    reconcile();
+    setInterval(() => { if (!busy) reconcile(); }, 750);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

@@ -6,18 +6,37 @@ Examples:
   flash.py wing-g474 build/Debug/wing-g474.bin
   flash.py main-g474 build/Release/main-g474.bin --address 0x08008000
 
---address exists because the main board can carry two images: the UF2
-bootloader at 0x08000000 and the Release application above it. See
+--address exists because the main board carries two images: the bootloader
+at 0x08000000 and the application (Debug or Release) above it. See
 code/boot-g474/memmap.h.
 """
 
 import argparse
+import struct
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from memmap import props_base
+from memmap import defines, props_base
 from registry import BOARDS, load_registry, read_uid, st_flash
+
+
+def bootloader_installed() -> bool:
+    """Whether the reset vector at BOOT_BASE points into the bootloader slot.
+
+    Without a bootloader, an application written at APP_BASE never runs: the
+    CPU starts from whatever image sits at BOOT_BASE, typically an old
+    application linked for APP_BASE whose reset vector then lands in the middle
+    of the new code."""
+    m = defines()
+    with tempfile.NamedTemporaryFile() as f:
+        st_flash(None, ["read", f.name, hex(m["BOOT_BASE"]), "8"], capture_output=True)
+        head = Path(f.name).read_bytes()
+    if len(head) < 8:
+        return False
+    _sp, pc = struct.unpack("<II", head)
+    return m["BOOT_BASE"] <= pc < m["APP_BASE"]
 
 
 def main() -> None:
@@ -46,6 +65,13 @@ def main() -> None:
         sys.exit(1)
     if board != args.board:
         print(f"Error: the connected chip {uid} is a {board}, not a {args.board}.",
+              file=sys.stderr)
+        sys.exit(1)
+
+    if (args.board == "main-g474" and args.address == defines()["APP_BASE"]
+            and not bootloader_installed()):
+        print("Error: no bootloader at 0x08000000, so the application would never "
+              "start. Install it first: cd code/boot-g474 && just flash",
               file=sys.stderr)
         sys.exit(1)
 

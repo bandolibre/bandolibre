@@ -172,7 +172,7 @@ Il vous permet de :
 Les changements s'appliquent immédiatement : vous pouvez ajuster le toucher
 tout en jouant.
 
-<a href="https://bandolibre.github.io/tools/midi.html"><img width="406" alt="Ouvrir l'outil de configuration" src="https://img.shields.io/badge/Ouvrir_l%27outil_de_configuration-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
+<a href="https://bandolibre.github.io/bandolibre/connect/"><img width="406" alt="Ouvrir l'outil de configuration" src="https://img.shields.io/badge/Ouvrir_l%27outil_de_configuration-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTQ5NiAzODRIMTYwdi0xNmMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZjLTguOCAwLTE2IDcuMi0xNiAxNnYzMmMwIDguOCA3LjIgMTYgMTYgMTZoODB2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMzM2YzguOCAwIDE2LTcuMiAxNi0xNnYtMzJjMC04LjgtNy4yLTE2LTE2LTE2em0wLTE2MGgtODB2LTE2YzAtOC44LTcuMi0xNi0xNi0xNmgtMzJjLTguOCAwLTE2IDcuMi0xNiAxNnYxNkgxNmMtOC44IDAtMTYgNy4yLTE2IDE2djMyYzAgOC44IDcuMiAxNiAxNiAxNmgzMzZ2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoODBjOC44IDAgMTYtNy4yIDE2LTE2di0zMmMwLTguOC03LjItMTYtMTYtMTZ6bTAtMTYwSDI4OFY0OGMwLTguOC03LjItMTYtMTYtMTZoLTMyYy04LjggMC0xNiA3LjItMTYgMTZ2MTZIMTZDNy4yIDY0IDAgNzEuMiAwIDgwdjMyYzAgOC44IDcuMiAxNiAxNiAxNmgyMDh2MTZjMCA4LjggNy4yIDE2IDE2IDE2aDMyYzguOCAwIDE2LTcuMiAxNi0xNnYtMTZoMjA4YzguOCAwIDE2LTcuMiAxNi0xNlY4MGMwLTguOC03LjItMTYtMTYtMTZ6Ii8+PC9zdmc+"></a>
 
 <p>
   <img src="images/configuration_tool.webp" alt="Outil de configuration, courbe du soufflet" width="49%">
@@ -320,7 +320,28 @@ soundfont ou un réglage vous convient, ou non, tenez-nous au courant à
 ## Mettre à jour le firmware
 
 Le firmware est le logiciel intégré à l'instrument. Vous le mettez à jour par
-le même câble USB, sans outil ni logiciel supplémentaire.
+le même câble USB, sans rien installer.
+
+### Depuis le navigateur
+
+1. Branchez le Bandolibre et ouvrez
+   l'[outil de mise à jour](https://bandolibre.github.io/bandolibre/update/)
+   dans Chrome, Edge ou Firefox.
+2. L'outil trouve l'instrument et affiche sa version du firmware à côté de la
+   dernière.
+3. Cliquez sur **Update firmware**. L'instrument redémarre dans son mode de mise
+   à jour, et des carrés se remplissent à mesure que le nouveau firmware est
+   écrit et vérifié.
+4. Une fois terminé, l'instrument redémarre avec le nouveau firmware.
+
+Vos réglages enregistrés sont conservés. Les réglages modifiés dans l'outil de
+configuration sans être enregistrés sont perdus au redémarrage de
+l'instrument. L'outil de configuration et BandoPM peuvent rester ouverts : ils
+attendent pendant la mise à jour et se reconnectent ensuite.
+
+### Avec le lecteur BANDOLIBRE
+
+Cette méthode fonctionne sans navigateur.
 
 1. Téléchargez le dernier `main-g474.uf2` depuis la
    [page des versions](https://github.com/bandolibre/bandolibre/releases).
@@ -339,6 +360,10 @@ n'y restent pas.
 
 ### En cas de problème
 
+- **La mise à jour depuis le navigateur s'est arrêtée : la page s'est fermée,
+  ou le câble s'est débranché.** Rien n'est endommagé : l'instrument attend
+  dans son mode de mise à jour jusqu'à recevoir un firmware complet. Rouvrez
+  l'outil de mise à jour et cliquez sur **Resume update**.
 - **La copie a été interrompue, ou le câble s'est débranché.** Rien n'est
   endommagé : le nouveau firmware n'est installé qu'une fois le fichier reçu en
   entier. Recommencez à l'étape 2.

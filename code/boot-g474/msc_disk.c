@@ -21,6 +21,7 @@
 
 #include "flash_write.h"
 #include "memmap.h"
+#include "stm32g4xx_hal.h"
 #include "tusb.h"
 
 //--------------------------------------------------------------------+
@@ -110,6 +111,11 @@ static uint32_t blocks_expected;
 static uint32_t blocks_received;
 static uint32_t image_len;
 static bool     commit_ready;
+static uint32_t last_block_tick;   /* HAL_GetTick() at the last UF2 block */
+
+/* A copy that sent no block for this long has stopped (cancelled, cable
+ * glitch, or a failed commit), so it no longer holds off a MIDI update. */
+#define UF2_IDLE_MS 2000U
 
 static void staging_reset(uint32_t num_blocks)
 {
@@ -129,7 +135,7 @@ bool uf2_commit_ready(void)
 
 bool uf2_receiving(void)
 {
-  return blocks_received > 0 && !commit_ready;
+  return blocks_received > 0 && !commit_ready && HAL_GetTick() - last_block_tick < UF2_IDLE_MS;
 }
 
 bool uf2_commit(void)
@@ -170,6 +176,7 @@ static void uf2_consume(const uint8_t *buffer)
 
   uint32_t const offset = b->target_addr - APP_BASE;
   memcpy(image + offset, b->data, b->payload_size);
+  last_block_tick = HAL_GetTick();
 
   if (offset + b->payload_size > image_len) image_len = offset + b->payload_size;
 

@@ -1,50 +1,17 @@
-// Minimal service worker: makes the tool installable and lets the app
-// shell load when offline. USB-MIDI itself still needs a real connection.
-const CACHE_NAME = "bandolibre-midi-v2";
-const SHELL_URL = "midi.html";
-const SHELL_FILES = [
-  SHELL_URL,
-  "manifest.webmanifest",
-  "icon-192.png",
-  "icon-512.png",
-  "icon-512-maskable.png",
-  "apple-touch-icon.png",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting())
-  );
-});
+// The configuration tool moved to ../connect/, with its own service worker.
+// Browsers that installed the old one fetch this file on their next visit: it
+// drops the old offline copy and unregisters itself, so midi.html here (now a
+// redirect) loads from the network.
+self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) {
-    return;
-  }
-
-  const isNavigation = request.mode === "navigate";
-  event.respondWith(
-    caches.match(isNavigation ? SHELL_URL : request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(isNavigation ? SHELL_URL : request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith("bandolibre-midi-"))
+        .map((key) => caches.delete(key))))
+      .then(() => self.registration.unregister())
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then((clients) => clients.forEach((client) => client.navigate("../connect/")))
   );
 });
