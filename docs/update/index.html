@@ -132,6 +132,16 @@
   .install-actions .btn { font-size: 1.05rem; padding: 12px 32px; border-radius: 10px; min-width: 220px; }
   .card h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
   .facts dd { margin: 0; font-family: var(--mono); font-size: 0.85rem; overflow-wrap: anywhere; }
+  /* Errors can carry a command to copy, on lines of its own. */
+  #errorNotice { overflow-wrap: anywhere; }
+  .command { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+  .command pre {
+    flex: 1; min-width: 0; margin: 0; padding: 8px 10px; border-radius: 6px;
+    background: var(--card); border: 1px solid var(--border); color: var(--fg);
+    font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overflow-wrap: anywhere;
+    user-select: all;
+  }
+  .command .btn { flex: none; }
   .notice {
     margin: 12px 0 0;
     padding: 8px 12px;
@@ -323,7 +333,7 @@
 
   <section class="card" aria-labelledby="instrumentTitle">
     <h2 id="instrumentTitle">Instrument</h2>
-    <label class="small" for="deviceSelect">MIDI device</label>
+    <label class="small" for="deviceSelect">Device</label>
     <div class="device-row">
       <select id="deviceSelect"></select>
       <div class="status-row">
@@ -335,6 +345,8 @@
       <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
     </dl>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
+    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>: the chip's own loader, started by holding FN0 while plugging it in. Press <strong>Update firmware</strong> to install the firmware below, or unplug the board and plug it back in without holding FN0 to return to playing.</p>
+    <p class="notice" id="dfuDoneNotice" hidden>The firmware is installed. Unplug the USB cable, reconnect the left keyboard if you unplugged it, then plug the board back in <strong>without</strong> holding FN0: it starts with the new firmware.</p>
     <p class="notice" id="idleUpdateNotice" hidden>The instrument is waiting in firmware update mode. Update it below, or go back to playing without updating.</p>
     <div class="actions" id="leaveRow" hidden>
       <button type="button" class="btn" id="leaveBtn">Return to playing</button>
@@ -372,7 +384,7 @@
       <span id="phaseText">Idle</span>
       <span id="progressText"></span>
     </div>
-    <p class="notice bad" id="errorNotice" hidden></p>
+    <div class="notice bad" id="errorNotice" hidden></div>
     <details>
       <summary>Details</summary>
       <pre id="log"></pre>
@@ -558,10 +570,41 @@
 
   function setPhase(text) { $("phaseText").textContent = text; }
   function setProgress(text) { $("progressText").textContent = text; }
-  function showError(text) {
-    $("errorNotice").textContent = text;
-    $("errorNotice").hidden = !text;
-    if (text) log("error: " + text);
+  const COPY_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const COPIED_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  /* `command`, if any, goes in a box of its own with a copy button. */
+  function showError(text, command) {
+    const box = $("errorNotice");
+    box.textContent = text && text[0].toUpperCase() + text.slice(1);
+    box.hidden = !text;
+    if (!text) return;
+    log("error: " + text + (command ? "\n" + command : ""));
+    if (!command) return;
+    const row = document.createElement("div");
+    row.className = "command";
+    const pre = document.createElement("pre");
+    pre.textContent = command;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "btn icon";
+    copy.title = "Copy to the clipboard";
+    copy.setAttribute("aria-label", "Copy the command");
+    copy.innerHTML = COPY_ICON;
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(command);
+      } catch (_) {
+        // Without clipboard access: select it, for Ctrl+C.
+        getSelection().selectAllChildren(pre);
+        return;
+      }
+      copy.innerHTML = COPIED_ICON;
+      copy.title = "Copied";
+      setTimeout(() => { copy.innerHTML = COPY_ICON; copy.title = "Copy to the clipboard"; }, 1500);
+    });
+    row.append(pre, copy);
+    box.appendChild(row);
   }
 
   // ---- State ----
@@ -607,15 +650,68 @@
     select.innerHTML = "";
     const empty = document.createElement("option");
     empty.value = "";
-    empty.textContent = devices.length ? "— select a device —" : "(no MIDI devices found)";
+    empty.textContent = devices.length || dfuDevices.length ? "— select a device —" : "(no devices found)";
     select.appendChild(empty);
+    dfuDevices.forEach((u, i) => {
+      const opt = document.createElement("option");
+      opt.value = "usb:" + i;
+      opt.textContent = dfuName(u) + " — STM32 DFU mode";
+      select.appendChild(opt);
+    });
     for (const d of devices) {
       const opt = document.createElement("option");
       opt.value = d.key;
       opt.textContent = d.name + (isUpdaterName(d) ? " — update mode" : isBandolibreName(d) ? " — Bandolibre" : "");
       select.appendChild(opt);
     }
-    select.value = port ? port.key : "";
+    if (navigator.usb) {
+      const find = document.createElement("option");
+      find.value = "usb:find";
+      find.textContent = "Find a board in STM32 DFU mode…";
+      select.appendChild(find);
+    }
+    select.value = port ? port.key : dfuSelected ? "usb:" + dfuDevices.indexOf(dfuSelected) : "";
+  }
+
+  // ---- STM32 DFU mode ----
+  /* The chip's own loader in ROM, started by holding FN0 (BOOT0) while
+   * plugging the board in. It is a USB DFU device, not MIDI: only WebUSB
+   * (Chrome, Edge) sees it, and only once the user has picked it in the
+   * browser's chooser; from then on the browser reports it by itself. */
+  const STM32_DFU = { vendorId: 0x0483, productId: 0xdf11 };
+  let dfuDevices = [];      // picked once, and plugged in
+  let dfuSelected = null;   // the one shown in the Instrument card
+  // The ROM names itself "STM32  BOOTLOADER", with two spaces.
+  const dfuName = (u) => (u.productName || "STM32 BOOTLOADER").replace(/\s+/g, " ").trim();
+
+  async function refreshDfuDevices() {
+    try {
+      dfuDevices = (await navigator.usb.getDevices()).filter(
+        (u) => u.vendorId === STM32_DFU.vendorId && u.productId === STM32_DFU.productId);
+    } catch (_) {
+      dfuDevices = [];
+    }
+    if (!busy) reconcile();
+  }
+
+  async function findDfuDevice() {
+    try {
+      const u = await navigator.usb.requestDevice({ filters: [STM32_DFU] });
+      await refreshDfuDevices();
+      selectDfu(dfuDevices.find((x) => x === u) || dfuDevices[0]);
+    } catch (_) {
+      renderSelector();   // chooser closed without a choice
+    }
+  }
+
+  function selectDfu(u) {
+    if (!u) return;
+    usePort(null);
+    dfuSelected = u;
+    renderSelector();
+    setStatus("ok", "STM32 DFU mode");
+    log("found \"" + dfuName(u) + "\" in STM32 DFU mode, serial " + (u.serialNumber || "unknown"));
+    showDevice();
   }
 
   // ---- Requests: one in flight, matched on id (and seq for the update
@@ -719,6 +815,7 @@
   function usePort(d) {
     if (port && port.input) port.input.onmidimessage = null;
     dropPending("device changed");
+    if (d) dfuSelected = null;
     port = d;
     device = null;
     inSysex = false;
@@ -770,7 +867,9 @@
     // reflow when the device answers.
     $("interruptedNotice").hidden = true;
     $("idleUpdateNotice").hidden = true;
-    $("factFirmware").textContent = "—";
+    if (device) $("dfuDoneNotice").hidden = true;   // back as an instrument
+    $("dfuNotice").hidden = !dfuSelected || busy || !$("dfuDoneNotice").hidden;
+    $("factFirmware").textContent = dfuSelected ? "unknown in DFU mode" : "—";
     if (device) {
       const upd = device.mode === MODE_UPDATE;
       $("factFirmware").textContent = upd
@@ -787,8 +886,6 @@
     refreshButton();
   }
 
-  /* Next to the installed firmware: whether the firmware to install is the
-   * same build, a newer or an older one. */
   /* The firmware below compared with the installed one: "same", "newer",
    * "older", "different" (same version, another build), or null when either
    * is unknown. */
@@ -817,7 +914,7 @@
   /* The button is the highlighted action only when there is something to do:
    * a newer firmware, or an update to finish. Otherwise it stays plain. */
   function refreshButton() {
-    const ready = !!device && !!image && !busy;
+    const ready = (!!device || !!dfuSelected) && !!image && !busy;
     updateBtn.disabled = !ready;
     const resume = device && device.mode === MODE_UPDATE && device.info.appState !== APP_VALID;
     const relation = firmwareRelation();
@@ -829,13 +926,19 @@
    * that is still there, and never runs during an update (the update drives
    * the connection itself). */
   function maybeAutoConnect() {
-    if (busy || port) return;
+    if (busy || port || dfuSelected) return;
     const devices = collectDevices().filter((d) => d.input && d.output);
     const d = devices.find(isUpdaterName) || devices.find(isBandolibreName);
     if (d) connectAndIdentify(d);
+    else if (dfuDevices.length) selectDfu(dfuDevices[0]);
   }
 
   function reconcile() {
+    if (dfuSelected && !dfuDevices.includes(dfuSelected)) {
+      log("the board in STM32 DFU mode was unplugged");
+      dfuSelected = null;
+      showDevice();
+    }
     if (port && !collectDevices().some((d) => d.key === port.key)) {
       log("\"" + port.name + "\" disconnected");
       usePort(null);
@@ -845,12 +948,16 @@
       }
     }
     renderSelector();
+    if (!midiAccess && !dfuDevices.length) return;   // keep the "no Web MIDI" status
     maybeAutoConnect();
-    if (!port && !busy) setStatus(collectDevices().length ? "warn" : "", "Waiting for Bandolibre…");
+    if (!port && !busy && !dfuSelected) setStatus(collectDevices().length ? "warn" : "", "Waiting for Bandolibre…");
   }
 
   select.addEventListener("change", () => {
     if (busy) { renderSelector(); return; }
+    if (select.value === "usb:find") { findDfuDevice(); return; }
+    if (select.value.startsWith("usb:")) { selectDfu(dfuDevices[Number(select.value.slice(4))]); return; }
+    dfuSelected = null;
     const d = collectDevices().find((x) => x.key === select.value);
     if (d) connectAndIdentify(d);
     else { usePort(null); showDevice(); }
@@ -1039,7 +1146,10 @@
   }
 
   // ---- The update ----
-  class UpdateError extends Error {}
+  /* `command`: a shell command that fixes it, shown with a copy button. */
+  class UpdateError extends Error {
+    constructor(message, command) { super(message); this.command = command; }
+  }
 
   function check(r, what) {
     if (r.status === ST_OK) return;
@@ -1203,7 +1313,205 @@
     celebrate(shortVersion(device.version));
   }
 
+  // ---- Installing over STM32 DFU mode (WebUSB) ----
+  /* The ROM loader speaks DfuSe, ST's extension of USB DFU 1.1 (AN3156):
+   * commands go in DNLOAD block 0 (0x21 set the address pointer, 0x41 erase
+   * the page at an address), data in block 2 at the address pointer, and
+   * UPLOAD block 2 reads from it. Each DNLOAD runs when GETSTATUS is asked,
+   * and is done when the state is back to dfuDNLOAD_IDLE. */
+  const DFU_REQ = { DNLOAD: 1, UPLOAD: 2, GETSTATUS: 3, CLRSTATUS: 4, ABORT: 6 };
+  const DFU_STATE = { IDLE: 2, DNLOAD_IDLE: 5, ERROR: 10 };
+  const BOOT_BASE = 0x08000000;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  class DfuTarget {
+    constructor(usb) { this.usb = usb; this.itf = null; this.transferSize = 1024; }
+
+    async open() {
+      const u = this.usb;
+      await u.open();
+      if (!u.configuration) await u.selectConfiguration(1);
+      // The DFU interface's "@Internal Flash" alternate setting.
+      const alts = [];
+      for (const itf of u.configuration.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass === 0xfe && alt.interfaceSubclass === 0x01) alts.push({ itf, alt });
+        }
+      }
+      const pick = alts.find((a) => /internal flash/i.test(a.alt.interfaceName || "")) || alts[0];
+      if (!pick) throw new Error("the device has no DFU interface");
+      this.itf = pick.itf.interfaceNumber;
+      await u.claimInterface(this.itf);
+      await u.selectAlternateInterface(this.itf, pick.alt.alternateSetting);
+      this.transferSize = (await this.readTransferSize()) || this.transferSize;
+      await this.toIdle();
+    }
+
+    async close() {
+      try { await this.usb.releaseInterface(this.itf); } catch (_) {}
+      try { await this.usb.close(); } catch (_) {}
+    }
+
+    /* wTransferSize of the DFU functional descriptor (type 0x21) in the
+     * configuration descriptor: the largest block per request. */
+    async readTransferSize() {
+      const r = await this.usb.controlTransferIn(
+        { requestType: "standard", recipient: "device", request: 6, value: 0x0200, index: 0 }, 1024);
+      const d = new Uint8Array(r.data.buffer);
+      for (let i = 0; i + 1 < d.length && d[i] > 0; i += d[i]) {
+        if (d[i + 1] === 0x21 && d[i] >= 7) return d[i + 5] | (d[i + 6] << 8);
+      }
+      return 0;
+    }
+
+    out(request, value, data = new Uint8Array(0)) {
+      return this.usb.controlTransferOut(
+        { requestType: "class", recipient: "interface", request, value, index: this.itf }, data);
+    }
+
+    async status() {
+      const r = await this.usb.controlTransferIn(
+        { requestType: "class", recipient: "interface", request: DFU_REQ.GETSTATUS, value: 0, index: this.itf }, 6);
+      const d = new Uint8Array(r.data.buffer);
+      return { status: d[0], pollMs: d[1] | (d[2] << 8) | (d[3] << 16), state: d[4] };
+    }
+
+    /* Back to dfuIDLE, from an error or a finished transfer. */
+    async toIdle() {
+      let s = await this.status();
+      if (s.state === DFU_STATE.ERROR) { await this.out(DFU_REQ.CLRSTATUS, 0); s = await this.status(); }
+      if (s.state !== DFU_STATE.IDLE) { await this.out(DFU_REQ.ABORT, 0); s = await this.status(); }
+      if (s.state !== DFU_STATE.IDLE) throw new Error("the DFU device stays busy (state " + s.state + ")");
+    }
+
+    async dnload(block, data) {
+      await this.out(DFU_REQ.DNLOAD, block, data);
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        const s = await this.status();
+        if (s.state === DFU_STATE.DNLOAD_IDLE) return;
+        if (s.state === DFU_STATE.ERROR) {
+          await this.toIdle();
+          throw new Error("the chip refused the request (DFU status " + s.status + ")");
+        }
+        if (Date.now() > deadline) throw new Error("the chip did not finish the request");
+        await sleep(Math.max(s.pollMs, 2));
+      }
+    }
+
+    setAddress(addr) { return this.dnload(0, Uint8Array.from([0x21, ...u32(addr)])); }
+    erasePage(addr) { return this.dnload(0, Uint8Array.from([0x41, ...u32(addr)])); }
+
+    async write(addr, data) {
+      await this.setAddress(addr);
+      await this.dnload(2, data);
+    }
+
+    async read(addr, len) {
+      await this.setAddress(addr);
+      await this.toIdle();   // UPLOAD starts from dfuIDLE
+      const r = await this.usb.controlTransferIn(
+        { requestType: "class", recipient: "interface", request: DFU_REQ.UPLOAD, value: 2, index: this.itf }, len);
+      await this.toIdle();
+      return new Uint8Array(r.data.buffer);
+    }
+  }
+
+  /* Why the board could not be opened, and what to do. */
+  function dfuOpenHelp(error) {
+    const ua = navigator.userAgent;
+    const err = { message: String(error.message).replace(/\.$/, "") };   // "Access denied."
+    if (/Linux/.test(ua) && !/Android/.test(ua)) {
+      return new UpdateError("the browser may not open the board (" + err.message + "). Allow it once with " +
+        "this udev rule in a terminal, then press Update firmware again",
+        "echo 'SUBSYSTEM==\"usb\", ATTR{idVendor}==\"0483\", ATTR{idProduct}==\"df11\", TAG+=\"uaccess\"' " +
+        "| sudo tee /etc/udev/rules.d/50-stm32-dfu.rules && sudo udevadm control --reload-rules " +
+        "&& sudo udevadm trigger");
+    }
+    if (/Windows/.test(ua)) {
+      return new UpdateError("the browser could not open the board (" + err.message + "). On Windows it needs " +
+        "the WinUSB driver: install it for \"STM32 BOOTLOADER\" with Zadig (zadig.akeo.ie), then press " +
+        "Update firmware again");
+    }
+    return new UpdateError("the browser could not open the board: " + err.message);
+  }
+
+  /* Writes the image page by page, each read back and compared. Page 0 is
+   * erased first and written last: until then the Bandolibre bootloader sees
+   * no valid firmware, so an interrupted install leaves the board in update
+   * mode instead of starting half a firmware. */
+  async function runDfuUpdate() {
+    showError("");
+    const dfu = new DfuTarget(dfuSelected);
+    setPhase("Opening the board…");
+    try {
+      await dfu.open();
+    } catch (err) {
+      throw dfuOpenHelp(err);
+    }
+    try {
+      log("DFU: transfer size " + dfu.transferSize + " bytes");
+      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: DEFAULT_APP_SIZE, chunk: DEFAULT_CHUNK };
+      drawCells();
+      const { pageSize } = geometry;
+
+      // The bootloader starts the firmware: without it the board would stay dark.
+      const head = await dfu.read(BOOT_BASE, 8);
+      const resetVector = new DataView(head.buffer).getUint32(4, true);
+      if (!(resetVector >= BOOT_BASE && resetVector < DEFAULT_APP_BASE)) {
+        throw new UpdateError("this board has no Bandolibre bootloader, so the firmware would not start. " +
+          "Install it first with an ST-Link: cd code/boot-g474 && just flash");
+      }
+
+      const pages = Math.ceil(image.size / pageSize);
+      setPhase("Erasing…");
+      await dfu.erasePage(DEFAULT_APP_BASE);
+
+      setPhase("Writing…");
+      bytesDone = 0;
+      startedAt = Date.now();
+      const order = [...Array(pages).keys()].slice(1).concat(0);
+      for (const page of order) {
+        const start = page * pageSize;
+        const data = image.bytes.subarray(start, Math.min(start + pageSize, image.size));
+        let ok = false;
+        for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+          if (attempt) { log("page " + page + " did not read back right, rewriting it"); markPage(page, "retry"); }
+          if (page !== 0 || attempt) await dfu.erasePage(DEFAULT_APP_BASE + start);
+          markPage(page, "write");
+          for (let off = 0; off < data.length; off += dfu.transferSize) {
+            await dfu.write(DEFAULT_APP_BASE + start + off, data.subarray(off, off + dfu.transferSize));
+          }
+          markPage(page, "written");
+          ok = true;
+          for (let off = 0; off < data.length && ok; off += dfu.transferSize) {
+            const want = data.subarray(off, off + dfu.transferSize);
+            const got = await dfu.read(DEFAULT_APP_BASE + start + off, want.length);
+            ok = got.length === want.length && got.every((b, i) => b === want[i]);
+          }
+        }
+        if (!ok) {
+          markPage(page, "fail");
+          throw new UpdateError("page " + page + " could not be written correctly");
+        }
+        markPage(page, "ok");
+        bytesDone += data.length;
+        showRate();
+      }
+      log("DFU: " + image.size + " bytes written and read back, CRC-32 " + hex32(image.crc));
+    } finally {
+      await dfu.close();
+    }
+
+    setPhase("Firmware installed");
+    setProgress("");
+    showError("");
+    $("dfuDoneNotice").hidden = false;
+    celebrate(image.version ? shortVersion(image.version) : "");
+  }
+
   async function onUpdateClick() {
+    if (dfuSelected && image && !busy) return onDfuUpdateClick();
     if (!device || !image || busy) return;
     const installed = parseFirmwareVersion(device.mode === MODE_UPDATE ? device.info.appVersion : device.version);
     const offered = parseFirmwareVersion(image.version);
@@ -1247,6 +1555,28 @@
       if (port) {
         try { device = await identify(); } catch (_) { device = null; }
       }
+      showDevice();
+      renderSelector();
+    }
+  }
+
+  async function onDfuUpdateClick() {
+    busy = true;
+    refreshButton();
+    $("dfuNotice").hidden = true;
+    try {
+      const go = async (lock) => {
+        if (lock === null) throw new UpdateError("an update is already running in another tab");
+        await runDfuUpdate();
+      };
+      if (navigator.locks) await navigator.locks.request("bandolibre-update", { ifAvailable: true }, go);
+      else await go(true);
+    } catch (err) {
+      setPhase("Update failed");
+      showError(err.message.replace(/\.?$/, ".") +
+        " The board stays in STM32 DFU mode: press Update firmware to try again.", err.command);
+    } finally {
+      busy = false;
       showDevice();
       renderSelector();
     }
@@ -1460,6 +1790,11 @@
   async function init() {
     drawCells();
     loadPublished();
+    if (navigator.usb) {
+      navigator.usb.addEventListener("connect", refreshDfuDevices);
+      navigator.usb.addEventListener("disconnect", refreshDfuDevices);
+      refreshDfuDevices();
+    }
     if (!navigator.requestMIDIAccess) {
       setStatus("bad", "This browser has no Web MIDI: use Chrome, Edge or Firefox.");
       return;

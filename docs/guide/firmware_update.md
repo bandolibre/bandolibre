@@ -73,6 +73,34 @@ that is deliberate, so an accidental drag cannot damage the instrument.
 goes in and stays held for a second or two after. If the instrument is running
 normally, you can also reach the drive from the debug console (below).
 
+## With the chip's own DFU mode (FN0)
+
+The microcontroller has its own USB loader in ROM, which no update can erase.
+The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`:
+
+1. Unplug the USB cable and the **left keyboard**'s cable. The left keyboard
+   talks on the pins the chip's loader also listens to; while it is connected,
+   the loader answers it and never shows up on USB.
+2. Hold **FN0** and plug the USB cable in.
+3. In the update tool, pick **Find a board in STM32 DFU mode…** in the device
+   list, choose "STM32 BOOTLOADER", then click **Update firmware**. Each page
+   is read back and compared after it is written.
+4. Unplug the USB cable, reconnect the left keyboard, and plug back in without
+   holding FN0.
+
+This writes the firmware only, not the bootloader, which has to be present: the
+tool checks for it first. The browser needs access to the device once:
+
+- Linux: a udev rule, then click **Update firmware** again:
+  ```sh
+  echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="df11", TAG+="uaccess"' \
+    | sudo tee /etc/udev/rules.d/50-stm32-dfu.rules \
+    && sudo udevadm control --reload-rules && sudo udevadm trigger
+  ```
+- Windows: the WinUSB driver for "STM32 BOOTLOADER", installed with
+  [Zadig](https://zadig.akeo.ie), then click **Update firmware** again.
+- macOS: nothing.
+
 ## Rebooting into the drive without unplugging
 
 If you have the console open (see
