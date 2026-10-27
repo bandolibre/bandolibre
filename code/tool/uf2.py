@@ -9,8 +9,13 @@ UF2 blocks for this chip, and ignores the filesystem bookkeeping around them.
 
 Format reference: https://github.com/microsoft/uf2
 
-Example:
+Examples:
   uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2
+  uf2.py --bootloader build/Release/boot-g474.bin build/Release/boot-g474.uf2
+
+A --bootloader image is for the update tool in STM32 DFU mode only: the
+Bandolibre bootloader itself refuses blocks outside the application region,
+so copying one onto the BANDOLIBRE drive does nothing.
 """
 
 import argparse
@@ -19,7 +24,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from memmap import props_base
+from memmap import defines, props_base
 
 # Must match APP_BASE and UF2_FAMILY_ID in code/boot-g474/memmap.h.
 # code/tests/test_dfu_config.py fails if they drift apart.
@@ -89,14 +94,23 @@ def main() -> None:
                              f"(default 0x{DEFAULT_BASE:08X}, the application region)")
     parser.add_argument("--family", type=auto_int, default=STM32G4_FAMILY_ID,
                         help=f"UF2 family id (default 0x{STM32G4_FAMILY_ID:08X}, STM32G4)")
+    parser.add_argument("--bootloader", action="store_true",
+                        help="package the bootloader, at BOOT_BASE, for the update tool's DFU mode")
     args = parser.parse_args()
 
     data = args.binary.read_bytes()
 
+    if args.bootloader:
+        m = defines()
+        if len(data) > m["BOOT_SIZE"]:
+            print(f"Error: {len(data)} bytes do not fit the {m['BOOT_SIZE']}-byte bootloader region.",
+                  file=sys.stderr)
+            sys.exit(1)
+        args.base = m["BOOT_BASE"]
     # A binary linked at 0x08000000 is a Debug image or another project's
     # firmware; the bootloader would reject every block of it, leaving the user
     # staring at a drive that silently does nothing.
-    if args.base == 0x08000000:
+    elif args.base == 0x08000000:
         print("Error: --base 0x08000000 is the bootloader's own region. "
               "Package the Release build, which links at "
               f"0x{DEFAULT_BASE:08X}.", file=sys.stderr)

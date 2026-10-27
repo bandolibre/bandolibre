@@ -20,6 +20,11 @@ flash: init_build_release build_release
     arm-none-eabi-objcopy -O binary build/Release/boot-g474.elf build/Release/boot-g474.bin
     ../tool/flash.py main-g474 build/Release/boot-g474.bin --address 0x08000000
 
+# Package the Release bootloader as a .uf2 for the update tool, which installs it in STM32 DFU mode (FN0).
+uf2: init_build_release build_release
+    arm-none-eabi-objcopy -O binary build/Release/boot-g474.elf build/Release/boot-g474.bin
+    ../tool/uf2.py --bootloader build/Release/boot-g474.bin build/Release/boot-g474.uf2
+
 # Report how much of the 32 KB bootloader region is used.
 size: init_build_release build_release
     arm-none-eabi-size build/Release/boot-g474.elf

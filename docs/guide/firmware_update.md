@@ -85,11 +85,18 @@ The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`:
 3. In the update tool, pick **Find a board in STM32 DFU mode…** in the device
    list, choose "STM32 BOOTLOADER", then click **Update firmware**. Each page
    is read back and compared after it is written.
-4. Unplug the USB cable, reconnect the left keyboard, and plug back in without
-   holding FN0.
+4. Click **Exit DFU mode**, next to the firmware version: the board restarts
+   normally.
+   To use the left keyboard again, unplug the USB cable, reconnect the keyboard,
+   and plug back in.
 
-This writes the firmware only, not the bootloader, which has to be present: the
-tool checks for it first. The browser needs access to the device once:
+The firmware needs the Bandolibre bootloader, which starts it: the tool checks
+for it first. The bootloader installs the same way: drop `boot-g474.uf2`
+(`cd code/boot-g474 && just uf2`) on the page, which then shows **Install
+bootloader**. Only DFU mode can install it; if it goes wrong, DFU mode still
+works, so the board can always be recovered.
+
+The browser needs access to the device once:
 
 - Linux: a udev rule, then click **Update firmware** again:
   ```sh

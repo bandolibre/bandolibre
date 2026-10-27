@@ -128,6 +128,14 @@
   .facts-row { display: flex; align-items: flex-start; gap: 12px; }
   .facts-row .facts { flex: 1; min-width: 0; margin-top: 0; }
   .facts-row .btn { margin-top: -6px; flex: none; }
+  .device-row + .facts-row { margin-top: 14px; }
+  /* With Exit DFU mode shown, the row takes the device row's columns, so the
+   * button lines up under the status. Only then: the firmware version and its
+   * badge need the whole width. */
+  .device-row + .facts-row:has(#dfuExitBtn:not([hidden])) {
+    display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 0 16px;
+  }
+  #dfuExitBtn { justify-self: start; }
   .install-actions { margin: 6px 0 20px; justify-content: center; }
   .install-actions .btn { font-size: 1.05rem; padding: 12px 32px; border-radius: 10px; min-width: 220px; }
   .card h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
@@ -300,6 +308,8 @@
     .cells { grid-template-columns: repeat(auto-fill, minmax(8px, 1fr)); gap: 2px; margin-bottom: 8px; }
     .progress-line { margin-top: 6px; }
     details { margin-top: 8px; }
+    /* The status sits under the device list here: no column to line up with. */
+    .device-row + .facts-row:has(#dfuExitBtn:not([hidden])) { display: flex; }
   }
 </style>
 </head>
@@ -341,12 +351,15 @@
         <span id="statusText">Starting…</span>
       </div>
     </div>
-    <dl class="facts" id="facts">
-      <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
-    </dl>
+    <div class="facts-row">
+      <dl class="facts" id="facts">
+        <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
+      </dl>
+      <button type="button" class="btn" id="dfuExitBtn" hidden>Exit DFU mode</button>
+    </div>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
-    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>: the chip's own loader, started by holding FN0 while plugging it in. Press <strong>Update firmware</strong> to install the firmware below, or unplug the board and plug it back in without holding FN0 to return to playing.</p>
-    <p class="notice" id="dfuDoneNotice" hidden>The firmware is installed. Unplug the USB cable, reconnect the left keyboard if you unplugged it, then plug the board back in <strong>without</strong> holding FN0: it starts with the new firmware.</p>
+    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>: the chip's own loader, started by holding FN0 while plugging it in. Press <strong>Update firmware</strong> to install the firmware below, or <strong>Exit DFU mode</strong> to restart the board normally.</p>
+    <p class="notice" id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU mode</strong> to restart the board. To use the left keyboard again, unplug the USB cable, reconnect the keyboard, and plug the board back in.</p>
     <p class="notice" id="idleUpdateNotice" hidden>The instrument is waiting in firmware update mode. Update it below, or go back to playing without updating.</p>
     <div class="actions" id="leaveRow" hidden>
       <button type="button" class="btn" id="leaveBtn">Return to playing</button>
@@ -363,6 +376,7 @@
       <button type="button" class="btn icon" id="fileBtn" title="Load a .uf2 file (or drop it onto this card)" aria-label="Load a .uf2 file, or drop it onto this card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
       <input type="file" id="fileInput" accept=".uf2" hidden>
     </div>
+    <p class="notice" id="bootloaderNotice" hidden>This file replaces the <strong>bootloader</strong>, the part that starts the firmware and updates it. It installs only in STM32 DFU mode: unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in.</p>
   </section>
 
   <section class="card" aria-labelledby="progressTitle">
@@ -868,6 +882,7 @@
     $("interruptedNotice").hidden = true;
     $("idleUpdateNotice").hidden = true;
     if (device) $("dfuDoneNotice").hidden = true;   // back as an instrument
+    $("bootloaderNotice").hidden = !image || image.kind !== "bootloader" || !!dfuSelected;
     $("dfuNotice").hidden = !dfuSelected || busy || !$("dfuDoneNotice").hidden;
     $("factFirmware").textContent = dfuSelected ? "unknown in DFU mode" : "—";
     if (device) {
@@ -882,6 +897,11 @@
       }
     }
     $("leaveRow").hidden = $("idleUpdateNotice").hidden;
+    $("dfuExitBtn").hidden = !dfuSelected;
+    // No comparison in DFU mode: free the badge's reserved space, which would
+    // wrap in the narrower column next to Exit DFU mode.
+    $("firmwareBadge").style.display = dfuSelected ? "none" : "";
+    $("dfuExitBtn").disabled = busy;
     showFirmwareBadge();
     refreshButton();
   }
@@ -891,7 +911,7 @@
    * is unknown. */
   function firmwareRelation() {
     const installed = device && (device.mode === MODE_UPDATE ? device.info.appVersion : device.version);
-    if (!installed || !image || !image.version) return null;
+    if (!installed || !image || !image.version || image.kind === "bootloader") return null;
     if (image.version === installed) return "same";
     const a = parseFirmwareVersion(image.version), b = parseFirmwareVersion(installed);
     const order = a && b ? compareVersions(a, b) : 0;
@@ -914,6 +934,13 @@
   /* The button is the highlighted action only when there is something to do:
    * a newer firmware, or an update to finish. Otherwise it stays plain. */
   function refreshButton() {
+    // A bootloader installs only in STM32 DFU mode.
+    if (image && image.kind === "bootloader") {
+      updateBtn.disabled = !dfuSelected || busy;
+      updateBtn.textContent = "Install bootloader";
+      updateBtn.classList.add("primary");
+      return;
+    }
     const ready = (!!device || !!dfuSelected) && !!image && !busy;
     updateBtn.disabled = !ready;
     const resume = device && device.mode === MODE_UPDATE && device.info.appState !== APP_VALID;
@@ -1034,22 +1061,44 @@
     return new Reader(bytes.slice(APP_INFO_OFFSET + 4, APP_INFO_OFFSET + 52)).str();
   }
 
+  /* A file for the bootloader region rather than the firmware's: its blocks
+   * start below the firmware area (code/tool/uf2.py --bootloader). */
+  function isBootloaderUf2(buffer) {
+    const view = new DataView(buffer);
+    for (let off = 0; off + 512 <= buffer.byteLength; off += 512) {
+      if (view.getUint32(off, true) === 0x0a324655 && view.getUint32(off + 12, true) < DEFAULT_APP_BASE) return true;
+    }
+    return false;
+  }
+
+  /* The bootloader carries the firmware's version string, "Bandolibre v…". */
+  function bootloaderVersion(bytes) {
+    const m = /Bandolibre v\d[\x21-\x7e]*/.exec(new TextDecoder("latin1").decode(bytes));
+    return m ? m[0] : null;
+  }
+
   function setImage(buffer, source) {
     try {
-      const { bytes, size } = parseUf2(buffer);
-      const version = imageVersion(bytes);
-      image = { bytes, size, crc: crc32(bytes), version, source, uf2: buffer };
+      const bootloader = isBootloaderUf2(buffer);
+      const base = bootloader ? BOOT_BASE : DEFAULT_APP_BASE;
+      const area = bootloader ? BOOT_SIZE : DEFAULT_APP_SIZE;
+      const { bytes, size } = parseUf2(buffer, base, area);
+      const version = bootloader ? bootloaderVersion(bytes) : imageVersion(bytes);
+      image = { bytes, size, crc: crc32(bytes), version, source, uf2: buffer,
+                kind: bootloader ? "bootloader" : "firmware", base, area };
+      $("firmwareTitle").textContent = bootloader ? "Bootloader" : "Latest firmware";
       $("imageVersion").textContent = version ? shortVersion(version) : "unknown";
       $("imageSource").textContent = source;
-      log("firmware: " + source + ", " + size + " bytes, CRC-32 " + hex32(image.crc) + ", " +
+      log(image.kind + ": " + source + ", " + size + " bytes, CRC-32 " + hex32(image.crc) + ", " +
           (version || "no version record"));
       showError("");
+      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: area, chunk: DEFAULT_CHUNK };
       drawCells();
     } catch (err) {
       showError(source + ": " + err.message);
     }
     showFirmwareBadge();
-    refreshButton();
+    showDevice();
   }
 
   async function loadPublished() {
@@ -1321,7 +1370,7 @@
    * and is done when the state is back to dfuDNLOAD_IDLE. */
   const DFU_REQ = { DNLOAD: 1, UPLOAD: 2, GETSTATUS: 3, CLRSTATUS: 4, ABORT: 6 };
   const DFU_STATE = { IDLE: 2, DNLOAD_IDLE: 5, ERROR: 10 };
-  const BOOT_BASE = 0x08000000;
+  const BOOT_BASE = 0x08000000, BOOT_SIZE = 32 * 1024;   // code/boot-g474/memmap.h
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   class DfuTarget {
@@ -1407,6 +1456,17 @@
       await this.dnload(2, data);
     }
 
+    /* DfuSe "leave": a zero-length DNLOAD after setting the address pointer
+     * makes the ROM jump to it once GETSTATUS is asked. The Bandolibre
+     * bootloader at that address then resets the chip, which starts
+     * normally with FN0 released. The board drops off USB meanwhile, so the
+     * status may never come back. */
+    async leave() {
+      await this.setAddress(BOOT_BASE);
+      await this.out(DFU_REQ.DNLOAD, 0);
+      try { await this.status(); } catch (_) {}
+    }
+
     async read(addr, len) {
       await this.setAddress(addr);
       await this.toIdle();   // UPLOAD starts from dfuIDLE
@@ -1449,23 +1509,25 @@
     } catch (err) {
       throw dfuOpenHelp(err);
     }
+    const bootloader = image.kind === "bootloader";
     try {
       log("DFU: transfer size " + dfu.transferSize + " bytes");
-      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: DEFAULT_APP_SIZE, chunk: DEFAULT_CHUNK };
+      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: image.area, chunk: DEFAULT_CHUNK };
       drawCells();
       const { pageSize } = geometry;
+      const base = image.base;
 
       // The bootloader starts the firmware: without it the board would stay dark.
       const head = await dfu.read(BOOT_BASE, 8);
       const resetVector = new DataView(head.buffer).getUint32(4, true);
-      if (!(resetVector >= BOOT_BASE && resetVector < DEFAULT_APP_BASE)) {
+      if (!bootloader && !(resetVector >= BOOT_BASE && resetVector < DEFAULT_APP_BASE)) {
         throw new UpdateError("this board has no Bandolibre bootloader, so the firmware would not start. " +
           "Install it first with an ST-Link: cd code/boot-g474 && just flash");
       }
 
       const pages = Math.ceil(image.size / pageSize);
       setPhase("Erasing…");
-      await dfu.erasePage(DEFAULT_APP_BASE);
+      await dfu.erasePage(base);
 
       setPhase("Writing…");
       bytesDone = 0;
@@ -1477,16 +1539,16 @@
         let ok = false;
         for (let attempt = 0; attempt < 2 && !ok; attempt++) {
           if (attempt) { log("page " + page + " did not read back right, rewriting it"); markPage(page, "retry"); }
-          if (page !== 0 || attempt) await dfu.erasePage(DEFAULT_APP_BASE + start);
+          if (page !== 0 || attempt) await dfu.erasePage(base + start);
           markPage(page, "write");
           for (let off = 0; off < data.length; off += dfu.transferSize) {
-            await dfu.write(DEFAULT_APP_BASE + start + off, data.subarray(off, off + dfu.transferSize));
+            await dfu.write(base + start + off, data.subarray(off, off + dfu.transferSize));
           }
           markPage(page, "written");
           ok = true;
           for (let off = 0; off < data.length && ok; off += dfu.transferSize) {
             const want = data.subarray(off, off + dfu.transferSize);
-            const got = await dfu.read(DEFAULT_APP_BASE + start + off, want.length);
+            const got = await dfu.read(base + start + off, want.length);
             ok = got.length === want.length && got.every((b, i) => b === want[i]);
           }
         }
@@ -1498,12 +1560,13 @@
         bytesDone += data.length;
         showRate();
       }
-      log("DFU: " + image.size + " bytes written and read back, CRC-32 " + hex32(image.crc));
+      log("DFU: " + image.kind + ", " + image.size + " bytes written and read back, CRC-32 " + hex32(image.crc));
     } finally {
       await dfu.close();
     }
 
-    setPhase("Firmware installed");
+    setPhase(bootloader ? "Bootloader installed" : "Firmware installed");
+    $("dfuDoneWhat").textContent = bootloader ? "The bootloader" : "The firmware";
     setProgress("");
     showError("");
     $("dfuDoneNotice").hidden = false;
@@ -1561,6 +1624,11 @@
   }
 
   async function onDfuUpdateClick() {
+    if (image.kind === "bootloader" && !confirm("Replace the bootloader with " +
+        (image.version ? shortVersion(image.version) : "this file") + "? If it goes wrong, the board can " +
+        "still be recovered from STM32 DFU mode.")) {
+      return;
+    }
     busy = true;
     refreshButton();
     $("dfuNotice").hidden = true;
@@ -1583,6 +1651,41 @@
   }
 
   updateBtn.addEventListener("click", onUpdateClick);
+
+  /* Out of STM32 DFU mode, without unplugging. */
+  async function leaveDfuMode() {
+    const dfu = new DfuTarget(dfuSelected);
+    try {
+      await dfu.open();
+    } catch (err) {
+      throw dfuOpenHelp(err);
+    }
+    try {
+      await dfu.leave();
+    } finally {
+      await dfu.close();
+    }
+    log("left STM32 DFU mode; the board restarts");
+    $("dfuDoneNotice").hidden = true;
+    setStatus("warn", "Restarting…");
+  }
+
+  $("dfuExitBtn").addEventListener("click", async () => {
+    if (!dfuSelected || busy) return;
+    busy = true;
+    $("dfuExitBtn").disabled = true;
+    refreshButton();
+    try {
+      await leaveDfuMode();
+    } catch (err) {
+      showError("could not leave STM32 DFU mode: " + err.message.replace(/\.$/, "") +
+        ". Unplug the board and plug it back in without holding FN0.", err.command);
+    } finally {
+      busy = false;
+      showDevice();
+      renderSelector();
+    }
+  });
 
   $("leaveBtn").addEventListener("click", async () => {
     if (!device || busy) return;

@@ -333,6 +333,17 @@ static void dfu_mode(bool drive)
 
 int main(void)
 {
+  /* Started by the STM32 ROM loader leaving its DFU mode (the update tool's
+   * "Leave DFU mode"), not by a reset: it jumps here with its own PLL and
+   * peripherals running, which SystemClock_Config() cannot take over. A
+   * reset starts clean, and with FN0 released by now the chip boots from
+   * flash. After a real reset the PLL is off, and the memory remap reads 0
+   * (main flash; also 0 while SYSCFG's clock is still off). */
+  if ((RCC->CR & RCC_CR_PLLON) ||
+      (SYSCFG->MEMRMP & SYSCFG_MEMRMP_MEM_MODE) == SYSCFG_MEMRMP_MEM_MODE_0) {
+    NVIC_SystemReset();
+  }
+
   HAL_Init();
   SystemClock_Config();
   gpio_init();
