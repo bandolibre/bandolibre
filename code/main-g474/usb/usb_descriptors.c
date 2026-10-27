@@ -92,7 +92,7 @@ enum {
 // Strings are UTF-8 encoded and converted to UTF-16 on request.
 static char const *string_desc_arr[] = {
   (const char[]) { 0x09, 0x04 },  // 0: supported language is English (0x0409)
-  "L'Atelier du Bandon\xc3\xa9on Libre",  // 1: Manufacturer
+  "Bandolibre",                   // 1: Manufacturer
   "Bandolibre",                   // 2: Product
   NULL,                           // 3: Serial, derived from the chip UID
 };

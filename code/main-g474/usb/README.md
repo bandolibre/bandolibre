@@ -6,7 +6,7 @@ The main board enumerates as a full-speed MIDI USB device built on
 | | |
 |---|---|
 | VID / PID | `0x0483` / `0xA5B4` (ST's vendor id, product id sublicensed from ST) |
-| Manufacturer | L'Atelier du bandonéon libre |
+| Manufacturer | Bandolibre |
 | Product | Bandolibre |
 | Serial | 96-bit chip UID, 24 hex digits |
 | Interfaces | MIDI only |
