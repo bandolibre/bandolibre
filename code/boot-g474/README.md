@@ -136,8 +136,8 @@ when pressed, which would collide with ST's own boot-mode selection if the
 | | Application | Bootloader, web update | Bootloader, otherwise |
 |---|---|---|---|
 | VID:PID | `0483:a5b4` | `0483:a5b4` | `0483:a5b4` |
-| bcdDevice | `0x0100` | `0x0201` | `0x0202` |
-| Interfaces | MIDI | MIDI | MIDI + mass storage |
+| bcdDevice | `0x0101` | `0x0203` | `0x0204` |
+| Interfaces | MIDI + DFU runtime | MIDI + DFU runtime | MIDI + DFU runtime + mass storage |
 | Manufacturer = product | Bandolibre | Bandolibre firmware update | Bandolibre firmware update |
 | Serial | 96-bit chip UID, 24 hex digits | same | same |
 
@@ -146,6 +146,14 @@ The VID/PID is ST's vendor id with a product id sublicensed to this project
 covers the whole product, so application and bootloader share it and differ by
 `bcdDevice` instead: hosts cache a driver set per VID/PID/revision, and the
 three expose different interfaces.
+
+The DFU runtime interface (`../common/dfu/`) answers a DFU tool's `DFU_DETACH`
+by restarting into the STM32's own DFU loader in ROM. It first restarts both
+keyboards into their own loaders (BOOT0 high during an NRST pulse), so the left
+one stops sending on PA4-PA7, the ROM loader's SPI1 port, which would otherwise
+make it drop USB; the application restarts them into their firmware at start.
+When the ROM loader leaves (DfuSe "leave", the update tool's **Exit DFU
+mode**) it jumps here, and `main()` resets the chip to start clean.
 
 Manufacturer and product are the same string because the MIDI port name comes
 from the product on Linux and macOS and from the manufacturer on Windows. With
@@ -186,7 +194,8 @@ they lie outside the application region.
 ## Testing
 
 ```sh
-lsusb -v -d 0483:a5b4 | grep bcdDevice   # 0201 web update, 0202 with the drive
+lsusb -v -d 0483:a5b4 | grep bcdDevice   # 0203 web update, 0204 with the drive
+dfu-util -d 0483:a5b4,0483:df11 -e        # restarts into the ROM's DFU loader
 amidi -l                        # "Bandolibre firmware update"
 cat /media/*/BANDOLIBRE/INFO_UF2.TXT
 ```

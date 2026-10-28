@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "debug.h"
+#include "dfu_runtime.h"
 #include "memmap.h"
 #include "midi_update.h"
 #include "msc_disk.h"
@@ -301,6 +302,7 @@ static void dfu_mode(bool drive)
   while (1) {
     tud_task();
     midi_update_task();
+    dfu_runtime_task();
     led_task();
 
     if (uf2_commit_ready()) {

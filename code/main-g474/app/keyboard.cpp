@@ -664,8 +664,20 @@ static void bus_report_keyboard(SPIBus *b, bool show_stats)
   }
 }
 
+/* Restarts both keyboards into their firmware (BOOT0 is low, MX_GPIO_Init).
+ * Powered from this board, they keep whatever they last booted into across
+ * its resets: after STM32 DFU mode (common/dfu/system_dfu.c) that is their own
+ * ROM loader, where they send nothing. */
+static void restart_keyboards(void)
+{
+  HAL_GPIO_WritePin(GPIOB, L_NRST_Pin | R_NRST_Pin, GPIO_PIN_RESET);
+  HAL_Delay(2);
+  HAL_GPIO_WritePin(GPIOB, L_NRST_Pin | R_NRST_Pin, GPIO_PIN_SET);
+}
+
 void keyboard_init(void)
 {
+  restart_keyboards();
   g_bus[0].hspi = &hspi1; g_bus[0].name = "SPI1/L"; g_bus[0].midi_ch = L_MIDI_CH;
   g_bus[0].nss_port = L_SPI_NSS_GPIO_Port; g_bus[0].nss_pin = L_SPI_NSS_Pin;
   g_bus[1].hspi = &hspi2; g_bus[1].name = "SPI2/R"; g_bus[1].midi_ch = R_MIDI_CH;

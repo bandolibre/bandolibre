@@ -1,10 +1,13 @@
 /*
  * USB descriptors for the Bandolibre main board.
- * Full-speed MIDI-only device (CDC is disabled in tusb_config.h).
+ * Full-speed MIDI device (CDC is disabled in tusb_config.h), plus a DFU
+ * runtime interface (common/dfu/dfu_runtime.h) that restarts the board into
+ * the STM32's own DFU loader on DFU_DETACH.
  */
 
 #include "tusb.h"
 #include "stm32g4xx_hal.h"
+#include "dfu_runtime.h"
 
 /* USB ids sublicensed from STMicroelectronics: ST's vendor id with a product
  * id assigned to this project, valid only for a product built on ST silicon
@@ -16,9 +19,12 @@
  * interface layouts differ (MIDI here; MIDI, or MIDI plus mass storage
  * there).
  *
- *   application              bcdDevice 0x0100
- *   bootloader, MIDI only    bcdDevice 0x0201
- *   bootloader, MIDI + MSC   bcdDevice 0x0202
+ *   application              bcdDevice 0x0101
+ *   bootloader, MIDI only    bcdDevice 0x0203
+ *   bootloader, MIDI + MSC   bcdDevice 0x0204
+ *
+ * (Bumped from 0x0100, 0x0201 and 0x0202 when the DFU runtime interface was
+ * added, so Windows does not reuse what it cached for the old layouts.)
  *
  * Its strings say "Bandolibre firmware update", which the web tools exclude
  * from auto-connect; keep these plain "Bandolibre".
@@ -32,7 +38,9 @@
 static tusb_desc_device_t const desc_device = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
-    .bcdUSB             = 0x0200,
+    // 2.1: Windows then asks for the BOS, and finds the Microsoft OS 2.0
+    // descriptors that bind WinUSB to the DFU runtime interface.
+    .bcdUSB             = 0x0210,
 
     // Use Interface Association Descriptor (IAD) device class so the CDC
     // interface pair is grouped correctly on the host.
@@ -43,7 +51,7 @@ static tusb_desc_device_t const desc_device = {
 
     .idVendor           = USB_VID,
     .idProduct          = USB_PID,
-    .bcdDevice          = 0x0100,
+    .bcdDevice          = 0x0101,
 
     .iManufacturer      = 0x01,
     .iProduct           = 0x02,
@@ -62,10 +70,12 @@ uint8_t const *tud_descriptor_device_cb(void) {
 enum {
   ITF_NUM_MIDI = 0,
   ITF_NUM_MIDI_STREAMING,
+  ITF_NUM_DFU_RT,
   ITF_NUM_TOTAL
 };
+TU_VERIFY_STATIC(ITF_NUM_DFU_RT == DFU_RUNTIME_ITF, "the MS OS 2.0 descriptors name this interface");
 
-#define CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN)
+#define CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN + TUD_DFU_RT_DESC_LEN)
 
 // Endpoint addresses (STM32 fsdev: each number is a bidirectional pair)
 #define EPNUM_MIDI_OUT   0x01
@@ -77,6 +87,9 @@ static uint8_t const desc_fs_configuration[] = {
 
   // MIDI: Interface number, string index, EP Out & EP In address, EP size
   TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, 1, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64),
+
+  // DFU runtime: no endpoints, control requests only
+  DFU_RUNTIME_DESCRIPTOR(0),
 };
 
 uint8_t const *tud_descriptor_configuration_cb(uint8_t index) {

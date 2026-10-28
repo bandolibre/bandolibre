@@ -73,10 +73,29 @@ that is deliberate, so an accidental drag cannot damage the instrument.
 goes in and stays held for a second or two after. If the instrument is running
 normally, you can also reach the drive from the debug console (below).
 
-## With the chip's own DFU mode (FN0)
+## With the chip's own DFU mode
 
 The microcontroller has its own USB loader in ROM, which no update can erase.
-The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`:
+The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`.
+
+**Getting there without a button.** In the update tool, click **Restart in DFU
+mode**, next to the firmware version, and choose "Bandolibre" in the browser's
+list. The board restarts into the chip's loader, keyboards connected, and the
+tool selects it; the first time, the browser asks for it too ("STM32
+BOOTLOADER"), through **Find the board**.
+
+This works because the instrument, and its update mode, carry a standard USB
+DFU runtime interface: any DFU tool restarts the board into the chip's loader
+with `DFU_DETACH`. It first restarts both keyboards into their own loaders,
+where they stay silent; they come back when the instrument starts again. With
+`dfu-util`:
+
+```sh
+dfu-util -d 0483:a5b4,0483:df11 -e                         # into the loader
+dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D file.bin  # write, then back
+```
+
+**With FN0, as a fallback** (an instrument that does not start at all):
 
 1. Unplug the USB cable and the **left keyboard**'s cable. The left keyboard
    talks on the pins the chip's loader also listens to; while it is connected,
@@ -99,14 +118,17 @@ still works, so the board can always be recovered.
 
 The browser needs access to the device once:
 
-- Linux: a udev rule, then click **Update firmware** again:
+- Linux: a udev rule, then click the button again. It covers the chip's loader
+  (`0483:df11`) and the instrument (`0483:a5b4`, for **Restart in DFU mode**).
   ```sh
-  echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="df11", TAG+="uaccess"' \
+  echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="df11|a5b4", TAG+="uaccess"' \
     | sudo tee /etc/udev/rules.d/50-stm32-dfu.rules \
     && sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
 - Windows: the WinUSB driver for "STM32 BOOTLOADER", installed with
-  [Zadig](https://zadig.akeo.ie), then click **Update firmware** again.
+  [Zadig](https://zadig.akeo.ie), then click **Update firmware** again. The
+  instrument's own DFU interface needs nothing: it asks Windows for WinUSB
+  itself (Microsoft OS 2.0 descriptors).
 - macOS: nothing.
 
 ## Rebooting into the drive without unplugging

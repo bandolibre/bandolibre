@@ -3,6 +3,7 @@
 extern "C" {
 #include "main.h"
 #include "console.h"
+#include "dfu_runtime.h"
 #include "app/bellow.h"
 #include "app/buttons.h"
 #include "app/keyboard.h"
@@ -49,6 +50,7 @@ void main_task(void)
 {
   report_begin();
   usb_app_task();
+  dfu_runtime_task();
   midi_poll();
   bellow_poll();
   keyboard_poll();

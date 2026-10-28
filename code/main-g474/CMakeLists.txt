@@ -91,6 +91,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/flash/flash_page.c
     ../common/sysex/sysex_codec.c
     ../common/sysex/midi_tx.c
+    ../common/dfu/dfu_runtime.c
+    ../common/dfu/system_dfu.c
     app/bootloader.c
     ../third_party/microrl/src/microrl.c
     ../common/console/console.c
@@ -103,6 +105,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ../third_party/tinyusb/src/device/usbd.c
     ../third_party/tinyusb/src/device/usbd_control.c
     ../third_party/tinyusb/src/class/midi/midi_device.c
+    ../third_party/tinyusb/src/class/dfu/dfu_rt_device.c
     ../third_party/tinyusb/src/portable/st/stm32_fsdev/fsdev_common.c
     ../third_party/tinyusb/src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c
 )
@@ -156,6 +159,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ../common/hall_report
     ../common/flash
     ../common/sysex
+    ../common/dfu
     usb
     ../third_party/tinyusb/src
     # memmap.h: the flash split and the DFU hand-off flag, shared with the

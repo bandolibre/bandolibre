@@ -46,6 +46,8 @@ extern "C" {
 #define CFG_TUD_HID               0
 #define CFG_TUD_MIDI              1
 #define CFG_TUD_VENDOR            0
+// DFU_DETACH restarts into the STM32 ROM's DFU loader (common/dfu).
+#define CFG_TUD_DFU_RUNTIME       1
 
 // MIDI FIFO size of TX and RX, in 4-byte USB-MIDI packets of 3 MIDI bytes.
 // A frame larger than the free TX space no longer gets cut: midi_tx_send()

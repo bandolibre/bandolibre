@@ -24,9 +24,18 @@ enumerates while firmware is being updated: MIDI, plus mass storage unless the
 web update tool asked for the reboot, with manufacturer and product "Bandolibre
 firmware update" (the web tools exclude that name from auto-connect). It
 shares this VID/PID (one product id covers the product) and is told apart by
-`bcdDevice`: `0x0100` here, `0x0201` / `0x0202` in the bootloader. The
+`bcdDevice`: `0x0101` here, `0x0203` / `0x0204` in the bootloader. The
 revisions must differ because hosts cache a driver set per VID/PID/revision
 and the devices expose different interfaces.
+
+Both also carry a USB DFU runtime interface (interface 2,
+`../../common/dfu/dfu_runtime.h`): a DFU tool's `DFU_DETACH` restarts the board
+into the STM32's own DFU loader in ROM (`0483:df11`), keyboards connected and no
+button held. `bcdUSB` is 2.1, so Windows reads the Microsoft OS 2.0 descriptors
+that bind WinUSB to that interface; the revisions above were bumped from
+`0x0100`, `0x0201` and `0x0202` when it was added, so Windows does not reuse
+what it cached for the old layouts. The console command `romdfu` does the same
+restart, for bench tests.
 
 ## Files
 
@@ -75,7 +84,7 @@ from `code/tests`).
 ## Testing
 
 ```sh
-lsusb -d 0483:a5b4       # device present (bcdDevice 0200 = bootloader, see boot-g474)
+lsusb -d 0483:a5b4       # device present (bcdDevice 0101; 0203 or 0204 = bootloader, see boot-g474)
 amidi -l                 # MIDI port listed as "Bandolibre"
 aseqdump -p Bandolibre &   # then run `midi [note]` in the console to test
 ```

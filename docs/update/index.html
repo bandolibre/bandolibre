@@ -136,6 +136,14 @@
     display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 0 16px;
   }
   #dfuExitBtn { justify-self: start; }
+  /* Restart in DFU mode keeps its place while hidden (visibility), so the
+   * firmware row doesn't narrow when the instrument answers. */
+  /* On a phone it takes a line of its own, under the firmware. */
+  @media (max-width: 560px) {
+    .facts-row:has(#dfuEnterBtn:not([hidden])) { flex-wrap: wrap; row-gap: 10px; }
+    .facts-row:has(#dfuEnterBtn:not([hidden])) .facts { flex-basis: 100%; }
+    .facts-row #dfuEnterBtn { margin-top: 0; }
+  }
   .install-actions { margin: 6px 0 20px; justify-content: center; }
   .install-actions .btn { font-size: 1.05rem; padding: 12px 32px; border-radius: 10px; min-width: 220px; }
   .card h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
@@ -355,11 +363,16 @@
       <dl class="facts" id="facts">
         <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
       </dl>
+      <button type="button" class="btn" id="dfuEnterBtn" title="Restart the board into the chip's own loader, which can also install the bootloader" style="visibility: hidden">Restart in DFU mode</button>
       <button type="button" class="btn" id="dfuExitBtn" hidden>Exit DFU mode</button>
     </div>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
-    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>: the chip's own loader, started by holding FN0 while plugging it in. Press <strong>Update firmware</strong> to install the firmware below, or <strong>Exit DFU mode</strong> to restart the board normally.</p>
-    <p class="notice" id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU mode</strong> to restart the board. To use the left keyboard again, unplug the USB cable, reconnect the keyboard, and plug the board back in.</p>
+    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>, the chip's own loader. Press <strong>Update firmware</strong> to install the firmware below, or <strong>Exit DFU mode</strong> to restart the board normally.</p>
+    <p class="notice" id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU mode</strong> to restart the board. If you unplugged the left keyboard to get here, unplug the USB cable, reconnect the keyboard, and plug the board back in.</p>
+    <p class="notice" id="dfuPickNotice" hidden>The board restarted in <strong>STM32 DFU mode</strong>. The browser asks once before this page may use it: press <strong>Find the board</strong> and choose "STM32 BOOTLOADER".</p>
+    <div class="actions" id="dfuPickRow" hidden>
+      <button type="button" class="btn" id="dfuPickBtn">Find the board</button>
+    </div>
     <p class="notice" id="idleUpdateNotice" hidden>The instrument is waiting in firmware update mode. Update it below, or go back to playing without updating.</p>
     <div class="actions" id="leaveRow" hidden>
       <button type="button" class="btn" id="leaveBtn">Return to playing</button>
@@ -377,7 +390,7 @@
       <button type="button" class="btn icon" id="fileBtn" title="Load a .uf2 file (or drop it onto this card)" aria-label="Load a .uf2 file, or drop it onto this card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
       <input type="file" id="fileInput" accept=".uf2" hidden>
     </div>
-    <p class="notice" id="bootloaderNotice" hidden>This file replaces the <strong>bootloader</strong>, the part that starts the firmware and updates it. It installs only in STM32 DFU mode: unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in.</p>
+    <p class="notice" id="bootloaderNotice" hidden>This file replaces the <strong>bootloader</strong>, the part that starts the firmware and updates it. It installs only in STM32 DFU mode: press <strong>Restart in DFU mode</strong> above. A board that does not start gets there with FN0: unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in.</p>
   </section>
 
   <section class="card" aria-labelledby="progressTitle">
@@ -697,6 +710,7 @@
   const STM32_DFU = { vendorId: 0x0483, productId: 0xdf11 };
   let dfuDevices = [];      // picked once, and plugged in
   let dfuSelected = null;   // the one shown in the Instrument card
+  let dfuPickNeeded = false;   // restarted into it, but never picked in the chooser
   // The ROM names itself "STM32  BOOTLOADER", with two spaces.
   const dfuName = (u) => (u.productName || "STM32 BOOTLOADER").replace(/\s+/g, " ").trim();
 
@@ -899,6 +913,11 @@
       }
     }
     $("leaveRow").hidden = $("idleUpdateNotice").hidden;
+    if (device || dfuSelected) dfuPickNeeded = false;
+    $("dfuPickNotice").hidden = $("dfuPickRow").hidden = !dfuPickNeeded;
+    $("dfuEnterBtn").hidden = !navigator.usb || !!dfuSelected;
+    $("dfuEnterBtn").style.visibility = device ? "visible" : "hidden";
+    $("dfuEnterBtn").disabled = busy;
     $("dfuExitBtn").hidden = !dfuSelected;
     // No comparison in DFU mode: free the badge's reserved space, which would
     // wrap in the narrower column next to Exit DFU mode.
@@ -1383,7 +1402,7 @@
    * the page at an address), data in block 2 at the address pointer, and
    * UPLOAD block 2 reads from it. Each DNLOAD runs when GETSTATUS is asked,
    * and is done when the state is back to dfuDNLOAD_IDLE. */
-  const DFU_REQ = { DNLOAD: 1, UPLOAD: 2, GETSTATUS: 3, CLRSTATUS: 4, ABORT: 6 };
+  const DFU_REQ = { DETACH: 0, DNLOAD: 1, UPLOAD: 2, GETSTATUS: 3, CLRSTATUS: 4, ABORT: 6 };
   const DFU_STATE = { IDLE: 2, DNLOAD_IDLE: 5, ERROR: 10 };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -1491,21 +1510,23 @@
     }
   }
 
-  /* Why the board could not be opened, and what to do. */
-  function dfuOpenHelp(error) {
+  /* Why the board could not be opened, and what to do. `instrument`: it was
+   * the instrument's own DFU interface, not the chip's loader. One udev rule
+   * covers both. */
+  function dfuOpenHelp(error, { again = "Update firmware", instrument = false } = {}) {
     const ua = navigator.userAgent;
     const err = { message: String(error.message).replace(/\.$/, "") };   // "Access denied."
     if (/Linux/.test(ua) && !/Android/.test(ua)) {
       return new UpdateError("the browser may not open the board (" + err.message + "). Allow it once with " +
-        "this udev rule in a terminal, then press Update firmware again",
-        "echo 'SUBSYSTEM==\"usb\", ATTR{idVendor}==\"0483\", ATTR{idProduct}==\"df11\", TAG+=\"uaccess\"' " +
+        "this udev rule in a terminal, then press " + again + " again",
+        "echo 'SUBSYSTEM==\"usb\", ATTR{idVendor}==\"0483\", ATTR{idProduct}==\"df11|a5b4\", TAG+=\"uaccess\"' " +
         "| sudo tee /etc/udev/rules.d/50-stm32-dfu.rules && sudo udevadm control --reload-rules " +
         "&& sudo udevadm trigger");
     }
-    if (/Windows/.test(ua)) {
+    if (/Windows/.test(ua) && !instrument) {
       return new UpdateError("the browser could not open the board (" + err.message + "). On Windows it needs " +
         "the WinUSB driver: install it for \"STM32 BOOTLOADER\" with Zadig (zadig.akeo.ie), then press " +
-        "Update firmware again");
+        again + " again");
     }
     return new UpdateError("the browser could not open the board: " + err.message);
   }
@@ -1740,6 +1761,97 @@
     }
   });
 
+  /* Into STM32 DFU mode, without FN0. The instrument and its update mode
+   * carry a USB DFU runtime interface (code/common/dfu/): DFU_DETACH restarts
+   * the board into the chip's loader, keyboards connected. WebUSB sees the
+   * board and the loader as two devices, so the browser asks once for each. */
+  const BANDOLIBRE_USB = { vendorId: 0x0483, productId: 0xa5b4 };
+
+  async function enterDfuMode() {
+    const known = (await navigator.usb.getDevices()).filter(
+      (u) => u.vendorId === BANDOLIBRE_USB.vendorId && u.productId === BANDOLIBRE_USB.productId);
+    let u = known.length === 1 ? known[0] : null;
+    if (!u) {
+      try {
+        u = await navigator.usb.requestDevice({ filters: [BANDOLIBRE_USB] });
+      } catch (_) {
+        return false;   // chooser closed without a choice
+      }
+    }
+    const help = { again: "Restart in DFU mode", instrument: true };
+    try {
+      await u.open();
+      if (!u.configuration) await u.selectConfiguration(1);
+    } catch (err) {
+      throw dfuOpenHelp(err, help);
+    }
+    try {
+      const itf = u.configuration.interfaces.find((i) =>
+        i.alternates.some((a) => a.interfaceClass === 0xfe && a.interfaceSubclass === 0x01));
+      if (!itf) {
+        throw new UpdateError("this firmware cannot restart into DFU mode by itself; update it first. " +
+          "Or unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in");
+      }
+      try {
+        await u.claimInterface(itf.interfaceNumber);
+      } catch (err) {
+        throw dfuOpenHelp(err, help);
+      }
+      await u.controlTransferOut({ requestType: "class", recipient: "interface", request: DFU_REQ.DETACH,
+                                   value: 1000, index: itf.interfaceNumber });
+    } finally {
+      try { await u.close(); } catch (_) {}   // the board may be gone already
+    }
+    log("sent DFU_DETACH; the board restarts into STM32 DFU mode");
+    return true;
+  }
+
+  /* The loader, if the browser was allowed to see it before: it reports it
+   * by itself. Otherwise only the chooser can, after a click. */
+  async function waitForDfuDevice(timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await refreshDfuDevices();   // no reconcile while busy
+      if (dfuDevices.length) return dfuDevices[0];
+      await sleep(250);
+    }
+    return null;
+  }
+
+  $("dfuEnterBtn").addEventListener("click", async () => {
+    if (!device || busy) return;
+    busy = true;
+    showError("");
+    showDevice();
+    refreshButton();
+    let found = null, sent = false;
+    try {
+      sent = await enterDfuMode();
+      if (sent) {
+        setStatus("warn", "Restarting in DFU mode…");
+        found = await waitForDfuDevice(5000);
+      }
+    } catch (err) {
+      showError("could not restart in DFU mode: " + err.message.replace(/\.?$/, "."), err.command);
+    } finally {
+      busy = false;
+      if (found) {
+        selectDfu(found);
+      } else if (sent) {
+        usePort(null);
+        dfuPickNeeded = true;
+        log("the board in STM32 DFU mode needs picking in the browser's chooser");
+        showDevice();
+        reconcile();
+      } else {
+        showDevice();
+        renderSelector();
+      }
+    }
+  });
+
+  $("dfuPickBtn").addEventListener("click", () => findDfuDevice());
+
   $("leaveBtn").addEventListener("click", async () => {
     if (!device || busy) return;
     busy = true;
@@ -1950,6 +2062,8 @@
       navigator.usb.addEventListener("connect", refreshDfuDevices);
       navigator.usb.addEventListener("disconnect", refreshDfuDevices);
       refreshDfuDevices();
+    } else {
+      $("dfuEnterBtn").hidden = true;
     }
     if (!navigator.requestMIDIAccess) {
       setStatus("bad", "This browser has no Web MIDI: use Chrome, Edge or Firefox.");

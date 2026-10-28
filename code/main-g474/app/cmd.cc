@@ -7,6 +7,7 @@ extern "C" {
 
 #include "main.h"
 #include "bootloader.h"
+#include "system_dfu.h"
 #include "usb_app.h"
 #include "bellow.h"
 #include "properties.h"
@@ -56,6 +57,12 @@ int console_execute(int argc, const char *const *argv)
     printf("Rebooting into the bootloader; the BANDOLIBRE drive will appear.\r\n");
     reboot_to_bootloader(true);
   }
+  else if (strcmp(argv[0], "romdfu") == 0)
+  {
+    printf("Restarting into the STM32 DFU loader in ROM (USB 0483:df11).\r\n");
+    HAL_Delay(20);   // let the line out of the console UART
+    system_dfu_enter();
+  }
   else if (strcmp(argv[0], "bellow_tune") == 0) bellow_tune();
   else if (strcmp(argv[0], "help") == 0)
   {
@@ -72,7 +79,7 @@ int console_execute(int argc, const char *const *argv)
 char **console_complete(int argc, const char *const *argv)
 {
   static const char *commands[] = { "help", "show", "get", "set", "reset", "save", "factory_reset", "store",
-                                    "hello", "midi", "bellow_tune", "dfu" };
+                                    "hello", "midi", "bellow_tune", "dfu", "romdfu" };
   static char *out[CONSOLE_COMPL_MAX + 1];
   const char *partial = (argc > 0) ? argv[argc - 1] : "";
   size_t n = 0;
