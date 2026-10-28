@@ -1677,11 +1677,23 @@
   }
 
   /* Whether the flash already holds `part`, read back over DFU. */
-  async function dfuMatches(dfu, part) {
+  /* The grid follows the reading: each block blinks while it is read, then
+   * turns green if it matches. On the first difference the part goes back to
+   * "to write", for dfuWritePart. `at`: the part's offset in the grid. */
+  async function dfuMatches(dfu, part, at, total) {
+    const start = bytesDone;
     for (let off = 0; off < part.size; off += dfu.transferSize) {
       const want = part.bytes.subarray(off, off + dfu.transferSize);
+      markRange(at + off, want.length, "write");
       const got = await dfu.read(part.base + off, want.length);
-      if (got.length !== want.length || !got.every((b, i) => b === want[i])) return false;
+      if (got.length !== want.length || !got.every((b, i) => b === want[i])) {
+        markRange(at, part.size, "");
+        bytesDone = start;
+        return false;
+      }
+      markRange(at + off, want.length, "ok");
+      bytesDone += want.length;
+      showRate(total);
     }
     return true;
   }
@@ -1764,11 +1776,12 @@
       for (const part of parts) {
         const at = part.base - gridBase;
         // A release file carries the bootloader each time: rewrite it only when it changed.
-        if (part.kind === "bootloader" && image.kind === "firmware" && (await dfuMatches(dfu, part))) {
-          log("DFU: the bootloader on the board is already this one, left as it is");
-          markRange(at, part.size, "ok");
-          bytesDone += part.size;
-          continue;
+        if (part.kind === "bootloader" && image.kind === "firmware") {
+          setPhase("Checking the bootloader…");
+          if (await dfuMatches(dfu, part, at, total)) {
+            log("DFU: the bootloader on the board is already this one, left as it is");
+            continue;
+          }
         }
         setPhase(part.kind === "bootloader" ? "Writing the bootloader…" : "Writing the firmware…");
         await dfuWritePart(dfu, part, at, total);
