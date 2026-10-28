@@ -17,10 +17,12 @@ flash:
     arm-none-eabi-objcopy -O binary build/Debug/main-g474.elf build/Debug/main-g474.bin
     ../tool/flash.py main-g474 build/Debug/main-g474.bin --address 0x08008000
 
-# Package the Release firmware as a .uf2 to copy onto the BANDOLIBRE drive.
+# Package the Release firmware and bootloader as one .uf2: the BANDOLIBRE drive and the update tool over MIDI install the firmware, STM32 DFU mode both.
 dfu: init_build_release build_release
+    cd ../boot-g474 && just init_build_release build_release
+    arm-none-eabi-objcopy -O binary ../boot-g474/build/Release/boot-g474.elf ../boot-g474/build/Release/boot-g474.bin
     arm-none-eabi-objcopy -O binary build/Release/main-g474.elf build/Release/main-g474.bin
-    ../tool/uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2
+    ../tool/uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2 --with-bootloader ../boot-g474/build/Release/boot-g474.bin
 
 # Install bootloader + Release application over SWD. Once per board.
 flash_release: init_build_release build_release

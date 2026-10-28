@@ -175,11 +175,13 @@ just uf2            # build/Release/boot-g474.uf2, for the update tool in STM32 
 `just flash` goes through `../tool/flash.py` with the board type `main-g474`,
 so the chip-UID registry still refuses to write main board firmware to a wing.
 
-Without an ST-Link, `boot-g474.uf2` installs from the update tool
+Without an ST-Link, the bootloader installs from the update tool
 (`docs/update/`) with the board in the chip's own DFU mode (FN0 held at power-on,
-left keyboard unplugged): dropping it on the page switches it to **Install
-bootloader**. The bootloader's own drive ignores this file, since its blocks lie
-outside the application region.
+left keyboard unplugged). The release file from `just dfu` in `../main-g474`
+carries it next to the firmware, and the tool rewrites it only when it differs;
+`boot-g474.uf2` holds it alone and switches the page to **Install bootloader**.
+The bootloader's own drive ignores the bootloader blocks of either file, since
+they lie outside the application region.
 
 ## Testing
 

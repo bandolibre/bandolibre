@@ -370,7 +370,8 @@
     <h2 id="firmwareTitle">Latest firmware</h2>
     <div class="facts-row">
       <dl class="facts">
-        <dt>Version</dt><dd id="imageVersion">—</dd>
+        <dt>Firmware</dt><dd id="imageVersion">—</dd>
+        <dt>Bootloader</dt><dd id="imageBoot">—</dd>
         <dt>Source</dt><dd id="imageSource">—</dd>
       </dl>
       <button type="button" class="btn icon" id="fileBtn" title="Load a .uf2 file (or drop it onto this card)" aria-label="Load a .uf2 file, or drop it onto this card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
@@ -443,6 +444,7 @@
   // real ones; these let a file be checked before an instrument is found. ----
   const DEFAULT_APP_BASE = 0x08008000;
   const DEFAULT_APP_SIZE = 92 * 1024;
+  const BOOT_BASE = 0x08000000, BOOT_SIZE = 32 * 1024;
   const DEFAULT_PAGE_SIZE = 2048;
   const DEFAULT_CHUNK = 256;
   const UF2_FAMILY_STM32G4 = 0x4c71240a;
@@ -1026,11 +1028,17 @@
   /* Flattens a UF2 file into the application image, checking what the
    * bootloader's uf2_consume() checks. Returns { bytes, size } with size a
    * multiple of 8, padded with 0xFF. */
-  function parseUf2(buffer, appBase = DEFAULT_APP_BASE, appSize = DEFAULT_APP_SIZE) {
+  /* The parts of a .uf2, by flash region: "firmware" (the application) and
+   * "bootloader". A release file carries both, as two UF2 files back to back
+   * (code/tool/uf2.py --with-bootloader); the MIDI update uses the firmware,
+   * STM32 DFU mode both. Each part: { kind, base, area, bytes, size, crc,
+   * version }. */
+  const REGIONS = { bootloader: [BOOT_BASE, BOOT_SIZE], firmware: [DEFAULT_APP_BASE, DEFAULT_APP_SIZE] };
+
+  function parseUf2Parts(buffer) {
     const view = new DataView(buffer);
     if (buffer.byteLength === 0 || buffer.byteLength % 512 !== 0) throw new Error("not a UF2 file");
-    const flat = new Uint8Array(appSize).fill(0xff);
-    let end = 0, blocks = 0;
+    const found = {};
     for (let off = 0; off < buffer.byteLength; off += 512) {
       if (view.getUint32(off, true) !== 0x0a324655 || view.getUint32(off + 4, true) !== 0x9e5d5157 ||
           view.getUint32(off + 508, true) !== 0x0ab16f30) throw new Error("not a UF2 file");
@@ -1041,16 +1049,24 @@
       }
       const addr = view.getUint32(off + 12, true);
       const len = view.getUint32(off + 16, true);
-      if (len > 476 || addr < appBase || addr + len > appBase + appSize) {
-        throw new Error("this file writes outside the firmware area (0x" + addr.toString(16) + ")");
+      const kind = Object.keys(REGIONS).find((k) => addr >= REGIONS[k][0] && addr + len <= REGIONS[k][0] + REGIONS[k][1]);
+      if (len > 476 || !kind) {
+        throw new Error("this file writes outside the firmware and bootloader areas (0x" + addr.toString(16) + ")");
       }
-      flat.set(new Uint8Array(buffer, off + 32, len), addr - appBase);
-      end = Math.max(end, addr - appBase + len);
-      blocks++;
+      const [base, area] = REGIONS[kind];
+      const p = found[kind] || (found[kind] = { flat: new Uint8Array(area).fill(0xff), end: 0 });
+      p.flat.set(new Uint8Array(buffer, off + 32, len), addr - base);
+      p.end = Math.max(p.end, addr - base + len);
     }
-    if (!blocks) throw new Error("the file has no firmware blocks");
-    const size = Math.ceil(end / 8) * 8;
-    return { bytes: flat.slice(0, size), size };
+    const parts = {};
+    for (const [kind, p] of Object.entries(found)) {
+      const [base, area] = REGIONS[kind];
+      const bytes = p.flat.slice(0, Math.ceil(p.end / 8) * 8);
+      parts[kind] = { kind, base, area, bytes, size: bytes.length, crc: crc32(bytes),
+                      version: kind === "bootloader" ? bootloaderVersion(bytes) : imageVersion(bytes) };
+    }
+    if (!parts.firmware && !parts.bootloader) throw new Error("the file has no firmware blocks");
+    return parts;
   }
 
   /* The version record (code/boot-g474/memmap.h app_info_t), or null. */
@@ -1061,16 +1077,6 @@
     return new Reader(bytes.slice(APP_INFO_OFFSET + 4, APP_INFO_OFFSET + 52)).str();
   }
 
-  /* A file for the bootloader region rather than the firmware's: its blocks
-   * start below the firmware area (code/tool/uf2.py --bootloader). */
-  function isBootloaderUf2(buffer) {
-    const view = new DataView(buffer);
-    for (let off = 0; off + 512 <= buffer.byteLength; off += 512) {
-      if (view.getUint32(off, true) === 0x0a324655 && view.getUint32(off + 12, true) < DEFAULT_APP_BASE) return true;
-    }
-    return false;
-  }
-
   /* The bootloader carries the firmware's version string, "Bandolibre v…". */
   function bootloaderVersion(bytes) {
     const m = /Bandolibre v\d[\x21-\x7e]*/.exec(new TextDecoder("latin1").decode(bytes));
@@ -1079,20 +1085,22 @@
 
   function setImage(buffer, source) {
     try {
-      const bootloader = isBootloaderUf2(buffer);
-      const base = bootloader ? BOOT_BASE : DEFAULT_APP_BASE;
-      const area = bootloader ? BOOT_SIZE : DEFAULT_APP_SIZE;
-      const { bytes, size } = parseUf2(buffer, base, area);
-      const version = bootloader ? bootloaderVersion(bytes) : imageVersion(bytes);
-      image = { bytes, size, crc: crc32(bytes), version, source, uf2: buffer,
-                kind: bootloader ? "bootloader" : "firmware", base, area };
-      $("firmwareTitle").textContent = bootloader ? "Bootloader" : "Latest firmware";
-      $("imageVersion").textContent = version ? shortVersion(version) : "unknown";
+      // `image` is the firmware part when there is one, so the MIDI update
+      // reads it unchanged; `image.boot` is the bootloader part, if any.
+      const parts = parseUf2Parts(buffer);
+      const main = parts.firmware || parts.bootloader;
+      image = { ...main, source, boot: parts.bootloader || null };
+      const shown = (p) => p ? (p.version ? shortVersion(p.version) : "unknown") : "—";
+      $("firmwareTitle").textContent = image.kind === "bootloader" ? "Bootloader" : "Latest firmware";
+      $("imageVersion").textContent = shown(parts.firmware);
+      $("imageBoot").textContent = shown(parts.bootloader);
       $("imageSource").textContent = source;
-      log(image.kind + ": " + source + ", " + size + " bytes, CRC-32 " + hex32(image.crc) + ", " +
-          (version || "no version record"));
+      for (const p of Object.values(parts)) {
+        log(p.kind + ": " + source + ", " + p.size + " bytes, CRC-32 " + hex32(p.crc) + ", " +
+            (p.version || "no version record"));
+      }
       showError("");
-      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: area, chunk: DEFAULT_CHUNK };
+      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: image.area, chunk: DEFAULT_CHUNK };
       drawCells();
     } catch (err) {
       showError(source + ": " + err.message);
@@ -1171,14 +1179,17 @@
   let geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: DEFAULT_APP_SIZE, chunk: DEFAULT_CHUNK };
   let cells = [];
 
+  /* geometry.used: the [offset, length] ranges of the grid that get written,
+   * the rest hatched; by default, the image from the grid's start. */
   function drawCells() {
     const { appSize, chunk } = geometry;
-    const used = image ? Math.ceil(image.size / chunk) : 0;
+    const used = geometry.used || (image ? [[0, image.size]] : null);
     cellsEl.innerHTML = "";
     cells = [];
     for (let i = 0; i < appSize / chunk; i++) {
       const c = document.createElement("div");
-      c.className = "cell" + (image && i >= used ? " out" : "");
+      const out = used && !used.some(([start, len]) => i * chunk >= start && i * chunk < start + len);
+      c.className = "cell" + (out ? " out" : "");
       cellsEl.appendChild(c);
       cells.push(c);
     }
@@ -1190,8 +1201,12 @@
   }
 
   function markPage(page, state) {
-    const { pageSize, chunk } = geometry;
-    for (let o = page * pageSize; o < Math.min((page + 1) * pageSize, image.size); o += chunk) markChunk(o, state);
+    const { pageSize } = geometry;
+    markRange(page * pageSize, Math.min(pageSize, image.size - page * pageSize), state);
+  }
+
+  function markRange(offset, len, state) {
+    for (let o = offset; o < offset + len; o += geometry.chunk) markChunk(o, state);
   }
 
   // ---- The update ----
@@ -1246,11 +1261,11 @@
 
   let bytesDone = 0;
   let startedAt = 0;
-  function showRate() {
-    const pct = Math.floor((100 * bytesDone) / image.size);
+  function showRate(total = image.size) {
+    const pct = Math.floor((100 * bytesDone) / total);
     const elapsed = (Date.now() - startedAt) / 1000;
-    const left = bytesDone ? Math.ceil((elapsed * (image.size - bytesDone)) / bytesDone) : null;
-    setProgress(pct + " %" + (left !== null && bytesDone < image.size ? ", about " + left + " s left" : ""));
+    const left = bytesDone ? Math.ceil((elapsed * (total - bytesDone)) / bytesDone) : null;
+    setProgress(pct + " %" + (left !== null && bytesDone < total ? ", about " + left + " s left" : ""));
   }
 
   /* Sends the instrument back to playing from update mode, when nothing has
@@ -1302,8 +1317,8 @@
     const info = device.info;
     if (image.size > info.appSize) throw new UpdateError("the firmware is larger than the instrument's firmware area");
     geometry = { pageSize: info.pageSize, appSize: info.appSize, chunk: Math.min(info.maxChunk, info.pageSize) };
-    // Re-check the file against the instrument's real layout.
-    parseUf2(image.uf2, info.appBase, info.appSize);
+    // The file was read for the usual layout: the instrument must agree.
+    if (info.appBase !== image.base) throw new UpdateError("the instrument's firmware area is not where this file expects it");
     if (info.session && !confirm("Another update of this instrument seems to be running, in another tab " +
         "or browser, or one stopped halfway. Take over? The other one will stop.")) {
       throw new UpdateError("left to the other update");
@@ -1370,7 +1385,6 @@
    * and is done when the state is back to dfuDNLOAD_IDLE. */
   const DFU_REQ = { DNLOAD: 1, UPLOAD: 2, GETSTATUS: 3, CLRSTATUS: 4, ABORT: 6 };
   const DFU_STATE = { IDLE: 2, DNLOAD_IDLE: 5, ERROR: 10 };
-  const BOOT_BASE = 0x08000000, BOOT_SIZE = 32 * 1024;   // code/boot-g474/memmap.h
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   class DfuTarget {
@@ -1496,10 +1510,59 @@
     return new UpdateError("the browser could not open the board: " + err.message);
   }
 
-  /* Writes the image page by page, each read back and compared. Page 0 is
-   * erased first and written last: until then the Bandolibre bootloader sees
-   * no valid firmware, so an interrupted install leaves the board in update
-   * mode instead of starting half a firmware. */
+  /* Whether the flash already holds `part`, read back over DFU. */
+  async function dfuMatches(dfu, part) {
+    for (let off = 0; off < part.size; off += dfu.transferSize) {
+      const want = part.bytes.subarray(off, off + dfu.transferSize);
+      const got = await dfu.read(part.base + off, want.length);
+      if (got.length !== want.length || !got.every((b, i) => b === want[i])) return false;
+    }
+    return true;
+  }
+
+  /* Writes one part page by page, each read back and compared, page 0 erased
+   * first and written last: until then the region holds no valid vector
+   * table, so an interruption never leaves half a program that starts.
+   * `at`: the part's offset in the progress grid. */
+  async function dfuWritePart(dfu, part, at, total) {
+    const { pageSize } = geometry;
+    const pages = Math.ceil(part.size / pageSize);
+    await dfu.erasePage(part.base);
+    const order = [...Array(pages).keys()].slice(1).concat(0);
+    for (const page of order) {
+      const start = page * pageSize;
+      const data = part.bytes.subarray(start, Math.min(start + pageSize, part.size));
+      const mark = (state) => markRange(at + start, data.length, state);
+      let ok = false;
+      for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+        if (attempt) { log(part.kind + " page " + page + " did not read back right, rewriting it"); mark("retry"); }
+        if (page !== 0 || attempt) await dfu.erasePage(part.base + start);
+        mark("write");
+        for (let off = 0; off < data.length; off += dfu.transferSize) {
+          await dfu.write(part.base + start + off, data.subarray(off, off + dfu.transferSize));
+        }
+        mark("written");
+        ok = true;
+        for (let off = 0; off < data.length && ok; off += dfu.transferSize) {
+          const want = data.subarray(off, off + dfu.transferSize);
+          const got = await dfu.read(part.base + start + off, want.length);
+          ok = got.length === want.length && got.every((b, i) => b === want[i]);
+        }
+      }
+      if (!ok) {
+        mark("fail");
+        throw new UpdateError(part.kind + " page " + page + " could not be written correctly");
+      }
+      mark("ok");
+      bytesDone += data.length;
+      showRate(total);
+    }
+  }
+
+  /* Installs the loaded file over STM32 DFU: its bootloader part (skipped
+   * when the board already has it, unless it is all the file holds), then
+   * its firmware. An interrupted firmware leaves the Bandolibre bootloader in
+   * update mode; an interrupted bootloader leaves DFU mode to try again. */
   async function runDfuUpdate() {
     showError("");
     const dfu = new DfuTarget(dfuSelected);
@@ -1509,64 +1572,54 @@
     } catch (err) {
       throw dfuOpenHelp(err);
     }
-    const bootloader = image.kind === "bootloader";
+    // The bootloader part first, then the firmware; one grid over both.
+    const parts = [image.boot, image.kind === "firmware" ? image : null].filter(Boolean);
+    const gridBase = parts[0].base;
+    geometry = {
+      pageSize: DEFAULT_PAGE_SIZE, chunk: DEFAULT_CHUNK,
+      appSize: Math.max(...parts.map((p) => p.base + p.area)) - gridBase,
+      used: parts.map((p) => [p.base - gridBase, p.size]),
+    };
+    drawCells();
+    const total = parts.reduce((n, p) => n + p.size, 0);
+    const written = [];
     try {
       log("DFU: transfer size " + dfu.transferSize + " bytes");
-      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: image.area, chunk: DEFAULT_CHUNK };
-      drawCells();
-      const { pageSize } = geometry;
-      const base = image.base;
 
       // The bootloader starts the firmware: without it the board would stay dark.
-      const head = await dfu.read(BOOT_BASE, 8);
-      const resetVector = new DataView(head.buffer).getUint32(4, true);
-      if (!bootloader && !(resetVector >= BOOT_BASE && resetVector < DEFAULT_APP_BASE)) {
-        throw new UpdateError("this board has no Bandolibre bootloader, so the firmware would not start. " +
-          "Install it first with an ST-Link: cd code/boot-g474 && just flash");
+      if (!image.boot) {
+        const head = await dfu.read(BOOT_BASE, 8);
+        const resetVector = new DataView(head.buffer).getUint32(4, true);
+        if (!(resetVector >= BOOT_BASE && resetVector < DEFAULT_APP_BASE)) {
+          throw new UpdateError("this board has no Bandolibre bootloader, so the firmware would not start. " +
+            "Install it first: load a file that contains it, or use an ST-Link (cd code/boot-g474 && just flash)");
+        }
       }
 
-      const pages = Math.ceil(image.size / pageSize);
-      setPhase("Erasing…");
-      await dfu.erasePage(base);
-
-      setPhase("Writing…");
       bytesDone = 0;
       startedAt = Date.now();
-      const order = [...Array(pages).keys()].slice(1).concat(0);
-      for (const page of order) {
-        const start = page * pageSize;
-        const data = image.bytes.subarray(start, Math.min(start + pageSize, image.size));
-        let ok = false;
-        for (let attempt = 0; attempt < 2 && !ok; attempt++) {
-          if (attempt) { log("page " + page + " did not read back right, rewriting it"); markPage(page, "retry"); }
-          if (page !== 0 || attempt) await dfu.erasePage(base + start);
-          markPage(page, "write");
-          for (let off = 0; off < data.length; off += dfu.transferSize) {
-            await dfu.write(base + start + off, data.subarray(off, off + dfu.transferSize));
-          }
-          markPage(page, "written");
-          ok = true;
-          for (let off = 0; off < data.length && ok; off += dfu.transferSize) {
-            const want = data.subarray(off, off + dfu.transferSize);
-            const got = await dfu.read(base + start + off, want.length);
-            ok = got.length === want.length && got.every((b, i) => b === want[i]);
-          }
+      for (const part of parts) {
+        const at = part.base - gridBase;
+        // A release file carries the bootloader each time: rewrite it only when it changed.
+        if (part.kind === "bootloader" && image.kind === "firmware" && (await dfuMatches(dfu, part))) {
+          log("DFU: the bootloader on the board is already this one, left as it is");
+          markRange(at, part.size, "ok");
+          bytesDone += part.size;
+          continue;
         }
-        if (!ok) {
-          markPage(page, "fail");
-          throw new UpdateError("page " + page + " could not be written correctly");
-        }
-        markPage(page, "ok");
-        bytesDone += data.length;
-        showRate();
+        setPhase(part.kind === "bootloader" ? "Writing the bootloader…" : "Writing the firmware…");
+        await dfuWritePart(dfu, part, at, total);
+        written.push(part.kind);
+        log("DFU: " + part.kind + ", " + part.size + " bytes written and read back, CRC-32 " + hex32(part.crc));
       }
-      log("DFU: " + image.kind + ", " + image.size + " bytes written and read back, CRC-32 " + hex32(image.crc));
     } finally {
       await dfu.close();
     }
 
-    setPhase(bootloader ? "Bootloader installed" : "Firmware installed");
-    $("dfuDoneWhat").textContent = bootloader ? "The bootloader" : "The firmware";
+    const [what, phase] = written.length === 2 ? ["The firmware and the bootloader", "Firmware and bootloader installed"]
+      : written[0] === "bootloader" ? ["The bootloader", "Bootloader installed"] : ["The firmware", "Firmware installed"];
+    setPhase(phase);
+    $("dfuDoneWhat").textContent = what;
     setProgress("");
     showError("");
     $("dfuDoneNotice").hidden = false;

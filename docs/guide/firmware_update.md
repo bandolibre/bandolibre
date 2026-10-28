@@ -90,11 +90,12 @@ The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`:
    To use the left keyboard again, unplug the USB cable, reconnect the keyboard,
    and plug back in.
 
-The firmware needs the Bandolibre bootloader, which starts it: the tool checks
-for it first. The bootloader installs the same way: drop `boot-g474.uf2`
-(`cd code/boot-g474 && just uf2`) on the page, which then shows **Install
-bootloader**. Only DFU mode can install it; if it goes wrong, DFU mode still
-works, so the board can always be recovered.
+The release `.uf2` carries the bootloader too, and DFU mode is the only way it
+gets installed: the tool rewrites it only when the board's differs, then writes
+the firmware. The drive and the update over MIDI use the firmware part alone.
+A file with the bootloader only (`cd code/boot-g474 && just uf2`) switches the
+page to **Install bootloader**. If a bootloader install goes wrong, DFU mode
+still works, so the board can always be recovered.
 
 The browser needs access to the device once:
 
@@ -125,8 +126,14 @@ Rebooting into the bootloader; the BANDOLIBRE drive will appear.
 
 ```sh
 cd code/main-g474
-just dfu            # -> build/Release/main-g474.uf2
+just dfu            # -> build/Release/main-g474.uf2, firmware and bootloader
 ```
+
+The file holds the bootloader and the firmware as two UF2 files back to back,
+each numbered on its own (`uf2.py --with-bootloader`). The BANDOLIBRE drive
+drops the bootloader's blocks, which lie outside the firmware area, before
+counting, so the firmware part completes on its own; the update tool over
+MIDI reads the firmware part only, and in STM32 DFU mode writes both.
 
 The update tool offers the copy in `docs/update/firmware/` (`latest.json` and
 the `.uf2`), which the release process publishes with each release. Debug

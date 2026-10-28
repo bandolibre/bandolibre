@@ -11,11 +11,19 @@ Format reference: https://github.com/microsoft/uf2
 
 Examples:
   uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2
+  uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2 \\
+      --with-bootloader ../boot-g474/build/Release/boot-g474.bin
   uf2.py --bootloader build/Release/boot-g474.bin build/Release/boot-g474.uf2
 
-A --bootloader image is for the update tool in STM32 DFU mode only: the
-Bandolibre bootloader itself refuses blocks outside the application region,
-so copying one onto the BANDOLIBRE drive does nothing.
+--with-bootloader makes the release file: the bootloader and the firmware as
+two UF2 files back to back, each with its own block count (the format allows
+concatenation). The BANDOLIBRE drive and the update tool's MIDI update take the
+firmware only: the drive drops blocks outside the application region before
+counting them, so the firmware part completes on its own. The update tool in
+STM32 DFU mode writes both.
+
+A --bootloader image is the bootloader alone, for DFU mode only: copied onto the
+drive it does nothing.
 """
 
 import argparse
@@ -96,17 +104,15 @@ def main() -> None:
                         help=f"UF2 family id (default 0x{STM32G4_FAMILY_ID:08X}, STM32G4)")
     parser.add_argument("--bootloader", action="store_true",
                         help="package the bootloader, at BOOT_BASE, for the update tool's DFU mode")
+    parser.add_argument("--with-bootloader", type=Path, metavar="BOOT_BIN",
+                        help="put this bootloader binary in the file too, ahead of the firmware")
     args = parser.parse_args()
 
     data = args.binary.read_bytes()
 
     if args.bootloader:
-        m = defines()
-        if len(data) > m["BOOT_SIZE"]:
-            print(f"Error: {len(data)} bytes do not fit the {m['BOOT_SIZE']}-byte bootloader region.",
-                  file=sys.stderr)
-            sys.exit(1)
-        args.base = m["BOOT_BASE"]
+        check_bootloader_size(data)
+        args.base = defines()["BOOT_BASE"]
     # A binary linked at 0x08000000 is a Debug image or another project's
     # firmware; the bootloader would reject every block of it, leaving the user
     # staring at a drive that silently does nothing.
@@ -124,11 +130,24 @@ def main() -> None:
         sys.exit(1)
 
     uf2 = to_uf2(data, args.base, args.family)
+    summary = f"{len(data)} bytes at 0x{args.base:08X}"
+    if args.with_bootloader:
+        boot = args.with_bootloader.read_bytes()
+        check_bootloader_size(boot)
+        uf2 = to_uf2(boot, defines()["BOOT_BASE"], args.family) + uf2
+        summary = f"bootloader {len(boot)} bytes + firmware {summary}"
     args.output.write_bytes(uf2)
 
     blocks = len(uf2) // BLOCK_SIZE
-    print(f"{args.binary} -> {args.output}: "
-          f"{len(data)} bytes at 0x{args.base:08X}, {blocks} blocks, {len(uf2)} bytes")
+    print(f"{args.binary} -> {args.output}: {summary}, {blocks} blocks, {len(uf2)} bytes")
+
+
+def check_bootloader_size(data: bytes) -> None:
+    size = defines()["BOOT_SIZE"]
+    if len(data) > size:
+        print(f"Error: {len(data)} bytes do not fit the {size}-byte bootloader region.",
+              file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
