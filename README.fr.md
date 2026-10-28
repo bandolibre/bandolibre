@@ -68,7 +68,7 @@ La construction par lot de cinq est idéale — les commandes minimum JLCPCB en 
 À cinquante unités, la fabrication des PCB et les interrupteurs Gateron — les deux postes les plus importants — baissent encore de moitié.
 
 - **Firmware :** voir [`code/`](code/) — construire avec `just build` et `just flash`, flasher via ST-LINK
-- **Mise à jour du firmware :** mettez la carte en mode DFU, elle apparaît comme une clé USB — déposez-y le fichier `.uf2` et elle redémarre avec le nouveau firmware, aucun programmateur nécessaire
+- **Mise à jour du firmware :** depuis le navigateur avec l'[outil de mise à jour](https://bandolibre.github.io/bandolibre/update/), par le câble USB ; ou maintenez le bouton de fonction gauche à la mise sous tension et déposez le fichier `.uf2` sur le lecteur qui apparaît — aucun programmateur nécessaire
 
 ---
 
@@ -82,6 +82,14 @@ L'outil de configuration est une page web qui affiche et modifie les paramètres
   <img src="docs/guide/images/configuration_tool.webp" alt="Outil de configuration, courbe du soufflet" width="49%">
   <img src="docs/guide/images/configuration_tool_keyboard.webp" alt="Outil de configuration, claviers en direct" width="49%">
 </p>
+
+---
+
+## Mise à jour du logiciel
+
+L'outil de mise à jour installe le dernier firmware depuis le navigateur, par le même câble USB — rien à installer, aucun bouton à maintenir. Il affiche la version installée, indique quand une mise à jour est disponible et suit chaque page à mesure qu'elle est écrite et vérifiée. Une mise à jour interrompue est sans risque : l'instrument attend dans son mode de mise à jour jusqu'à ce qu'elle reprenne.
+
+<a href="https://bandolibre.github.io/bandolibre/update/"><img width="385" alt="Ouvrir l'outil de mise à jour" src="https://img.shields.io/badge/Ouvrir_l%27outil_de_mise_%C3%A0_jour-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTIxNiAwaDgwYzEzLjMgMCAyNCAxMC43IDI0IDI0djE2OGg4Ny43YzE3LjggMCAyNi43IDIxLjUgMTQuMSAzNC4xTDI2OS43IDM3OC4zYy03LjUgNy41LTE5LjggNy41LTI3LjMgMEw5MC4xIDIyNi4xYy0xMi42LTEyLjYtMy43LTM0LjEgMTQuMS0zNC4xSDE5MlYyNGMwLTEzLjMgMTAuNy0yNCAyNC0yNHptMjk2IDM3NnYxMTJjMCAxMy4zLTEwLjcgMjQtMjQgMjRIMjRjLTEzLjMgMC0yNC0xMC43LTI0LTI0VjM3NmMwLTEzLjMgMTAuNy0yNCAyNC0yNGgxNDYuN2w0OSA0OWMyMC4xIDIwLjEgNTIuNSAyMC4xIDcyLjYgMGw0OS00OUg0ODhjMTMuMyAwIDI0IDEwLjcgMjQgMjR6bS0xMjQgODhjMC0xMS05LTIwLTIwLTIwcy0yMCA5LTIwIDIwIDkgMjAgMjAgMjAgMjAtOSAyMC0yMHptNjQgMGMwLTExLTktMjAtMjAtMjBzLTIwIDktMjAgMjAgOSAyMCAyMCAyMCAyMC05IDIwLTIweiIvPjwvc3ZnPg=="></a>
 
 ---
 

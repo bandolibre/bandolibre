@@ -1,5 +1,7 @@
 ---
-title: Bandolibre
+# The wordmark (_includes/head/custom.html); the page <title> and og:title,
+# which the comments are keyed on, strip the tags and stay "Bandolibre".
+title: '<span class="wordmark"><span class="bando">Bando</span>libre</span>'
 layout: single
 classes: wide
 permalink: /
@@ -126,10 +128,16 @@ est détecté automatiquement. Le code est libre.
 
 ## Mettre à Jour le Firmware
 
-La mise à jour se fait par glisser-déposer : placez la carte en mode DFU, elle
-apparaît comme une simple clé USB. Déposez-y le fichier `.uf2` et l'appareil
-redémarre avec la nouvelle version — aucun programmateur, aucun logiciel à
-installer.
+La mise à jour se fait depuis le navigateur, par le même câble USB : l'outil
+de mise à jour affiche la version installée, indique quand une nouvelle
+version est disponible et l'installe en suivant chaque page écrite — rien à
+installer, aucun bouton à maintenir. Une mise à jour interrompue est sans
+risque : l'instrument attend qu'elle reprenne.
+
+<a href="{{ '/update/' | relative_url }}" class="btn btn--primary btn--large" target="_blank"><i class="fas fa-download"></i> Ouvrir l'outil de mise à jour</a>
+
+Sans navigateur compatible, maintenez le bouton de fonction gauche en
+branchant le câble : un lecteur USB apparaît, déposez-y le fichier `.uf2`.
 
 ## Characteristiques Techniques
 

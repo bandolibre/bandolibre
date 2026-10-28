@@ -69,7 +69,7 @@ They are best built in batches of five — JLCPCB minimum orders make that the n
 At fifty units, PCB fabrication and Gateron switches — the two biggest line items — drop by half again.
 
 - **Firmware:** see [`code/`](code/) — build with `just build` and `just flash`, flash via ST-LINK
-- **Firmware updates:** put the board in DFU mode and it shows up as a USB Mass Storage drive — drag the `.uf2` file onto it and it reboots on the new firmware, no programmer needed
+- **Firmware updates:** from the browser with the [software update tool](https://bandolibre.github.io/bandolibre/update/), over the USB cable; or hold the left function button at power-on and drop the `.uf2` file onto the drive that appears — no programmer needed
 
 ---
 
@@ -83,6 +83,14 @@ The configuration tool is a web page that displays and changes the instrument's 
   <img src="docs/guide/images/configuration_tool.webp" alt="Configuration tool, bellows curve" width="49%">
   <img src="docs/guide/images/configuration_tool_keyboard.webp" alt="Configuration tool, live keyboards" width="49%">
 </p>
+
+---
+
+## Software update
+
+The software update tool installs the latest firmware from the browser, over the same USB cable — nothing to install, no button to hold. It shows the installed version, says when an update is available and follows every page as it is written and checked. An interrupted update is safe: the instrument waits in its update mode until it is resumed.
+
+<a href="https://bandolibre.github.io/bandolibre/update/"><img width="424" alt="Open the software update tool" src="https://img.shields.io/badge/Open_the_software_update_tool-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTIxNiAwaDgwYzEzLjMgMCAyNCAxMC43IDI0IDI0djE2OGg4Ny43YzE3LjggMCAyNi43IDIxLjUgMTQuMSAzNC4xTDI2OS43IDM3OC4zYy03LjUgNy41LTE5LjggNy41LTI3LjMgMEw5MC4xIDIyNi4xYy0xMi42LTEyLjYtMy43LTM0LjEgMTQuMS0zNC4xSDE5MlYyNGMwLTEzLjMgMTAuNy0yNCAyNC0yNHptMjk2IDM3NnYxMTJjMCAxMy4zLTEwLjcgMjQtMjQgMjRIMjRjLTEzLjMgMC0yNC0xMC43LTI0LTI0VjM3NmMwLTEzLjMgMTAuNy0yNCAyNC0yNGgxNDYuN2w0OSA0OWMyMC4xIDIwLjEgNTIuNSAyMC4xIDcyLjYgMGw0OS00OUg0ODhjMTMuMyAwIDI0IDEwLjcgMjQgMjR6bS0xMjQgODhjMC0xMS05LTIwLTIwLTIwcy0yMCA5LTIwIDIwIDkgMjAgMjAgMjAgMjAtOSAyMC0yMHptNjQgMGMwLTExLTktMjAtMjAtMjBzLTIwIDktMjAgMjAgOSAyMCAyMCAyMCAyMC05IDIwLTIweiIvPjwvc3ZnPg=="></a>
 
 ---
 

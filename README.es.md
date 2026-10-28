@@ -68,7 +68,7 @@ Lo ideal es construirlos por lotes de cinco — los pedidos mínimos de JLCPCB h
 A partir de cincuenta unidades, la fabricación de PCB y los interruptores Gateron — las dos partidas más importantes — el costo baja a la mitad nuevamente.
 
 - **Firmware:** ver [`code/`](code/) — compilar con `just build` y `just flash` para flashear via ST-LINK
-- **Actualización de firmware:** pon la placa en modo DFU y aparecerá como una unidad de almacenamiento masivo USB — arrastra el archivo `.uf2` sobre ella y reiniciará con el nuevo firmware, sin necesidad de programador
+- **Actualización de firmware:** desde el navegador con la [herramienta de actualización](https://bandolibre.github.io/bandolibre/update/), por el cable USB; o mantén pulsado el botón de función izquierdo al encenderlo y arrastra el archivo `.uf2` a la unidad que aparece — sin necesidad de programador
 
 ---
 
@@ -82,6 +82,14 @@ La herramienta de configuración es una página web que muestra y modifica los p
   <img src="docs/guide/images/configuration_tool.webp" alt="Herramienta de configuración, curva del fuelle" width="49%">
   <img src="docs/guide/images/configuration_tool_keyboard.webp" alt="Herramienta de configuración, teclados en vivo" width="49%">
 </p>
+
+---
+
+## Actualización del software
+
+La herramienta de actualización instala el último firmware desde el navegador, por el mismo cable USB — nada que instalar, ningún botón que mantener pulsado. Muestra la versión instalada, avisa cuando hay una actualización disponible y sigue cada página a medida que se escribe y se comprueba. Una actualización interrumpida no es un problema: el instrumento espera en su modo de actualización hasta que se reanuda.
+
+<a href="https://bandolibre.github.io/bandolibre/update/"><img width="500" alt="Abrir la herramienta de actualización" src="https://img.shields.io/badge/Abrir_la_herramienta_de_actualizaci%C3%B3n-7a8288?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTIxNiAwaDgwYzEzLjMgMCAyNCAxMC43IDI0IDI0djE2OGg4Ny43YzE3LjggMCAyNi43IDIxLjUgMTQuMSAzNC4xTDI2OS43IDM3OC4zYy03LjUgNy41LTE5LjggNy41LTI3LjMgMEw5MC4xIDIyNi4xYy0xMi42LTEyLjYtMy43LTM0LjEgMTQuMS0zNC4xSDE5MlYyNGMwLTEzLjMgMTAuNy0yNCAyNC0yNHptMjk2IDM3NnYxMTJjMCAxMy4zLTEwLjcgMjQtMjQgMjRIMjRjLTEzLjMgMC0yNC0xMC43LTI0LTI0VjM3NmMwLTEzLjMgMTAuNy0yNCAyNC0yNGgxNDYuN2w0OSA0OWMyMC4xIDIwLjEgNTIuNSAyMC4xIDcyLjYgMGw0OS00OUg0ODhjMTMuMyAwIDI0IDEwLjcgMjQgMjR6bS0xMjQgODhjMC0xMS05LTIwLTIwLTIwcy0yMCA5LTIwIDIwIDkgMjAgMjAgMjAgMjAtOSAyMC0yMHptNjQgMGMwLTExLTktMjAtMjAtMjBzLTIwIDktMjAgMjAgOSAyMCAyMCAyMCAyMC05IDIwLTIweiIvPjwvc3ZnPg=="></a>
 
 ---
 
