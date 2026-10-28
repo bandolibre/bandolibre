@@ -84,6 +84,17 @@
   }
   .info-btn:hover { border-color: var(--muted); color: var(--fg); }
   .info-btn svg { width: 18px; height: 18px; }
+  .header-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+  /* PWA install, as a chip with Chrome's install icon (a screen and a down
+   * arrow). Same in ../connect/ and bandopm/docs/: keep them alike. */
+  .install-chip {
+    flex: none; height: 34px; padding: 0 14px 0 11px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: var(--card); color: var(--fg);
+    font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+  .install-chip:hover { border-color: var(--muted); }
+  .install-chip svg { width: 17px; height: 17px; color: var(--muted); }
   .status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
   /* Connected: a soft halo breathes around the dot. */
@@ -369,9 +380,15 @@
       <h1>Bandolibre MIDI Update</h1>
       <p class="subtitle">Updates the instrument's firmware over USB, from this page.</p>
     </div>
-    <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="About the update">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="11" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>
-    </button>
+    <div class="header-actions">
+      <button type="button" class="install-chip" id="installBtn" hidden title="Install Bandolibre MIDI Update as a standalone app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M12 6v7"></path><path d="m9 10 3 3 3-3"></path></svg>
+        Install
+      </button>
+      <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="About the update">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="11" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>
+      </button>
+    </div>
   </div>
 
   <section class="card with-menu" aria-labelledby="instrumentTitle">
@@ -461,6 +478,27 @@
       navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed", err));
     });
   }
+
+  // Install chip: only shown once the browser offers the PWA install prompt
+  // (same as ../connect/).
+  const installBtn = document.getElementById("installBtn");
+  let deferredInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.hidden = false;
+  });
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.hidden = true;
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    installBtn.hidden = true;
+  });
 
   // ---- Device names. Same rule as ../connect/ and bandopm/docs/app.js: the
   // instrument's MIDI port is named "Bandolibre", its bootloader's "Bandolibre

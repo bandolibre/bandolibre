@@ -813,6 +813,17 @@
   .info-btn[hidden] { display: none; }
   .info-btn:hover { border-color: var(--muted); color: var(--fg); }
   .info-btn svg { width: 18px; height: 18px; }
+  /* PWA install, as a chip with Chrome's install icon (a screen and a down
+   * arrow). Same in ../update/ and bandopm/docs/: keep them alike. */
+  .install-chip {
+    flex: none; height: 34px; padding: 0 14px 0 11px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: var(--card); color: var(--fg);
+    font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+  .install-chip[hidden] { display: none; }
+  .install-chip:hover { border-color: var(--muted); }
+  .install-chip svg { width: 17px; height: 17px; color: var(--muted); }
   .info-overlay {
     position: fixed;
     inset: 0;
@@ -994,12 +1005,15 @@
   <div class="page-header">
     <h1>Bandolibre MIDI Connect</h1>
     <div class="header-actions">
-      <button type="button" class="info-btn" id="installBtn" hidden aria-label="Install app" title="Install Bandolibre MIDI Connect as a standalone app">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v12"></path>
-          <path d="m7 10 5 5 5-5"></path>
-          <path d="M5 21h14"></path>
+      <button type="button" class="install-chip" id="installBtn" hidden title="Install Bandolibre MIDI Connect as a standalone app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <path d="M8 21h8"></path>
+          <path d="M12 17v4"></path>
+          <path d="M12 6v7"></path>
+          <path d="m9 10 3 3 3-3"></path>
         </svg>
+        Install
       </button>
       <button type="button" class="info-btn" id="infoBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="About Bandolibre">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
