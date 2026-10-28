@@ -1,5 +1,5 @@
 {
-  "name": "Bandolibre MIDI Update",
+  "name": "Bandolibre Software Update",
   "short_name": "Bandolibre Update",
   "description": "Firmware update tool for Bandolibre, the open-source digital Argentine bandoneon. Updates the instrument over USB-MIDI from the browser.",
   "id": "/bandolibre/update/",
