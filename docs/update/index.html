@@ -217,13 +217,15 @@
     .card.drop-ready { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
   }
 
-  /* The progress grid: one cell per write chunk of the application region,
-   * like the disk maps of old formatters and defragmenters. */
-  .cells {
+  /* The progress grid: the whole flash, 512 bytes a cell, like the disk maps
+   * of old formatters and defragmenters, in one labelled group per area so
+   * the bootloader stays recognisable whatever its cells show. */
+  .cells { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 10px; }
+  .cell-group-label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; }
+  .cell-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(13px, 1fr));
     gap: 3px;
-    margin: 4px 0 10px;
   }
   .cell {
     aspect-ratio: 1;
@@ -239,6 +241,11 @@
   .cell.ok { background: var(--ok); }
   .cell.retry { background: var(--warn); }
   .cell.fail { background: var(--bad); }
+  /* Areas this mode cannot write, as empty outlines, quieter than anything
+   * that will be written: the bootloader outside STM32 DFU mode, grey; the
+   * saved settings, always, tan. */
+  .cell.boot { background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--muted) 45%, transparent); }
+  .cell.props { background: color-mix(in srgb, var(--warn) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 55%, transparent); }
   @keyframes blink { 50% { opacity: 0.35; } }
   @media (prefers-reduced-motion: reduce) { .cell.write { animation: none; } }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78rem; color: var(--muted); }
@@ -332,7 +339,8 @@
     .facts dd.with-badge { flex-direction: column; align-items: flex-start; }
     .install-actions { margin: 2px 0 12px; }
     .install-actions .btn { padding: 10px 28px; }
-    .cells { grid-template-columns: repeat(auto-fill, minmax(8px, 1fr)); gap: 2px; margin-bottom: 8px; }
+    .cells { gap: 6px; margin-bottom: 8px; }
+    .cell-grid { grid-template-columns: repeat(auto-fill, minmax(8px, 1fr)); gap: 2px; }
     .progress-line { margin-top: 6px; }
     details { margin-top: 8px; }
   }
@@ -389,7 +397,7 @@
     </div>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
     <div class="notice with-action" id="dfuBox" hidden>
-      <p><span id="dfuNotice" hidden>The instrument is in <strong>device firmware upgrade mode</strong>. Here the update can also replace the bootloader, the small program that starts the instrument. Press <strong>Exit DFU</strong> to go back to playing.</span><span id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU</strong> to go back to playing. If you unplugged the left keyboard to get here, unplug the USB cable, plug the keyboard back in, then plug the USB cable in again.</span></p>
+      <p><span id="dfuNotice" hidden>The instrument is in <strong>device firmware upgrade mode</strong>. Here the update can also replace the bootloader, the small program that starts the instrument. Press <strong>Exit DFU</strong> to go back to playing.</span><span id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware is</span> installed. Press <strong>Exit DFU</strong> to go back to playing. If you unplugged the left keyboard to get here, unplug the USB cable, plug the keyboard back in, then plug the USB cable in again.</span></p>
       <button type="button" class="btn" id="dfuExitBtn">Exit DFU</button>
     </div>
     <p class="notice" id="dfuPickNotice" hidden>The board restarted in <strong>STM32 DFU mode</strong>. The browser asks once before this page may use it: press <strong>Find the board</strong> and choose "STM32 BOOTLOADER".</p>
@@ -429,6 +437,8 @@
       <span><i class="cell retry"></i>rewritten</span>
       <span><i class="cell fail"></i>failed</span>
       <span><i class="cell out"></i>unused</span>
+      <span id="legendBoot"><i class="cell boot"></i>DFU mode only</span>
+      <span><i class="cell props"></i>kept</span>
     </div>
     <div class="progress-line" role="status" aria-live="polite">
       <span id="phaseText">Idle</span>
@@ -733,6 +743,10 @@
   let dfuDevices = [];      // picked once, and plugged in
   let dfuSelected = null;   // the one shown in the Instrument card
   let dfuPickNeeded = false;   // restarted into it, but never picked in the chooser
+  /* {device, image} of the last DFU install that succeeded. WebUSB gives a
+   * replugged or restarted board a new USBDevice, so this matches only until
+   * the board goes away. */
+  let dfuDone = null;
   // The ROM names itself "STM32  BOOTLOADER", with two spaces.
   const dfuName = (u) => (u.productName || "STM32 BOOTLOADER").replace(/\s+/g, " ").trim();
 
@@ -921,7 +935,8 @@
     $("idleUpdateNotice").hidden = true;
     if (device) $("dfuDoneNotice").hidden = true;   // back as an instrument
     $("bootloaderNotice").hidden = !image || image.kind !== "bootloader" || !!dfuSelected;
-    $("dfuNotice").hidden = !dfuSelected || busy || !$("dfuDoneNotice").hidden;
+    // Stays up during an install, Exit DFU disabled, so the page doesn't reflow.
+    $("dfuNotice").hidden = !dfuSelected || !$("dfuDoneNotice").hidden;
     $("factFirmware").textContent = dfuSelected ? "unknown in DFU mode" : "—";
     if (device) {
       const upd = device.mode === MODE_UPDATE;
@@ -947,6 +962,7 @@
     $("firmwareBadge").style.display = dfuSelected ? "none" : "";
     showFirmwareBadge();
     refreshButton();
+    refreshGrid();
   }
 
   /* The firmware below compared with the installed one: "same", "newer",
@@ -977,11 +993,14 @@
   /* The button is the highlighted action only when there is something to do:
    * a newer firmware, or an update to finish. Otherwise it stays plain. */
   function refreshButton() {
+    // Just installed on this board in DFU mode: nothing left to do, so plain
+    // until the board is unplugged or restarts, or another file is loaded.
+    const installedHere = !!dfuSelected && !!dfuDone && dfuDone.device === dfuSelected && dfuDone.image === image;
     // A bootloader installs only in STM32 DFU mode.
     if (image && image.kind === "bootloader") {
       updateBtn.disabled = !dfuSelected || busy;
       updateBtn.textContent = "Install bootloader";
-      updateBtn.classList.add("primary");
+      updateBtn.classList.toggle("primary", !installedHere);
       return;
     }
     const ready = (!!device || !!dfuSelected) && !!image && !busy;
@@ -992,7 +1011,7 @@
     updateBtn.textContent = resume ? "Resume update"
       : dfuSelected && image && image.boot ? "Update bootloader and firmware"
       : relation === "same" ? "Reinstall firmware" : "Update firmware";
-    updateBtn.classList.toggle("primary", resume || !relation || relation === "newer");
+    updateBtn.classList.toggle("primary", dfuSelected ? !installedHere : resume || !relation || relation === "newer");
   }
 
   /* Prefers the bootloader, then the instrument; never replaces a device
@@ -1145,8 +1164,7 @@
             (p.version || "no version record"));
       }
       showError("");
-      geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: image.area, chunk: DEFAULT_CHUNK };
-      drawCells();
+      refreshGrid();
     } catch (err) {
       showError(source + ": " + err.message);
     }
@@ -1221,37 +1239,78 @@
   });
 
   // ---- Progress grid ----
-  let geometry = { pageSize: DEFAULT_PAGE_SIZE, appSize: DEFAULT_APP_SIZE, chunk: DEFAULT_CHUNK };
+  /* The grid shows the whole flash, whatever the mode: the bootloader, the
+   * firmware and the saved settings. What this mode will write waits in grey;
+   * the bootloader is writable only in STM32 DFU mode, the settings never.
+   * Offsets given to markChunk/markRange count from gridOrigin, the start of
+   * what is being written. */
+  const FLASH_BASE = BOOT_BASE, FLASH_SIZE = 128 * 1024;
+  const PROPS_BASE = 0x0801f000;
+  const CELL_BYTES = 512;
+  let geometry = { pageSize: DEFAULT_PAGE_SIZE, chunk: DEFAULT_CHUNK };
+  let gridOrigin = DEFAULT_APP_BASE;
   let cells = [];
+  let gridKey = "";
 
-  /* geometry.used: the [offset, length] ranges of the grid that get written,
-   * the rest hatched; by default, the image from the grid's start. */
+  /* The [address, length] ranges this mode writes from the loaded file. */
+  function writtenRanges() {
+    if (!image) return [];
+    const parts = dfuSelected ? [image.boot, image.kind === "firmware" ? image : null]
+                              : [image.kind === "firmware" ? image : null];
+    return parts.filter(Boolean).map((p) => [p.base, p.size]);
+  }
+
   function drawCells() {
-    const { appSize, chunk } = geometry;
-    const used = geometry.used || (image ? [[0, image.size]] : null);
+    const used = writtenRanges();
+    gridKey = (dfuSelected ? "dfu" : "midi") + used.join(";");
     cellsEl.innerHTML = "";
     cells = [];
-    for (let i = 0; i < appSize / chunk; i++) {
-      const c = document.createElement("div");
-      const out = used && !used.some(([start, len]) => i * chunk >= start && i * chunk < start + len);
-      c.className = "cell" + (out ? " out" : "");
-      cellsEl.appendChild(c);
-      cells.push(c);
+    const groups = [["Bootloader", FLASH_BASE, DEFAULT_APP_BASE], ["Firmware", DEFAULT_APP_BASE, PROPS_BASE],
+                    ["Saved settings", PROPS_BASE, FLASH_BASE + FLASH_SIZE]];
+    for (const [label, start, end] of groups) {
+      const group = document.createElement("div");
+      const caption = document.createElement("span");
+      caption.className = "cell-group-label";
+      caption.textContent = label;
+      const grid = document.createElement("div");
+      grid.className = "cell-grid";
+      group.append(caption, grid);
+      cellsEl.appendChild(group);
+      for (let addr = start; addr < end; addr += CELL_BYTES) {
+        const c = document.createElement("div");
+        let kind = "";
+        if (addr >= PROPS_BASE) kind = "props";
+        else if (addr < DEFAULT_APP_BASE && !dfuSelected) kind = "boot";
+        else if (!used.some(([s, len]) => addr + CELL_BYTES > s && addr < s + len)) kind = "out";
+        c.className = "cell" + (kind ? " " + kind : "");
+        grid.appendChild(c);
+        cells.push(c);
+      }
     }
+    $("legendBoot").hidden = !!dfuSelected;
+  }
+
+  /* Redraws the grid when the mode or the file changed, never during an
+   * update, and keeps the last update's result otherwise. */
+  function refreshGrid() {
+    if (busy) return;
+    const key = (dfuSelected ? "dfu" : "midi") + writtenRanges().join(";");
+    if (key !== gridKey) drawCells();
+  }
+
+  function markRange(offset, len, state) {
+    const at = gridOrigin + offset - FLASH_BASE;
+    const first = Math.floor(at / CELL_BYTES), last = Math.floor((at + len - 1) / CELL_BYTES);
+    for (let i = first; i <= last; i++) if (cells[i]) cells[i].className = "cell " + state;
   }
 
   function markChunk(offset, state) {
-    const c = cells[Math.floor(offset / geometry.chunk)];
-    if (c) c.className = "cell " + state;
+    markRange(offset, Math.min(geometry.chunk, image.size - offset), state);
   }
 
   function markPage(page, state) {
     const { pageSize } = geometry;
     markRange(page * pageSize, Math.min(pageSize, image.size - page * pageSize), state);
-  }
-
-  function markRange(offset, len, state) {
-    for (let o = offset; o < offset + len; o += geometry.chunk) markChunk(o, state);
   }
 
   // ---- The update ----
@@ -1361,7 +1420,8 @@
 
     const info = device.info;
     if (image.size > info.appSize) throw new UpdateError("the firmware is larger than the instrument's firmware area");
-    geometry = { pageSize: info.pageSize, appSize: info.appSize, chunk: Math.min(info.maxChunk, info.pageSize) };
+    geometry = { pageSize: info.pageSize, chunk: Math.min(info.maxChunk, info.pageSize) };
+    gridOrigin = image.base;
     // The file was read for the usual layout: the instrument must agree.
     if (info.appBase !== image.base) throw new UpdateError("the instrument's firmware area is not where this file expects it");
     if (info.session && !confirm("Another update of this instrument seems to be running, in another tab " +
@@ -1622,11 +1682,8 @@
     // The bootloader part first, then the firmware; one grid over both.
     const parts = [image.boot, image.kind === "firmware" ? image : null].filter(Boolean);
     const gridBase = parts[0].base;
-    geometry = {
-      pageSize: DEFAULT_PAGE_SIZE, chunk: DEFAULT_CHUNK,
-      appSize: Math.max(...parts.map((p) => p.base + p.area)) - gridBase,
-      used: parts.map((p) => [p.base - gridBase, p.size]),
-    };
+    geometry = { pageSize: DEFAULT_PAGE_SIZE, chunk: DEFAULT_CHUNK };
+    gridOrigin = gridBase;
     drawCells();
     const total = parts.reduce((n, p) => n + p.size, 0);
     const written = [];
@@ -1663,13 +1720,14 @@
       await dfu.close();
     }
 
-    const [what, phase] = written.length === 2 ? ["The firmware and the bootloader", "Firmware and bootloader installed"]
-      : written[0] === "bootloader" ? ["The bootloader", "Bootloader installed"] : ["The firmware", "Firmware installed"];
+    const [what, phase] = written.length === 2 ? ["The firmware and the bootloader are", "Firmware and bootloader installed"]
+      : written[0] === "bootloader" ? ["The bootloader is", "Bootloader installed"] : ["The firmware is", "Firmware installed"];
     setPhase(phase);
     $("dfuDoneWhat").textContent = what;
     setProgress("");
     showError("");
     $("dfuDoneNotice").hidden = false;
+    dfuDone = { device: dfuSelected, image };
     celebrate(image.version ? shortVersion(image.version) : "");
   }
 
@@ -1731,7 +1789,7 @@
     }
     busy = true;
     refreshButton();
-    $("dfuNotice").hidden = $("dfuBox").hidden = true;
+    $("dfuExitBtn").disabled = true;
     try {
       const go = async (lock) => {
         if (lock === null) throw new UpdateError("an update is already running in another tab");
