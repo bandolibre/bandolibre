@@ -119,7 +119,8 @@ bootloader-only recipe); `just flash` then never touches it, and a Debug board
 can still be updated from the browser.
 
 `just dfu` is the one to use for a release: it builds the Release
-configuration and writes `build/Release/main-g474.uf2`.
+configuration and writes `build/Release/main-v1_2.uf2` (named after the
+release's major and minor version), bootloader and firmware together.
 
 None of this affects `code/wing-g474`, which has a single memory map.
 

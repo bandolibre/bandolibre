@@ -428,36 +428,41 @@
   #propertiesSaveBtn:disabled, #btnSaveCenter:disabled { cursor: default; opacity: 0.45; box-shadow: none; } /* author display:inline-flex would otherwise beat the UA [hidden] rule */
 
   /* Properties card menu (⋮): show all, save to / load from a JSON file,
-   * factory reset. */
-  .props-menu { position: relative; flex: none; margin-left: auto; }
+   * factory reset. In the card's top right corner, out of the flow, with
+   * the update tool's look (docs/update/index.html, .card-menu): keep both
+   * alike. */
+  #propertiesCard { position: relative; }
+  .props-menu { position: absolute; top: 8px; right: 8px; }
   .props-menu[hidden] { display: none; }
   .props-menu-btn {
-    width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--fg); cursor: pointer;
+    padding: 5px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer;
   }
-  .props-menu-btn:hover:not(:disabled), .props-menu-btn[aria-expanded="true"] { border-color: var(--muted); }
+  .props-menu-btn:hover:not(:disabled), .props-menu-btn[aria-expanded="true"] { border-color: var(--border); color: var(--fg); }
   .props-menu-btn:disabled { opacity: 0.45; cursor: progress; }
-  .props-menu-btn svg { width: 16px; height: 16px; }
+  .props-menu-btn svg { width: 18px; height: 18px; }
   .props-menu-list {
     position: absolute; right: 0; top: calc(100% + 4px); z-index: 100;
-    min-width: 13em; padding: 4px; display: flex; flex-direction: column;
+    min-width: 200px; padding: 4px; display: flex; flex-direction: column;
     background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   }
   .props-menu-list[hidden] { display: none; }
   .props-menu-list button {
-    text-align: left; padding: 7px 10px; border: none; border-radius: 6px;
-    background: transparent; color: var(--fg); font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+    font: inherit; text-align: left; padding: 8px 10px; border: none; border-radius: 6px;
+    background: transparent; color: var(--fg); font-size: 0.9rem; cursor: pointer; white-space: nowrap;
   }
-  .props-menu-list button:hover:not(:disabled), .props-menu-list button:focus-visible { background: var(--bg); outline: none; }
-  .props-menu-list button:disabled { opacity: 0.4; cursor: default; }
+  .props-menu-list button:hover:not(:disabled), .props-menu-list button:focus-visible,
+  .props-menu-list .props-menu-toggle:hover {
+    background: color-mix(in srgb, var(--muted) 14%, transparent); outline: none;
+  }
+  .props-menu-list button:disabled { color: var(--muted); opacity: 1; cursor: default; }
   .props-menu-list button[hidden] { display: none; }
   .props-menu-list button.danger { color: var(--bad); }
   .props-menu-list .props-menu-toggle {
-    margin: 0; padding: 7px 10px; justify-content: space-between; gap: 16px;
-    border-radius: 6px; font-size: 0.85rem;
+    margin: 0; padding: 8px 10px; justify-content: space-between; gap: 16px;
+    border: none; border-radius: 6px; font-size: 0.9rem; color: var(--fg);
   }
-  .props-menu-list .props-menu-toggle:hover { background: var(--bg); }
   .props-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
   /* ---- Bellows curve graph ---- */
@@ -1528,7 +1533,7 @@
       <div class="props-menu" id="propertiesMenu" hidden>
         <button type="button" class="props-menu-btn" id="propertiesMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="propertiesMenuList" aria-label="Properties menu" title="Show all, save to file, load from file, factory reset">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle>
+            <circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle>
           </svg>
         </button>
         <div class="props-menu-list" id="propertiesMenuList" role="menu" hidden>

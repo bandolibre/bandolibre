@@ -9,7 +9,7 @@ no ST-Link and no toolchain, two ways:
   SysEx ([`midi_update.c`](midi_update.c)).
 - **By copying a file.** Hold **FN2** (the leftmost function button) while
   powering the instrument on, and a drive called `BANDOLIBRE` appears next to
-  the MIDI device. Drop `main-g474.uf2` on it; when the copy finishes the drive
+  the MIDI device. Drop the release file (`main-v1_2.uf2`) on it; when the copy finishes the drive
   disappears and the instrument restarts on the new firmware.
 
 End-user instructions are in
@@ -152,8 +152,8 @@ by restarting into the STM32's own DFU loader in ROM. It first restarts both
 keyboards into their own loaders (BOOT0 high during an NRST pulse), so the left
 one stops sending on PA4-PA7, the ROM loader's SPI1 port, which would otherwise
 make it drop USB; the application restarts them into their firmware at start.
-When the ROM loader leaves (DfuSe "leave", the update tool's **Exit DFU
-mode**) it jumps here, and `main()` resets the chip to start clean.
+When the ROM loader leaves (DfuSe "leave", the update tool's **Exit DFU**) it
+jumps here, and `main()` resets the chip to start clean.
 
 Manufacturer and product are the same string because the MIDI port name comes
 from the product on Linux and macOS and from the manufacturer on Windows. With
@@ -177,7 +177,7 @@ just build          # Debug (also -Os and LTO; the bootloader must fit either wa
 just build_release  # what ships
 just size           # how much of the 32 KB region is used
 just flash          # install at 0x08000000, leaving the application intact
-just uf2            # build/Release/boot-g474.uf2, for the update tool in STM32 DFU mode
+just uf2            # build/Release/main-bootloader-v1_2.uf2, for the update tool in STM32 DFU mode
 ```
 
 `just flash` goes through `../tool/flash.py` with the board type `main-g474`,
@@ -187,7 +187,8 @@ Without an ST-Link, the bootloader installs from the update tool
 (`docs/update/`) with the board in the chip's own DFU mode (FN0 held at power-on,
 left keyboard unplugged). The release file from `just dfu` in `../main-g474`
 carries it next to the firmware, and the tool rewrites it only when it differs;
-`boot-g474.uf2` holds it alone and switches the page to **Install bootloader**.
+`main-bootloader-v1_2.uf2` holds it alone and switches the page to **Install bootloader**.
+Both names carry the release's major and minor version, from the latest `bandolibre-v*` tag.
 The bootloader's own drive ignores the bootloader blocks of either file, since
 they lie outside the application region.
 

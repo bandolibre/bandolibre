@@ -319,14 +319,15 @@ afterwards.
 
 This way works without a browser.
 
-1. Download the latest `main-g474.uf2` from the
-   [releases page](https://github.com/bandolibre/bandolibre/releases).
+1. Download the latest firmware file from the
+   [releases page](https://github.com/bandolibre/bandolibre/releases). Its name
+   carries the version: `main-v1_2.uf2` for version 1.2.
 2. Unplug the Bandolibre.
 3. Hold down the **left function button** and plug the cable back in. Keep
    holding it until a drive appears.
 4. A drive called **BANDOLIBRE** appears, like a USB stick. The light above the
    left button blinks slowly while it waits.
-5. Copy `main-g474.uf2` onto that drive.
+5. Copy the firmware file onto that drive.
 6. The light blinks faster during the copy, then stays on for about a second.
    The drive then disappears and the Bandolibre restarts with the new firmware.
 
@@ -345,7 +346,7 @@ stay there.
 - **The BANDOLIBRE drive appears without you holding the left button.** The instrument
   found no valid firmware and is waiting for one. Copy the `.uf2` file again.
 - **Nothing happens when you copy the file.** Check that it is the
-  `main-g474.uf2` file from the releases page. Any other file is ignored, so a
+  `main-v….uf2` file from the releases page. Any other file is ignored, so a
   wrong file cannot damage the instrument.
 - **The drive does not appear.** Hold the left button *before* plugging in the cable, and
   keep holding it for a second or two afterwards.

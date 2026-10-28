@@ -14,7 +14,7 @@ extern "C" {
  * there), drops off USB, puts the clocks and peripherals back as a reset
  * leaves them, and jumps into the ROM loader, which then shows up as USB DFU
  * device 0483:df11. Does not return; the board comes back from it with the
- * update tool's Exit DFU mode (or a replug), and the application restarts the
+ * update tool's Exit DFU (or a replug), and the application restarts the
  * keyboards into their firmware. */
 void system_dfu_enter(void) __attribute__((noreturn));
 

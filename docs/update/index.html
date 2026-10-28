@@ -27,6 +27,13 @@
     --pull: #b3591a;
     --saved-bg: #fdf0cf;
     --cell-wait: #d9dade;
+    /* This page's action color: the update button, the "update available"
+     * badge, pages being written, the drop target. Blue, so it never reads
+     * as the green of "up to date" and "checked"; green means done, amber
+     * attention, red failure. --accent fills (white text on it), --accent-text
+     * is for text and outlines on the card. */
+    --accent: #2563eb;
+    --accent-text: #1d4ed8;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -40,6 +47,8 @@
       --pull: #d99a52;
       --saved-bg: #43381c;
       --cell-wait: #3a3b3e;
+      --accent: #3171e0;
+      --accent-text: #8ab4f8;
     }
   }
   * { box-sizing: border-box; }
@@ -123,27 +132,32 @@
     color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent);
   }
   .badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
-  .badge.new { color: var(--push); background: color-mix(in srgb, var(--push) 16%, transparent); }
+  .badge.new { color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, transparent); }
   /* Facts with a button at the top right, level with the first row. */
   .facts-row { display: flex; align-items: flex-start; gap: 12px; }
   .facts-row .facts { flex: 1; min-width: 0; margin-top: 0; }
   .facts-row .btn { margin-top: -6px; flex: none; }
   .device-row + .facts-row { margin-top: 14px; }
-  /* With Exit DFU mode shown, the row takes the device row's columns, so the
-   * button lines up under the status. Only then: the firmware version and its
-   * badge need the whole width. */
-  .device-row + .facts-row:has(#dfuExitBtn:not([hidden])) {
-    display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 0 16px;
+  /* A card's menu: a three-dot button in its top right corner, out of the
+   * flow so the heading keeps its height, and a list that drops below it.
+   * The configuration tool's Properties menu (docs/connect/index.html,
+   * .props-menu) looks the same: keep both alike. */
+  .card.with-menu { position: relative; }
+  .card-menu { position: absolute; top: 8px; right: 8px; }
+  .card-menu > .btn.icon { border-color: transparent; background: transparent; color: var(--muted); padding: 5px; }
+  .card-menu > .btn.icon:hover:not(:disabled), .card-menu > .btn.icon[aria-expanded="true"] { border-color: var(--border); color: var(--fg); }
+  .menu-list {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 10; min-width: 200px;
+    display: flex; flex-direction: column; padding: 4px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   }
-  #dfuExitBtn { justify-self: start; }
-  /* Restart in DFU mode keeps its place while hidden (visibility), so the
-   * firmware row doesn't narrow when the instrument answers. */
-  /* On a phone it takes a line of its own, under the firmware. */
-  @media (max-width: 560px) {
-    .facts-row:has(#dfuEnterBtn:not([hidden])) { flex-wrap: wrap; row-gap: 10px; }
-    .facts-row:has(#dfuEnterBtn:not([hidden])) .facts { flex-basis: 100%; }
-    .facts-row #dfuEnterBtn { margin-top: 0; }
+  .menu-list button {
+    font: inherit; font-size: 0.9rem; text-align: left; white-space: nowrap;
+    padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); cursor: pointer;
   }
+  .menu-list button:hover:not(:disabled), .menu-list button:focus-visible { background: color-mix(in srgb, var(--muted) 14%, transparent); outline: none; }
+  .menu-list button:disabled { color: var(--muted); cursor: default; }
   .install-actions { margin: 6px 0 20px; justify-content: center; }
   .install-actions .btn { font-size: 1.05rem; padding: 12px 32px; border-radius: 10px; min-width: 220px; }
   .card h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
@@ -167,6 +181,10 @@
     font-size: 0.9rem;
   }
   .notice.bad { border-left-color: var(--bad); }
+  /* A notice with its action at the right; the text wraps beside it. */
+  .notice.with-action { display: flex; align-items: center; gap: 12px; }
+  .notice.with-action > p { flex: 1; min-width: 0; margin: 0; }
+  .notice.with-action > .btn { flex: none; }
   .notice a { color: inherit; font-weight: 600; }
   .hint { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
   .btn {
@@ -175,27 +193,28 @@
   }
   .btn:hover:not(:disabled) { border-color: var(--muted); }
   .btn:disabled { opacity: 0.5; cursor: default; }
-  .btn.primary { background: var(--push); border-color: var(--push); color: #fff; font-weight: 600; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #000); border-color: transparent; }
   .btn.icon { padding: 7px 9px; display: inline-flex; align-items: center; justify-content: center; }
   .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
   /* The whole "Latest firmware" card takes a dropped .uf2. */
   /* A file dragged anywhere over the page: the card pulses to draw it in,
    * and lights up fully once the file is over it. */
   .card.drop-ready {
-    border-color: var(--push);
+    border-color: var(--accent);
     animation: drop-pulse 1.2s ease-in-out infinite;
   }
   .card.drop-ready.drop-over {
     animation: none;
-    background: color-mix(in srgb, var(--push) 10%, var(--card));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--push) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--card));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent);
   }
   @keyframes drop-pulse {
-    0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--push) 25%, transparent); }
-    50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--push) 12%, transparent); }
+    0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+    50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 12%, transparent); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .card.drop-ready { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--push) 30%, transparent); }
+    .card.drop-ready { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
   }
 
   /* The progress grid: one cell per write chunk of the application region,
@@ -215,8 +234,8 @@
     background: repeating-linear-gradient(45deg, var(--cell-wait) 0 2px, transparent 2px 4px);
     opacity: 0.6;
   }
-  .cell.write { background: var(--push); animation: blink 0.5s steps(2) infinite; }
-  .cell.written { background: color-mix(in srgb, var(--push) 55%, var(--cell-wait)); }
+  .cell.write { background: var(--accent); animation: blink 0.5s steps(2) infinite; }
+  .cell.written { background: color-mix(in srgb, var(--accent) 45%, var(--cell-wait)); }
   .cell.ok { background: var(--ok); }
   .cell.retry { background: var(--warn); }
   .cell.fail { background: var(--bad); }
@@ -255,7 +274,7 @@
     letter-spacing: 0.06em; color: var(--pull);
   }
   .info-modal p { margin: 0 0 12px; font-size: 0.88rem; line-height: 1.55; }
-  .info-modal a { color: var(--push); }
+  .info-modal a { color: var(--accent-text); }
   .info-modal-close {
     position: absolute; top: 18px; right: 20px; width: 30px; height: 30px; padding: 0;
     border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted);
@@ -316,8 +335,6 @@
     .cells { grid-template-columns: repeat(auto-fill, minmax(8px, 1fr)); gap: 2px; margin-bottom: 8px; }
     .progress-line { margin-top: 6px; }
     details { margin-top: 8px; }
-    /* The status sits under the device list here: no column to line up with. */
-    .device-row + .facts-row:has(#dfuExitBtn:not([hidden])) { display: flex; }
   }
 </style>
 </head>
@@ -349,8 +366,14 @@
     </button>
   </div>
 
-  <section class="card" aria-labelledby="instrumentTitle">
+  <section class="card with-menu" aria-labelledby="instrumentTitle">
     <h2 id="instrumentTitle">Instrument</h2>
+    <div class="card-menu" id="instrumentMenu" hidden>
+      <button type="button" class="btn icon" id="instrumentMenuBtn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" aria-controls="instrumentMenuList"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+      <div class="menu-list" id="instrumentMenuList" role="menu" hidden>
+        <button type="button" role="menuitem" id="dfuEnterBtn" title="Restarts the instrument in device firmware upgrade mode, where the bootloader can be updated too">Restart in DFU mode</button>
+      </div>
+    </div>
     <label class="small" for="deviceSelect">Device</label>
     <div class="device-row">
       <select id="deviceSelect"></select>
@@ -363,12 +386,12 @@
       <dl class="facts" id="facts">
         <dt>Firmware</dt><dd class="with-badge"><span id="factFirmware">—</span><span class="badge" id="firmwareBadge" style="visibility: hidden">up to date</span></dd>
       </dl>
-      <button type="button" class="btn" id="dfuEnterBtn" title="Restart the board into the chip's own loader, which can also install the bootloader" style="visibility: hidden">Restart in DFU mode</button>
-      <button type="button" class="btn" id="dfuExitBtn" hidden>Exit DFU mode</button>
     </div>
     <p class="notice" id="interruptedNotice" hidden>A previous update did not finish, so the instrument cannot play yet. Choose a firmware below and press <strong>Resume update</strong>.</p>
-    <p class="notice" id="dfuNotice" hidden>The board is in <strong>STM32 DFU mode</strong>, the chip's own loader. Press <strong>Update firmware</strong> to install the firmware below, or <strong>Exit DFU mode</strong> to restart the board normally.</p>
-    <p class="notice" id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU mode</strong> to restart the board. If you unplugged the left keyboard to get here, unplug the USB cable, reconnect the keyboard, and plug the board back in.</p>
+    <div class="notice with-action" id="dfuBox" hidden>
+      <p><span id="dfuNotice" hidden>The instrument is in <strong>device firmware upgrade mode</strong>. Here the update can also replace the bootloader, the small program that starts the instrument. Press <strong>Exit DFU</strong> to go back to playing.</span><span id="dfuDoneNotice" hidden><span id="dfuDoneWhat">The firmware</span> is installed. Press <strong>Exit DFU</strong> to go back to playing. If you unplugged the left keyboard to get here, unplug the USB cable, plug the keyboard back in, then plug the USB cable in again.</span></p>
+      <button type="button" class="btn" id="dfuExitBtn">Exit DFU</button>
+    </div>
     <p class="notice" id="dfuPickNotice" hidden>The board restarted in <strong>STM32 DFU mode</strong>. The browser asks once before this page may use it: press <strong>Find the board</strong> and choose "STM32 BOOTLOADER".</p>
     <div class="actions" id="dfuPickRow" hidden>
       <button type="button" class="btn" id="dfuPickBtn">Find the board</button>
@@ -383,14 +406,13 @@
     <h2 id="firmwareTitle">Latest firmware</h2>
     <div class="facts-row">
       <dl class="facts">
-        <dt>Firmware</dt><dd id="imageVersion">—</dd>
-        <dt>Bootloader</dt><dd id="imageBoot">—</dd>
+        <dt id="imageVersionLabel">Firmware</dt><dd id="imageVersion">—</dd>
         <dt>Source</dt><dd id="imageSource">—</dd>
       </dl>
       <button type="button" class="btn icon" id="fileBtn" title="Load a .uf2 file (or drop it onto this card)" aria-label="Load a .uf2 file, or drop it onto this card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
       <input type="file" id="fileInput" accept=".uf2" hidden>
     </div>
-    <p class="notice" id="bootloaderNotice" hidden>This file replaces the <strong>bootloader</strong>, the part that starts the firmware and updates it. It installs only in STM32 DFU mode: press <strong>Restart in DFU mode</strong> above. A board that does not start gets there with FN0: unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in.</p>
+    <p class="notice" id="bootloaderNotice" hidden>This file replaces the <strong>bootloader</strong>, the part that starts the firmware and updates it. It installs only in STM32 DFU mode: choose <strong>Restart in DFU mode</strong> in the Instrument card's ⋮ menu. A board that does not start gets there with FN0: unplug the USB cable and the left keyboard, then hold FN0 while plugging the USB cable in.</p>
   </section>
 
   <section class="card" aria-labelledby="progressTitle">
@@ -915,14 +937,14 @@
     $("leaveRow").hidden = $("idleUpdateNotice").hidden;
     if (device || dfuSelected) dfuPickNeeded = false;
     $("dfuPickNotice").hidden = $("dfuPickRow").hidden = !dfuPickNeeded;
-    $("dfuEnterBtn").hidden = !navigator.usb || !!dfuSelected;
-    $("dfuEnterBtn").style.visibility = device ? "visible" : "hidden";
-    $("dfuEnterBtn").disabled = busy;
-    $("dfuExitBtn").hidden = !dfuSelected;
-    // No comparison in DFU mode: free the badge's reserved space, which would
-    // wrap in the narrower column next to Exit DFU mode.
-    $("firmwareBadge").style.display = dfuSelected ? "none" : "";
+    // The menu stays in place with WebUSB; its item works on an instrument
+    // that answered, outside an update.
+    $("instrumentMenu").hidden = !navigator.usb;
+    $("dfuEnterBtn").disabled = !device || !!dfuSelected || busy;
+    $("dfuBox").hidden = $("dfuNotice").hidden && $("dfuDoneNotice").hidden;
     $("dfuExitBtn").disabled = busy;
+    // No comparison in DFU mode: the badge gives its reserved space back.
+    $("firmwareBadge").style.display = dfuSelected ? "none" : "";
     showFirmwareBadge();
     refreshButton();
   }
@@ -966,7 +988,10 @@
     updateBtn.disabled = !ready;
     const resume = device && device.mode === MODE_UPDATE && device.info.appState !== APP_VALID;
     const relation = firmwareRelation();
-    updateBtn.textContent = resume ? "Resume update" : relation === "same" ? "Reinstall firmware" : "Update firmware";
+    // In STM32 DFU mode a release file installs its bootloader part too.
+    updateBtn.textContent = resume ? "Resume update"
+      : dfuSelected && image && image.boot ? "Update bootloader and firmware"
+      : relation === "same" ? "Reinstall firmware" : "Update firmware";
     updateBtn.classList.toggle("primary", resume || !relation || relation === "newer");
   }
 
@@ -1109,10 +1134,11 @@
       const parts = parseUf2Parts(buffer);
       const main = parts.firmware || parts.bootloader;
       image = { ...main, source, boot: parts.bootloader || null };
-      const shown = (p) => p ? (p.version ? shortVersion(p.version) : "unknown") : "—";
-      $("firmwareTitle").textContent = image.kind === "bootloader" ? "Bootloader" : "Latest firmware";
-      $("imageVersion").textContent = shown(parts.firmware);
-      $("imageBoot").textContent = shown(parts.bootloader);
+      // One version: the release file's bootloader comes from the same build.
+      const bootloader = image.kind === "bootloader";
+      $("firmwareTitle").textContent = bootloader ? "Bootloader" : "Latest firmware";
+      $("imageVersionLabel").textContent = bootloader ? "Bootloader" : "Firmware";
+      $("imageVersion").textContent = main.version ? shortVersion(main.version) : "unknown";
       $("imageSource").textContent = source;
       for (const p of Object.values(parts)) {
         log(p.kind + ": " + source + ", " + p.size + " bytes, CRC-32 " + hex32(p.crc) + ", " +
@@ -1591,7 +1617,7 @@
     try {
       await dfu.open();
     } catch (err) {
-      throw dfuOpenHelp(err);
+      throw dfuOpenHelp(err, { again: updateBtn.textContent });
     }
     // The bootloader part first, then the firmware; one grid over both.
     const parts = [image.boot, image.kind === "firmware" ? image : null].filter(Boolean);
@@ -1705,7 +1731,7 @@
     }
     busy = true;
     refreshButton();
-    $("dfuNotice").hidden = true;
+    $("dfuNotice").hidden = $("dfuBox").hidden = true;
     try {
       const go = async (lock) => {
         if (lock === null) throw new UpdateError("an update is already running in another tab");
@@ -1716,7 +1742,7 @@
     } catch (err) {
       setPhase("Update failed");
       showError(err.message.replace(/\.?$/, ".") +
-        " The board stays in STM32 DFU mode: press Update firmware to try again.", err.command);
+        " The board stays in STM32 DFU mode: press " + updateBtn.textContent + " to try again.", err.command);
     } finally {
       busy = false;
       showDevice();
@@ -1732,7 +1758,7 @@
     try {
       await dfu.open();
     } catch (err) {
-      throw dfuOpenHelp(err);
+      throw dfuOpenHelp(err, { again: "Exit DFU" });
     }
     try {
       await dfu.leave();
@@ -1817,6 +1843,20 @@
     }
     return null;
   }
+
+  // ---- The Instrument card's menu ----
+  const menuBtn = $("instrumentMenuBtn"), menuList = $("instrumentMenuList");
+  function showMenu(open) {
+    menuList.hidden = !open;
+    menuBtn.setAttribute("aria-expanded", String(open));
+    if (open) (menuList.querySelector("button:not(:disabled)") || menuBtn).focus();
+  }
+  menuBtn.addEventListener("click", () => showMenu(menuList.hidden));
+  menuList.addEventListener("click", () => showMenu(false));
+  document.addEventListener("click", (e) => { if (!$("instrumentMenu").contains(e.target)) showMenu(false); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !menuList.hidden) { showMenu(false); menuBtn.focus(); }
+  });
 
   $("dfuEnterBtn").addEventListener("click", async () => {
     if (!device || busy) return;
@@ -2062,8 +2102,7 @@
       navigator.usb.addEventListener("connect", refreshDfuDevices);
       navigator.usb.addEventListener("disconnect", refreshDfuDevices);
       refreshDfuDevices();
-    } else {
-      $("dfuEnterBtn").hidden = true;
+      $("instrumentMenu").hidden = false;
     }
     if (!navigator.requestMIDIAccess) {
       setStatus("bad", "This browser has no Web MIDI: use Chrome, Edge or Firefox.");

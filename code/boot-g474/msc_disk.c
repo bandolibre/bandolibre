@@ -55,7 +55,7 @@ static const char info_txt[] =
     "Bandolibre main board (STM32G474CB)\r\n"
     "UF2 bootloader\r\n"
     "\r\n"
-    "Copy main-g474.uf2 onto this drive to update the firmware.\r\n"
+    "Copy main-v<version>.uf2 onto this drive to update the firmware.\r\n"
     "Build it with 'just dfu' in code/main-g474.\r\n"
     "\r\n"
     "The drive disappears and the instrument restarts when the copy\r\n"

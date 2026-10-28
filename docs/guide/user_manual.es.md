@@ -333,14 +333,15 @@ la actualización y se vuelven a conectar después.
 
 Este método funciona sin navegador.
 
-1. Descarga el último `main-g474.uf2` desde la
-   [página de versiones](https://github.com/bandolibre/bandolibre/releases).
+1. Descarga el último archivo de firmware desde la
+   [página de versiones](https://github.com/bandolibre/bandolibre/releases). Su
+   nombre lleva la versión: `main-v1_2.uf2` para la versión 1.2.
 2. Desconecta el Bandolibre.
 3. Mantén pulsado el **botón de función izquierdo** y vuelve a conectar el
    cable. Mantenlo pulsado hasta que aparezca una unidad.
 4. Aparece una unidad llamada **BANDOLIBRE**, como una memoria USB. La luz
    sobre el botón izquierdo parpadea lentamente mientras espera.
-5. Copia `main-g474.uf2` en esa unidad.
+5. Copia el archivo de firmware en esa unidad.
 6. La luz parpadea más rápido durante la copia y luego queda encendida
    alrededor de un segundo. La unidad desaparece y el Bandolibre se reinicia
    con el nuevo firmware.
@@ -361,7 +362,7 @@ se conservan.
   instrumento no encontró un firmware válido y espera uno. Copia de nuevo el
   archivo `.uf2`.
 - **No pasa nada al copiar el archivo.** Comprueba que sea el archivo
-  `main-g474.uf2` de la página de versiones. Cualquier otro archivo se ignora,
+  `main-v….uf2` de la página de versiones. Cualquier otro archivo se ignora,
   así que un archivo equivocado no puede dañar el instrumento.
 - **La unidad no aparece.** Mantén pulsado el botón izquierdo *antes* de
   conectar el cable, y sigue pulsándolo uno o dos segundos después.

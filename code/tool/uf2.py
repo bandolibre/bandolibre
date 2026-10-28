@@ -11,9 +11,9 @@ Format reference: https://github.com/microsoft/uf2
 
 Examples:
   uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2
-  uf2.py build/Release/main-g474.bin build/Release/main-g474.uf2 \\
+  uf2.py build/Release/main-g474.bin build/Release/main-v1_2.uf2 \\
       --with-bootloader ../boot-g474/build/Release/boot-g474.bin
-  uf2.py --bootloader build/Release/boot-g474.bin build/Release/boot-g474.uf2
+  uf2.py --bootloader build/Release/boot-g474.bin build/Release/main-bootloader-v1_2.uf2
 
 --with-bootloader makes the release file: the bootloader and the firmware as
 two UF2 files back to back, each with its own block count (the format allows

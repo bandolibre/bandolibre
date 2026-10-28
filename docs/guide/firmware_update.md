@@ -33,7 +33,7 @@ to the instrument afterwards.
 3. Plug the USB cable back in, keeping FN2 held until a drive appears.
 4. A drive called **BANDOLIBRE** shows up, the way a USB stick would. Its LED
    blinks slowly while it waits.
-5. Copy `main-g474.uf2` onto that drive.
+5. Copy the firmware file, `main-v1_2.uf2` for version 1.2, onto that drive.
 6. The LED blinks faster while the file transfers, then stays lit for about a
    second while the firmware is written. The drive disappears and the
    instrument restarts on the new firmware.
@@ -78,9 +78,9 @@ normally, you can also reach the drive from the debug console (below).
 The microcontroller has its own USB loader in ROM, which no update can erase.
 The update tool can use it in Chrome and Edge (WebUSB), with the same `.uf2`.
 
-**Getting there without a button.** In the update tool, click **Restart in DFU
-mode**, next to the firmware version, and choose "Bandolibre" in the browser's
-list. The board restarts into the chip's loader, keyboards connected, and the
+**Getting there without a button.** In the update tool, open the **⋮** menu of
+the Instrument card, choose **Restart in DFU mode**, then pick "Bandolibre" in
+the browser's list. The board restarts into the chip's loader, keyboards connected, and the
 tool selects it; the first time, the browser asks for it too ("STM32
 BOOTLOADER"), through **Find the board**.
 
@@ -102,9 +102,10 @@ dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D file.bin  # write, then back
    the loader answers it and never shows up on USB.
 2. Hold **FN0** and plug the USB cable in.
 3. In the update tool, pick **Find a board in STM32 DFU mode…** in the device
-   list, choose "STM32 BOOTLOADER", then click **Update firmware**. Each page
-   is read back and compared after it is written.
-4. Click **Exit DFU mode**, next to the firmware version: the board restarts
+   list, choose "STM32 BOOTLOADER", then click **Update bootloader and
+   firmware** (**Install bootloader** for a bootloader-only file). Each page is
+   read back and compared after it is written.
+4. Click **Exit DFU**, in the DFU mode notice: the board restarts
    normally.
    To use the left keyboard again, unplug the USB cable, reconnect the keyboard,
    and plug back in.
@@ -112,7 +113,8 @@ dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D file.bin  # write, then back
 The release `.uf2` carries the bootloader too, and DFU mode is the only way it
 gets installed: the tool rewrites it only when the board's differs, then writes
 the firmware. The drive and the update over MIDI use the firmware part alone.
-A file with the bootloader only (`cd code/boot-g474 && just uf2`) switches the
+A file with the bootloader only (`main-bootloader-v1_2.uf2`, from
+`cd code/boot-g474 && just uf2`) switches the
 page to **Install bootloader**. If a bootloader install goes wrong, DFU mode
 still works, so the board can always be recovered.
 
@@ -126,7 +128,7 @@ The browser needs access to the device once:
     && sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
 - Windows: the WinUSB driver for "STM32 BOOTLOADER", installed with
-  [Zadig](https://zadig.akeo.ie), then click **Update firmware** again. The
+  [Zadig](https://zadig.akeo.ie), then click the button again. The
   instrument's own DFU interface needs nothing: it asks Windows for WinUSB
   itself (Microsoft OS 2.0 descriptors).
 - macOS: nothing.
@@ -148,7 +150,7 @@ Rebooting into the bootloader; the BANDOLIBRE drive will appear.
 
 ```sh
 cd code/main-g474
-just dfu            # -> build/Release/main-g474.uf2, firmware and bootloader
+just dfu            # -> build/Release/main-v1_2.uf2, firmware and bootloader
 ```
 
 The file holds the bootloader and the firmware as two UF2 files back to back,
