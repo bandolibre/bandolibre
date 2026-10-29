@@ -1,6 +1,6 @@
 {
   "name": "Bandolibre MIDI Connect",
-  "short_name": "Bandolibre",
+  "short_name": "BandoConnect",
   "description": "Configuration tool for Bandolibre, the open-source digital Argentine bandoneon. Connect over USB-MIDI to view the keyboard live and tune bellows, pedal, and firmware properties.",
   "id": "/bandolibre/connect/",
   "start_url": "./",
