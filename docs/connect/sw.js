@@ -11,6 +11,8 @@ const SHELL_FILES = [
   "icon-512.png",
   "icon-512-maskable.png",
   "apple-touch-icon.png",
+  "favicon-16.png",
+  "favicon-32.png",
 ];
 
 self.addEventListener("install", (event) => {
