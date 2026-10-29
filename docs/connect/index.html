@@ -652,7 +652,7 @@
   .bp-swatch.pull { background: var(--pull); }
   .bp-swatch.release { background: var(--release); }
   .bp-cp-row { display: flex; flex-direction: column; gap: 4px; }
-  /* P1 and P2 side by side, stacking when the group is too narrow. */
+  /* The two control points side by side, stacking when the group is too narrow. */
   .bp-cp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
   /* stretch: the Calibrate button takes the center box's height. */
   .bp-center-row { display: flex; align-items: stretch; gap: 8px; }
@@ -1228,8 +1228,8 @@
           </div>
         </div>
         <div class="bp-cp-pair">
-          <div class="bp-x"><label class="bp-point"><span>P1 — near center</span><input type="number" id="num-push-x1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
-          <div class="bp-x"><label class="bp-point"><span>P2 — near full travel</span><input type="number" id="num-push-x2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>center</span><input type="number" id="num-push-x1" min="0" max="255" value="85" aria-label="Point near center, x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y1" min="0" max="255" value="85" aria-label="Point near center, y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>end</span><input type="number" id="num-push-x2" min="0" max="255" value="170" aria-label="Point near full travel, x"><span class="prop-point-sep">,</span><input type="number" id="num-push-y2" min="0" max="255" value="170" aria-label="Point near full travel, y"></label></div>
         </div>
       </div>
       <div class="bp-group">
@@ -1241,8 +1241,8 @@
           </div>
         </div>
         <div class="bp-cp-pair">
-          <div class="bp-x"><label class="bp-point"><span>P1 — near center</span><input type="number" id="num-pull-x1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
-          <div class="bp-x"><label class="bp-point"><span>P2 — near full travel</span><input type="number" id="num-pull-x2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>center</span><input type="number" id="num-pull-x1" min="0" max="255" value="85" aria-label="Point near center, x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y1" min="0" max="255" value="85" aria-label="Point near center, y"></label></div>
+          <div class="bp-x"><label class="bp-point"><span>end</span><input type="number" id="num-pull-x2" min="0" max="255" value="170" aria-label="Point near full travel, x"><span class="prop-point-sep">,</span><input type="number" id="num-pull-y2" min="0" max="255" value="170" aria-label="Point near full travel, y"></label></div>
         </div>
       </div>
     </div>
@@ -1421,8 +1421,8 @@
       <div class="bp-x"><label><span>bellows out of neutral</span><input type="number" id="st-num-defv" min="1" max="127" value="40"></label></div>
     </div>
     <div class="bp-cp-pair">
-      <div class="bp-x"><label class="bp-point"><span>P1 — near the slowest</span><input type="number" id="st-num-cx1" min="0" max="255" value="102" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy1" min="0" max="255" value="0" aria-label="P1 y"></label></div>
-      <div class="bp-x"><label class="bp-point"><span>P2 — near the fastest</span><input type="number" id="st-num-cx2" min="0" max="255" value="153" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy2" min="0" max="255" value="255" aria-label="P2 y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>slow</span><input type="number" id="st-num-cx1" min="0" max="255" value="102" aria-label="Point near the slowest, x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy1" min="0" max="255" value="0" aria-label="Point near the slowest, y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>fast</span><input type="number" id="st-num-cx2" min="0" max="255" value="153" aria-label="Point near the fastest, x"><span class="prop-point-sep">,</span><input type="number" id="st-num-cy2" min="0" max="255" value="255" aria-label="Point near the fastest, y"></label></div>
     </div>
     </div>
 
@@ -1486,8 +1486,8 @@
       <div class="bp-x"><label><span>bellows back to neutral</span><input type="number" id="rl-num-neutv" min="1" max="127" value="64"></label></div>
     </div>
     <div class="bp-cp-pair">
-      <div class="bp-x"><label class="bp-point"><span>P1 — near the slowest</span><input type="number" id="rl-num-cx1" min="0" max="255" value="85" aria-label="P1 x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy1" min="0" max="255" value="85" aria-label="P1 y"></label></div>
-      <div class="bp-x"><label class="bp-point"><span>P2 — near the fastest</span><input type="number" id="rl-num-cx2" min="0" max="255" value="170" aria-label="P2 x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy2" min="0" max="255" value="170" aria-label="P2 y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>slow</span><input type="number" id="rl-num-cx1" min="0" max="255" value="85" aria-label="Point near the slowest, x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy1" min="0" max="255" value="85" aria-label="Point near the slowest, y"></label></div>
+      <div class="bp-x"><label class="bp-point"><span>fast</span><input type="number" id="rl-num-cx2" min="0" max="255" value="170" aria-label="Point near the fastest, x"><span class="prop-point-sep">,</span><input type="number" id="rl-num-cy2" min="0" max="255" value="170" aria-label="Point near the fastest, y"></label></div>
     </div>
     </div>
     </div>
