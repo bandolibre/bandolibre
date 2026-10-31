@@ -164,6 +164,8 @@ BOM: `CN1, CN2 = S062100026`, which is 2×6 (12-pin), 1.27 mm pitch, SMD vertica
 
 **PASS** — SPI1 (PA4–PA7) correctly serves left wing. Wing's matching netlist confirms same pin numbers on CN1 of the WingLeft side, with wing-side MCU on the SPI1 alternate (PA4/PA5/PB4/PB5, AF5).
 
+**FAIL (wing side, fixed in the next wing revision)** — the system bootloader only listens on SPI1 PA4–PA7 (or SPI2 PB12–PB15), so with MISO/MOSI on PB4/PB5 the motherboard cannot program a wing over this bus. The wing `.ioc` now puts SPI1 on PA4/PA5/PA6/PA7; the wing PCB must follow. See `hardware.md` §"Remote Wing Programming via BOOT0" and §"Wing MCU Pin Assignment".
+
 ### 5.3 Wing Bus Signal-to-Pin Mapping (CN1 = right wing)
 | Net | CN1 pin | MCU GPIO |
 |---|---|---|
@@ -226,6 +228,8 @@ SEL0/SEL1 land on `PC14-OSC32_IN` / `PC15-OSC32_OUT`, which sit in the STM32G4's
 
 **PASS for hardware; OPEN for firmware** — confirm the wing's HAL init sets `PWR_CR1.DBP` before configuring PC14/PC15 as GPIO outputs, otherwise SEL0/SEL1 will read back as ones and the scan will be stuck on channel 3.
 
+**Superseded (next wing revision)** — on the bench the PC14/PC15 select edges ring and set the mux settle time, which matches the backup-domain limits (~3 mA sink, 2 MHz into 30 pF). SEL0/SEL1 move to PF0/PF1 (normal I/O, low speed) and ID1/ID2 move to PC14/PC15, where inputs read once at boot are unaffected. See `hardware.md` §"Wing MCU Pin Assignment".
+
 ### 5W.4 Wing buttons — three on each wing, not one
 Netlist shows three TS-1088 tactile switches per wing (matches BOM `qty = 3`):
 
@@ -265,13 +269,15 @@ Each ID line has a single 10 kΩ pull (no companion pull on the other rail — t
 
 Firmware reads PC13/PF0/PF1 at boot and embeds the resulting 3-bit ID in the per-frame wing identification code the mainboard sees over SPI. PC13 is in the backup-power domain (same `PWR_CR1.DBP = 1` caveat as the §5W.3 mux-select pins). PF0/PF1 are former OSC_IN/OSC_OUT and have no special access rules on the wing (these pins are repurposed on the mainboard as SPI2 NSS/SCK for the right wing — different boards, different uses of the same physical pads).
 
+Next wing revision: ID1/ID2 move to PC14/PC15 (swapped with SEL0/SEL1, §5W.3); the straps and their values are unchanged.
+
 **PASS** — clean implementation; means the same wing firmware binary runs on every wing variant. Mention in `architecture.md` §"Internal Bus" so a reader looking at SPI frame format understands where the wing-ID byte comes from.
 
 ### 5W.7 WingLeft 33rd Hall sensor — direct ADC, not mux (RESOLVED §5W.2)
 Round 3 flagged a 32-vs-33 channel mismatch on WingLeft (4 muxes provide 32 channels, but the BOM has 33 Hall sensors). Round 4 traces the 33rd:
 - WingLeft sensors `U1, U2, U3, U4, U6–U13, U15–U22, U24–U31, U33–U36, U38` — that's 33 designators (U5/U14/U23/U32 are muxes, U37 is MCU).
 - Net `A_IN0`: `U37-8 (PA0), U38-3 (SC4015 OUT)` — sensor U38's output goes **straight to the MCU's ADC pin PA0**, bypassing the mux network.
-- The other 32 sensors route through the four 74HC4052 muxes onto `A_IN2`–`A_IN9` (8 mux outputs × 4 channels each = 32 channels), read on PA1–PA7 / PB0–PB1 via the ADC.
+- The other 32 sensors route through the four 74HC4052 muxes onto `A_IN2`–`A_IN9` (8 mux outputs × 4 channels each = 32 channels), read on PA1–PA7 / PB0–PB1 via the ADC. (Next wing revision: `A_IN2`/`A_IN3` move from PA6/PA7 to PA2/PA3 to free PA6/PA7 for SPI1, §5.2.)
 
 So the topology is **32 muxed + 1 direct** for 33 total. The direct-ADC channel is U38, which sits next to the MCU and gets the lowest-impedance read path. Likely the highest-priority key (or one chosen for layout convenience — confirm against the keyboard mapping doc).
 

@@ -50,12 +50,14 @@ Each wing is powered directly from the motherboard's 3.3 V rail through pins 1 a
 
 The motherboard receives sensor data from each wing over a dedicated full-duplex SPI bus. Each wing acts as SPI master; the motherboard acts as slave. The following table details the pin configuration for each SPI signal:
 
-| SPI Signal | Master (Wing) | Slave (Motherboard) | Pins |
-|---|---|---|---|
-| **NSS** (chip select) | Output, push-pull, no pull-up | Input, pull-up ⬆️ | PA4 (SPI1), PF0 (SPI2) |
-| **SCK** (clock) | Output, push-pull, no pull-up | Input, no pull-up | PA5 (SPI1), PF1 (SPI2) |
-| **MOSI** (master→slave) | Output, push-pull, no pull-up | Input, no pull-up | PA7 (SPI1), PB15 (SPI2) |
-| **MISO** (slave→master) | (not used by master) | Output, pull-up ⬆️ | PA6 (SPI1), PB14 (SPI2) |
+| SPI Signal | Master (Wing) | Wing pin (SPI1, both wings) | Slave (Motherboard) | Motherboard pins |
+|---|---|---|---|---|
+| **NSS** (chip select) | Output, push-pull, no pull-up | PA4 | Input, pull-up ⬆️ | PA4 (SPI1), PF0 (SPI2) |
+| **SCK** (clock) | Output, push-pull, no pull-up | PA5 | Input, no pull-up | PA5 (SPI1), PF1 (SPI2) |
+| **MOSI** (master→slave) | Output, push-pull, no pull-up | PA7 | Input, no pull-up | PA7 (SPI1), PB15 (SPI2) |
+| **MISO** (slave→master) | Input (unused in normal frames) | PA6 | Output, pull-up ⬆️ | PA6 (SPI1), PB14 (SPI2) |
+
+The wing's SPI1 sits on PA4–PA7, not on the PB4/PB5 MISO/MOSI alternates, because those are the pins the STM32G474 system bootloader listens on as an SPI slave. The same four wires then carry both the sensor frames and wing firmware updates (see §"Remote Wing Programming via BOOT0").
 
 **Pull-up Defensive Design:**
 
@@ -152,7 +154,7 @@ All three boards run the **same STM32G474CBT6** in LQFP48 with the same decoupli
 - **VDDA filter** (pin 21): a ferrite bead between VDD and VDDA (L1, GZ1608D601TF, 600 Ω @ 100 MHz, 200 mA — comfortable for VDDA at ~10 mA when the ADC runs), plus 1 µF (C49) + 10 nF (C48) on VDDA referenced to VSSA. The ferrite is justified on every board: the motherboard reads the pedal pots, and the wings sample 32–40 Hall channels through the on-chip ADC.
 - **NRST cap**: 100 nF (C39) close to the NRST pin, per AN4488.
 
-**No HSE crystal.** G474's USB-FS uses HSI48 with the Clock Recovery System (CRS), locked to USB SOF — so no external crystal is needed for USB enumeration, and no 32.768 kHz LSE either (no RTC requirement). PF0/PF1, freed up from OSC_IN/OSC_OUT, are repurposed as GPIO (right-wing SPI2 NSS/SCK on the motherboard; bank-mux control on the wings).
+**No HSE crystal.** G474's USB-FS uses HSI48 with the Clock Recovery System (CRS), locked to USB SOF — so no external crystal is needed for USB enumeration, and no 32.768 kHz LSE either (no RTC requirement). PF0/PF1, freed up from OSC_IN/OSC_OUT, are repurposed as GPIO (right-wing SPI2 NSS/SCK on the motherboard; mux select lines `SEL0`/`SEL1` on the wings, see §"Wing MCU Pin Assignment").
 
 ## Key Sensing: Magnet / Hall-sensor Pairing
 
@@ -245,8 +247,41 @@ The motherboard also controls wing **NRST** (CN1/CN2 pin 4, open-drain via BAT54
 1. Assert BOOT0 high (motherboard drives PB13/PA3 → 3.3 V).
 2. Assert NRST low, then release it.
 3. Wing MCU boots with BOOT0 = 1 → enters system bootloader (supports USART, SPI, I2C protocols).
-4. Motherboard communicates with the wing bootloader over the existing SPI bus wires (MOSI/MISO/SCK/NSS), which the STM32G474 bootloader can expose as an SPI slave interface.
+4. Motherboard communicates with the wing bootloader over the existing SPI bus wires (MOSI/MISO/SCK/NSS). Roles reverse for the update: the wing bootloader is the SPI **slave**, so the motherboard reconfigures that bus's SPI peripheral as **master** and drives NSS itself, then speaks the bootloader's SPI protocol (ST AN4286).
 5. Motherboard receives new firmware from the USB host and relays it to the wing — a full OTA-style wing update without touching the wing board.
 
+**Bootloader SPI pins.** Per ST AN2606 (STM32G47xxx/48xxx section), the system bootloader's SPI interfaces are SPI1 on PA4 (NSS) / PA5 (SCK) / PA6 (MISO) / PA7 (MOSI) and SPI2 on PB12–PB15. The wing therefore routes its bus on SPI1 at PA4–PA7 (see §"Wing MCU Pin Assignment"). An earlier wing layout used the PB4/PB5 alternates for MISO/MOSI, which the bootloader ignores, so step 4 could not work on that board.
+
+**Other bootloader interfaces on the wing.** The bootloader watches all its interfaces after reset and locks onto the first one that receives a valid start byte, so a noisy receive pin could capture it before the motherboard talks over SPI:
+
+- **USART1 RX (PA10, `PGM_USART_RX`)** floats when no STLINK is attached. **OPEN:** add an external 10 kΩ pull-up to 3.3 V so it idles high.
+- **USART2 RX (PA3)** is the analog input `A_IN3`, which cannot take a pull-up. It stays quiet because the Hall rail is off during reset and in the bootloader (P-FET gate pulled high, §"Hall sensor power gating"), so the sensors behind the muxes are unpowered.
+- **SPI2 (PB12 `LED_FN0`, PB13 `SW_FN0`)** needs a sync byte with a clocked NSS frame; a stray press of the wing FN button during an update is the only realistic trigger. Avoid touching the wing while updating.
+
 This eliminates the need to physically access the wing's BOOT0 button or STDC14 pads for firmware updates in the field. The STDC14 pads remain available for initial factory programming and debug.
+
+## Wing MCU Pin Assignment
+
+Both wings run the same firmware on the same pinout (`code/wing-g474/wing-g474.ioc`, STM32G474 LQFP48). Hall readings: 5 ADCs × 2 inputs each, every input behind a 74HC4052 (4 select states), giving 40 slots per wing.
+
+| Function | Pins | Notes |
+|---|---|---|
+| SPI1 to motherboard (master) | PA4 NSS, PA5 SCK, PA6 MISO, PA7 MOSI | Matches the system bootloader's SPI1 pins |
+| ADC1 | PA2 (IN3) `A_IN2`, PA3 (IN4) `A_IN3` | PA2/PA3 are ADC1-only |
+| ADC2 | PA0 (IN1) `A_IN0`, PA1 (IN2) `A_IN1` | ADC1/2 shared pins, read by ADC2 |
+| ADC3 | PB0 (IN12) `A_IN4`, PB1 (IN1) `A_IN5` | |
+| ADC4 | PB14 (IN4) `A_IN9`, PB15 (IN5) `A_IN8` | |
+| ADC5 | PA8 (IN1) `A_IN7`, PA9 (IN2) `A_IN6` | |
+| Mux select `SEL0`, `SEL1` | PF0, PF1 (outputs, low speed) | Full-drive pins |
+| Layout ID `ID0`, `ID1`, `ID2` | PC13, PC14, PC15 (inputs) | External 10 kΩ straps, no internal pulls |
+| Hall rail enable `HALL_NEN` | PB11 (output, starts high = off) | Gate also pulled high externally |
+| `READY` | PB7 (output) | |
+| `LED_FN0`, `SW_FN0` | PB12 (output), PB13 (input, pull-up) | |
+| BOOT0 | PB8 (input) | |
+| Console USART1 | PB6 TX, PA10 RX | STLINK VCP via STDC14 |
+| SWD / SWO, `PGM_DETECT` | PA13, PA14, PB3; PA15 (input, pull-up) | |
+
+**Why the select lines and the ID straps swapped places.** PC13–PC15 are supplied through the backup-domain power switch: as outputs they sink only ~3 mA and are rated for 2 MHz into 30 pF (DS12288). Each select line fans out to every mux on the wing, and its edge is on the critical path of each scan step (the firmware waits `mux_settle_ns` after every change), so the weak drive showed up as slow, ringing edges. PF0/PF1 (free, since there is no HSE crystal) are normal I/Os, and the ID straps, read once at boot, lose nothing on the backup-domain pins. Keep the select outputs at low speed: a normal pin at low speed already switches in tens of ns, far below the settle time, and faster edges into the mux inputs couple noise into the analog lines right before sampling.
+
+**Pending.** This assignment is the next wing PCB revision. The netlists in `export/` still have the earlier layout (SPI MISO/MOSI on PB4/PB5, `A_IN2`/`A_IN3` on PA6/PA7, `SEL0`/`SEL1` on PC14/PC15, `ID1`/`ID2` on PF0/PF1). Re-run `check_ioc_netlist.py` once the board is updated. The wing firmware must also follow: regenerate `Core/` from the `.ioc`, and in `app/app.cc` set ADC1 to channels 3/4 and ADC2 to channels 1/2, ordering `adcs[]` as ADC2, ADC1, ADC3… so key ids stay the same.
 
