@@ -331,6 +331,12 @@ cable USB, sin instalar nada.
 
 ### Desde el navegador
 
+La herramienta de actualización envía el nuevo firmware por MIDI, en mensajes
+SysEx: la misma conexión con la que suena el instrumento, así que no necesita
+ningún controlador. Funciona en todos los navegadores compatibles con Web MIDI:
+
+<img src="images/web_midi_browsers.svg" alt="La herramienta de actualización funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488">
+
 1. Conecta el Bandolibre y abre la
    [herramienta de actualización](https://bandolibre.github.io/bandolibre/update/)
    en Chrome, Edge o Firefox.
@@ -365,6 +371,53 @@ Este método funciona sin navegador.
 
 La unidad solo sirve para recibir el firmware; los archivos copiados en ella no
 se conservan.
+
+### En modo DFU, desde el navegador
+
+El modo DFU es el modo de actualización integrado en el chip del instrumento.
+Funciona incluso cuando el instrumento no arranca en absoluto, y también puede
+reemplazar el bootloader, el pequeño programa que arranca el instrumento y
+realiza las dos actualizaciones anteriores. La herramienta de actualización
+llega a él por WebUSB y no por MIDI, así que menos navegadores pueden hacerlo:
+
+<img src="images/web_usb_browsers.svg" alt="El modo DFU funciona en Chrome y Edge en Windows, Mac y Linux, y en Chrome en Android. No funciona en Firefox, en Safari ni en iPhone y iPad. Edge en Android no se ha probado." width="488">
+
+Para poner el instrumento en modo DFU:
+
+- **Si suena con normalidad:** en la herramienta de actualización, abre el menú
+  **⋮** de la tarjeta del instrumento y elige **Restart in DFU mode**. Los
+  teclados pueden quedar conectados.
+- **Si no arranca:** desconecta el cable USB y luego desconecta los dos
+  teclados del módulo principal. Mantén pulsado el **botón de función
+  derecho** y vuelve a conectar el cable USB.
+
+Después:
+
+1. En la herramienta de actualización, elige
+   **Find a board in STM32 DFU mode…** en la lista de dispositivos y
+   selecciona la placa en la ventana que abre el navegador.
+2. Pulsa **Update firmware**. Unos cuadrados se rellenan a medida que el nuevo
+   firmware se escribe y se comprueba. La herramienta también reescribe el
+   bootloader si ha cambiado.
+3. Pulsa **Exit DFU**. Si desconectaste los teclados, desconecta el cable USB,
+   vuelve a conectar los teclados y luego el cable USB.
+
+**En Windows**, el navegador solo puede comunicarse con el instrumento en modo
+DFU a través del controlador WinUSB. Instálalo una sola vez con Zadig:
+
+1. Pon el instrumento en modo DFU.
+2. Descarga [Zadig](https://zadig.akeo.ie/) y ejecútalo.
+3. En la lista, elige **DFU in FS Mode** (USB ID `0483` `DF11`). Si no
+   aparece, elige **Options** › **List All Devices**.
+4. Elige **WinUSB** a la derecha de la flecha verde y pulsa
+   **Install Driver**. Una vez instalado, el botón dice **Reinstall Driver**,
+   como en la imagen.
+
+<img src="images/zadig_winusb.webp" alt="Zadig con DFU in FS Mode seleccionado, USB ID 0483 DF11 y el controlador WinUSB instalado" width="575">
+
+En Mac no hay nada que instalar. En Linux, si el navegador no puede abrir la
+placa, la herramienta de actualización muestra un comando para pegar una vez
+en un terminal.
 
 ### Si algo sale mal
 

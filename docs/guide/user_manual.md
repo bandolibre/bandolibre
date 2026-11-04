@@ -316,6 +316,12 @@ USB cable, without installing anything.
 
 ### From the browser
 
+The update tool sends the new firmware over MIDI, as SysEx messages: the same
+connection the instrument plays on, so it needs no driver. It works in every
+browser that supports Web MIDI:
+
+<img src="images/web_midi_browsers.svg" alt="The update tool works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488">
+
 1. Connect the Bandolibre and open the
    [update tool](https://bandolibre.github.io/bandolibre/update/) in Chrome,
    Edge or Firefox.
@@ -348,6 +354,50 @@ This way works without a browser.
 
 The drive exists only to receive the firmware file; files copied onto it do not
 stay there.
+
+### In DFU mode, from the browser
+
+DFU mode is the update mode built into the instrument's chip. It works even
+when the instrument does not start at all, and it can also replace the
+bootloader, the small program that starts the instrument and runs the two
+updates above. The update tool reaches it over WebUSB rather than MIDI, so
+fewer browsers can do it:
+
+<img src="images/web_usb_browsers.svg" alt="DFU mode works in Chrome and Edge on Windows, Mac and Linux, and in Chrome on Android. It does not work in Firefox, in Safari, or on iPhone and iPad. Edge on Android is untested." width="488">
+
+To put the instrument in DFU mode:
+
+- **If it plays normally:** in the update tool, open the **⋮** menu of the
+  instrument card and choose **Restart in DFU mode**. The keyboards can stay
+  plugged in.
+- **If it does not start:** unplug the USB cable, then unplug both keyboards
+  from the main module. Hold down the **right function button** and plug the
+  USB cable back in.
+
+Then:
+
+1. In the update tool, choose **Find a board in STM32 DFU mode…** in the device
+   list, and pick the board in the window the browser opens.
+2. Click **Update firmware**. Squares fill in as the new firmware is written
+   and checked. The tool also rewrites the bootloader if it has changed.
+3. Click **Exit DFU**. If you unplugged the keyboards, unplug the USB cable,
+   plug the keyboards back in, then plug the USB cable in again.
+
+**On Windows**, the browser can only reach the instrument in DFU mode through
+the WinUSB driver. Install it once with Zadig:
+
+1. Put the instrument in DFU mode.
+2. Download [Zadig](https://zadig.akeo.ie/) and run it.
+3. In the list, choose **DFU in FS Mode** (USB ID `0483` `DF11`). If it is not
+   there, choose **Options** › **List All Devices**.
+4. Choose **WinUSB** on the right of the green arrow, then click **Install
+   Driver**. Once it is installed, the button reads **Reinstall Driver**, as
+   in the picture.
+
+<img src="images/zadig_winusb.webp" alt="Zadig with DFU in FS Mode selected, USB ID 0483 DF11, and the WinUSB driver installed" width="575">
+
+On a Mac, there is nothing to install. On Linux, if the browser cannot open the
+board, the update tool shows a command to paste into a terminal once.
 
 ### If something goes wrong
 

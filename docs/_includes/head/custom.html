@@ -20,7 +20,10 @@
 
   /* Guide pages (classes: toc-left, _config.yml): the table of contents in the
      theme's empty left column rather than its right one, so the text runs to
-     the right edge. Below 64em the theme stacks it above the text as usual. */
+     the right edge. Below 64em the theme stacks it above the text as usual.
+     Only the ## sections are listed: the theme's layout lists every level, so
+     the nested lists of ### entries are hidden. */
+  .toc-left .toc__menu ul { display: none; }
   @media (min-width: 64em) {
     .toc-left .page { padding-inline-end: 0; }
     .toc-left .sidebar__right {
