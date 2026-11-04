@@ -1,6 +1,4 @@
 main:
-  - title: "L'Atelier"
-    url: https://bandolibre.github.io/
   - title: 'Le <span class="wordmark"><span class="bando">Bando</span>libre</span>'
     url: /
   - title: '<span class="wordmark"><span class="bando">Bando</span>PM</span>'

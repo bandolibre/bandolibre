@@ -8,6 +8,9 @@ repository: bandolibre/bandolibre.github.io
 rss: rss
 
 title: "L'Atelier"
+# Where the masthead title links (_includes/masthead.html): the association's
+# home page, not this project site's root.
+masthead_url: "https://bandolibre.github.io/"
 title_separator: "-"
 subtitle: "du Bandonéon Libre"
 
