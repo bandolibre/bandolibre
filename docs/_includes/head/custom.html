@@ -17,5 +17,21 @@
     font-family: 'BandoHand', 'Segoe Script', 'Snell Roundhand', 'Apple Chancery', cursive;
     font-size: 1.32em; font-weight: 700; line-height: 0.85; letter-spacing: 0.01em; margin-right: 1px;
   }
+
+  /* Guide pages (classes: toc-left, _config.yml): the table of contents in the
+     theme's empty left column rather than its right one, so the text runs to
+     the right edge. Below 64em the theme stacks it above the text as usual. */
+  @media (min-width: 64em) {
+    .toc-left .page { padding-inline-end: 0; }
+    .toc-left .sidebar__right {
+      inset-inline-start: 0; inset-inline-end: auto;
+      margin-inline-start: -200px; margin-inline-end: 0;
+      padding-inline-start: 0; padding-inline-end: 1em;
+    }
+    .toc-left .sidebar__right.sticky { float: inline-start; }
+  }
+  @media (min-width: 80em) {
+    .toc-left .sidebar__right { margin-inline-start: -300px; }
+  }
 </style>
 <!-- end custom head snippets -->

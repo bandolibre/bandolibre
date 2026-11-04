@@ -1,5 +1,4 @@
 ---
-classes: wide
 ---
 # Manuel d'utilisation du Bandolibre
 

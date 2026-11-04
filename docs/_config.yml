@@ -75,3 +75,4 @@ defaults:
       toc: true
       toc_sticky: true
       toc_label: "Contents"
+      classes: toc-left
