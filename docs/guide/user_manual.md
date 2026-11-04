@@ -239,15 +239,31 @@ The Bandolibre needs a virtual instrument to make sound. Whatever you use:
 - make it listen on **channels 1 and 2** (or on all channels), otherwise one
   hand stays silent.
 
-For practice, a simple bandoneon soundfont is enough:
-[European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) by Jörg
-Bleymehl gives good results and works on any device below.
+The [**BandoPM**](https://bandolibre.github.io/bandopm/) synthesizer is a
+bandoneon that plays in the browser, with nothing to install, and the state of
+the art in bandoneon modeling:
+
+- it reacts finely to every movement of the bellows;
+- each keyboard has its own model and its own sound, as on a real bandoneon;
+- the attack of each note follows how fast you strike the key, and its end how
+  fast you release it.
+
+<img src="images/bandopm.webp" alt="BandoPM: the left and right keyboards, the bellows meter between them, and the sound settings" width="600">
+
+It works in every browser that supports Web MIDI:
+
+<img src="images/web_midi_browsers.svg" alt="BandoPM works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488">
+
+Firefox asks you to allow a site permission the first time. On iPhone and iPad,
+no browser can reach the instrument until Apple supports Web MIDI.
 
 ### On a computer
 
 Use a DAW (Reaper, Ableton Live, Logic, Cubase…) or a notation program, and
 load a virtual instrument plugin on the Bandolibre's MIDI input.
 
+- Start with [**Synful Orchestra**](https://www.synful.com/), which is free:
+  its expressive orchestral instruments react well to the bellows.
 - The physically modelled **SWAM** instruments from
   [Audio Modeling](https://audiomodeling.com/) give the most expressive
   results: the bellows drives the sound itself, not just its volume.

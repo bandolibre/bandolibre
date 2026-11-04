@@ -258,16 +258,33 @@ soit votre choix :
 - réglez-le pour écouter les **canaux 1 et 2** (ou tous les canaux), sinon une
   main reste muette.
 
-Pour s'exercer, une simple soundfont de bandonéon suffit :
-[European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) de Jörg
-Bleymehl donne de bons résultats et fonctionne sur tous les appareils
-ci-dessous.
+Le synthétiseur [**BandoPM**](https://bandolibre.github.io/bandopm/) est un
+bandonéon qui joue dans le navigateur, sans rien installer, et ce qui se fait de
+mieux en modélisation du bandonéon :
+
+- il réagit finement à chaque mouvement du soufflet ;
+- chaque clavier a son propre modèle et sa propre sonorité, comme sur un vrai
+  bandonéon ;
+- l'attaque de chaque note suit la vitesse à laquelle vous enfoncez la touche,
+  et sa fin celle à laquelle vous la relâchez.
+
+<img src="images/bandopm.webp" alt="BandoPM : les claviers gauche et droit, l'indicateur de soufflet entre les deux et les réglages du son" width="600">
+
+Il fonctionne dans tous les navigateurs compatibles Web MIDI :
+
+<img src="images/web_midi_browsers.svg" alt="BandoPM fonctionne dans Chrome, Edge et Firefox sous Windows, Mac et Linux, et dans Chrome et Edge sous Android. Il ne fonctionne pas dans Safari, dans Firefox sous Android, ni sur iPhone et iPad." width="488">
+
+Firefox demande d'autoriser une permission de site la première fois. Sur iPhone
+et iPad, aucun navigateur ne peut joindre l'instrument tant qu'Apple ne prend
+pas en charge Web MIDI.
 
 ### Sur ordinateur
 
 Utilisez un logiciel de musique (Reaper, Ableton Live, Logic, Cubase…) ou de
 notation, et chargez un instrument virtuel sur l'entrée MIDI du Bandolibre.
 
+- Commencez par [**Synful Orchestra**](https://www.synful.com/), gratuit : ses
+  instruments d'orchestre expressifs réagissent bien au soufflet.
 - Les instruments **SWAM** à modélisation physique
   d'[Audio Modeling](https://audiomodeling.com/) donnent les résultats les plus
   expressifs : le soufflet pilote le son lui-même, pas seulement son volume.

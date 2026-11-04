@@ -250,15 +250,33 @@ que uses:
 - haz que escuche los **canales 1 y 2** (o todos los canales), si no una mano
   queda en silencio.
 
-Para practicar, basta una simple soundfont de bandoneón:
-[European Bandoneon V2.5](https://musical-artifacts.com/artifacts/1862) de Jörg
-Bleymehl da buenos resultados y funciona en todos los dispositivos de abajo.
+El sintetizador [**BandoPM**](https://bandolibre.github.io/bandopm/) es un
+bandoneón que suena en el navegador, sin instalar nada, y lo más avanzado en
+modelado de bandoneón:
+
+- reacciona con precisión a cada movimiento del fuelle;
+- cada teclado tiene su propio modelo y su propio sonido, como en un bandoneón
+  real;
+- el ataque de cada nota sigue la velocidad con la que pulsas la tecla, y su
+  final la velocidad con la que la sueltas.
+
+<img src="images/bandopm.webp" alt="BandoPM: los teclados izquierdo y derecho, el indicador del fuelle entre ambos y los ajustes de sonido" width="600">
+
+Funciona en todos los navegadores compatibles con Web MIDI:
+
+<img src="images/web_midi_browsers.svg" alt="BandoPM funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488">
+
+Firefox pide autorizar un permiso del sitio la primera vez. En iPhone y iPad,
+ningún navegador puede comunicarse con el instrumento mientras Apple no admita
+Web MIDI.
 
 ### En ordenador
 
 Usa un DAW (Reaper, Ableton Live, Logic, Cubase…) o un programa de notación, y
 carga un instrumento virtual en la entrada MIDI del Bandolibre.
 
+- Empieza por [**Synful Orchestra**](https://www.synful.com/), que es gratuito:
+  sus instrumentos orquestales expresivos responden bien al fuelle.
 - Los instrumentos **SWAM** de modelado físico de
   [Audio Modeling](https://audiomodeling.com/) dan los resultados más
   expresivos: el fuelle controla el propio sonido, no solo su volumen.
