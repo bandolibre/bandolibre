@@ -768,32 +768,36 @@
   const isUpdaterName = (d) => BANDOLIBRE_RE.test(d.name) && UPDATE_MODE_RE.test(d.name);
   const isBandolibreName = (d) => BANDOLIBRE_RE.test(d.name);
 
+  /* Called by the 750 ms poll too, so it touches the options only when they
+   * changed: on Android the open list is a modal picker that Chrome closes
+   * and reopens whenever its options are replaced, so a rebuild on every
+   * poll made it blink. */
   function renderSelector() {
     const devices = collectDevices();
-    select.innerHTML = "";
-    const empty = document.createElement("option");
-    empty.value = "";
-    empty.textContent = devices.length || dfuDevices.length ? "— select a device —" : "(no devices found)";
-    select.appendChild(empty);
-    dfuDevices.forEach((u, i) => {
-      const opt = document.createElement("option");
-      opt.value = "usb:" + i;
-      opt.textContent = dfuName(u) + " — STM32 DFU mode";
-      select.appendChild(opt);
-    });
+    const options = [["", devices.length || dfuDevices.length ? "— select a device —" : "(no devices found)"]];
+    dfuDevices.forEach((u, i) => options.push(["usb:" + i, dfuName(u) + " — STM32 DFU mode"]));
     for (const d of devices) {
+      options.push([d.key, d.name + (isUpdaterName(d) ? " — update mode" : isBandolibreName(d) ? " — Bandolibre" : "")]);
+    }
+    if (navigator.usb) options.push(["usb:find", "Find a board in STM32 DFU mode…"]);
+    setSelectOptions(select, options);
+    const value = port ? port.key : dfuSelected ? "usb:" + dfuDevices.indexOf(dfuSelected) : "";
+    if (select.value !== value) select.value = value;
+  }
+
+  /* Replaces the select's options by [value, label] pairs, unless it already
+   * has exactly those. */
+  function setSelectOptions(sel, options) {
+    const same = sel.options.length === options.length &&
+      options.every(([value, label], i) => sel.options[i].value === value && sel.options[i].textContent === label);
+    if (same) return;
+    sel.innerHTML = "";
+    for (const [value, label] of options) {
       const opt = document.createElement("option");
-      opt.value = d.key;
-      opt.textContent = d.name + (isUpdaterName(d) ? " — update mode" : isBandolibreName(d) ? " — Bandolibre" : "");
-      select.appendChild(opt);
+      opt.value = value;
+      opt.textContent = label;
+      sel.appendChild(opt);
     }
-    if (navigator.usb) {
-      const find = document.createElement("option");
-      find.value = "usb:find";
-      find.textContent = "Find a board in STM32 DFU mode…";
-      select.appendChild(find);
-    }
-    select.value = port ? port.key : dfuSelected ? "usb:" + dfuDevices.indexOf(dfuSelected) : "";
   }
 
   // ---- STM32 DFU mode ----

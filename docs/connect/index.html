@@ -5811,25 +5811,33 @@
     return device.total > 1 ? device.name + " (" + (device.index + 1) + ")" : device.name;
   }
 
+  /* Called by the 750 ms poll too, so it touches the options only when they
+   * changed: on Android the open list is a modal picker that Chrome closes
+   * and reopens whenever its options are replaced, so a rebuild on every
+   * poll made it blink. */
   function renderSelector() {
     const devices = collectDevices();
     const previousValue = activeKey || "";
 
-    select.innerHTML = "";
-    const emptyOpt = document.createElement("option");
-    emptyOpt.value = "";
-    emptyOpt.textContent = devices.length ? "— select a device —" : "(no MIDI devices found)";
-    select.appendChild(emptyOpt);
-
+    const options = [["", devices.length ? "— select a device —" : "(no MIDI devices found)"]];
     for (const device of devices) {
-      const opt = document.createElement("option");
-      opt.value = device.key;
-      opt.textContent = deviceLabel(device) + (isBandolibre(device) ? " — Bandolibre" :
-          isBandolibreUpdater(device) ? " — use the update tool" : "");
-      select.appendChild(opt);
+      options.push([device.key, deviceLabel(device) + (isBandolibre(device) ? " — Bandolibre" :
+          isBandolibreUpdater(device) ? " — use the update tool" : "")]);
     }
-    select.value = previousValue;
-    if (select.value !== previousValue) select.value = ""; // stale key, fall back to placeholder
+    const same = select.options.length === options.length &&
+      options.every(([value, label], i) => select.options[i].value === value && select.options[i].textContent === label);
+    if (!same) {
+      select.innerHTML = "";
+      for (const [value, label] of options) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = label;
+        select.appendChild(opt);
+      }
+    }
+    // A stale key falls back to the placeholder.
+    const value = options.some(([v]) => v === previousValue) ? previousValue : "";
+    if (select.value !== value) select.value = value;
   }
 
   function updateStatus() {
