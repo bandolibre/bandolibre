@@ -17,6 +17,11 @@ trace_swo:
 plotjuggler_bridge:
     st-trace --clock=96m | python3 tools/plotjuggler_bridge.py
 
+# Build and serve this site with ../site and ../bandopm, as on bandolibre.github.io
+# (the workspace justfile, above this checkout)
+serve port="8000":
+    cd .. && just serve {{port}}
+
 plotjuggler:
     ~/bin/plotjuggler -l tools/bellow_layout.xml --start_streamer -n
 
