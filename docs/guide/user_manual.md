@@ -360,10 +360,9 @@ stay there.
 DFU mode is the update mode built into the instrument's chip. It works even
 when the instrument does not start at all, and it can also replace the
 bootloader, the small program that starts the instrument and runs the two
-updates above. The update tool reaches it over WebUSB rather than MIDI, so
-fewer browsers can do it:
+updates above. It works in these browsers:
 
-<p align="center"><img src="images/web_usb_browsers.svg" alt="DFU mode works in Chrome and Edge on Windows, Mac and Linux, and in Chrome on Android. It does not work in Firefox, in Safari, or on iPhone and iPad. Edge on Android is untested." width="488"></p>
+<p align="center"><img src="images/web_usb_browsers.svg" alt="DFU mode works in Chrome and Edge on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Firefox, in Safari, or on iPhone and iPad." width="488"></p>
 
 To put the instrument in DFU mode:
 
