@@ -16,7 +16,8 @@
  * FN1 (middle) cycles the bellows program (BELLOW_PROGRAM_COUNT sets of
  * deadzone, full travel and response curves, see bellow.h), on release. It
  * writes the bellow_program property rather than latching state of its own,
- * so read it from g_properties->bellow_program. Held for a second instead, it
+ * so read it from g_properties->bellow_program. It skips a program whose
+ * bellow_p<n>_in_cycle is off. Held for a second instead, it
  * calibrates the bellows center (bellow_calibrate_center()) and saves it;
  * LED_FN1 is lit for the second the calibration samples.
  *

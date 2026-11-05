@@ -35,7 +35,7 @@ static void test_defaults(void)
 {
   /* No reset first: this verifies the static initialization of the live
    * struct (values are valid before any call). Runs first in main(). */
-  CHECK(property_count() == 79);
+  CHECK(property_count() == 82);
 
   /* Direct reads match defaults from property_table.def. */
   CHECK(g_properties->key_press == 1900);
@@ -66,12 +66,16 @@ static void test_point(void)
   CHECK(property_value(i) == PROPERTY_POINT(153, 255));
 }
 
-/* Tags run 1..count in table order, as renumbered: a new property takes the
- * next one. */
+/* Tags run from 1 in table order, as renumbered, skipping the reserved range:
+ * a new property takes the next one. */
 static void test_tags_in_order(void)
 {
   for (size_t i = 0; i < property_count(); i++)
-    CHECK(property_at(i)->tag == i + 1);
+  {
+    size_t tag = i + 1;
+    if (tag >= PROPERTY_TAG_RESERVED_FIRST) tag += PROPERTY_TAG_RESERVED_COUNT;
+    CHECK(property_at(i)->tag == tag);
+  }
 }
 
 static void test_lookup(void)
@@ -265,9 +269,9 @@ static void test_complete(void)
 {
   const char *out[128];
   /* "bellow_" matches the bellow_* properties (shared center, 3 programs of
-   * 7, the program selector, hysteresis, CC, settle, sample rate, 1-euro
+   * 8, the program selector, hysteresis, CC, settle, sample rate, 1-euro
    * filter) */
-  CHECK(properties_complete("bellow_", out, 128) == 29);
+  CHECK(properties_complete("bellow_", out, 128) == 32);
   /* "key_" matches the two key_* properties, not keyboard_tuning */
   CHECK(properties_complete("key_", out, 128) == 2);
   /* empty prefix matches all (buffer is sized above property_count()) */

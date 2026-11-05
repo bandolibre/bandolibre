@@ -121,17 +121,40 @@ static void toggle_table_mode(void)
   property_set_bool(idx, !value);
 }
 
-/* Advances bellow_program to the next program, wrapping after the last. Same
- * reasoning as cycle_keyboard_tuning() above: the property is the single
- * source of truth, so the button and `set bellow_program` over the
- * console/sysex agree and neither can go stale behind the other. */
+_Static_assert(BELLOW_PROGRAM_COUNT == 3, "program_in_cycle() lists every program");
+
+/* bellow_p<n>_in_cycle: whether FN1 stops on program n. */
+static bool program_in_cycle(uint16_t n)
+{
+  switch (n)
+  {
+    case 0:  return g_properties->bellow_p0_in_cycle;
+    case 1:  return g_properties->bellow_p1_in_cycle;
+    case 2:  return g_properties->bellow_p2_in_cycle;
+    default: return false;
+  }
+}
+
+/* Advances bellow_program to the next program left in the cycle, wrapping
+ * after the last; with none left in it, the program stays. Same reasoning as
+ * cycle_keyboard_tuning() above: the property is the single source of truth,
+ * so the button and `set bellow_program` over the console/sysex agree and
+ * neither can go stale behind the other. */
 static void cycle_bellow_program(void)
 {
   size_t idx;
   uint16_t program;
   if (!property_by_name("bellow_program", &idx)) return;
   if (!property_get_u16(idx, &program)) return;
-  property_set_u16(idx, (uint16_t)((program + 1) % BELLOW_PROGRAM_COUNT));
+  for (uint16_t step = 1; step < BELLOW_PROGRAM_COUNT; step++)
+  {
+    uint16_t next = (uint16_t)((program + step) % BELLOW_PROGRAM_COUNT);
+    if (program_in_cycle(next))
+    {
+      property_set_u16(idx, next);
+      return;
+    }
+  }
 }
 
 void buttons_poll(void)

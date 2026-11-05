@@ -29,6 +29,12 @@ extern "C" {
 
 #define PROPERTY_TAG_NONE 0u   /* tag value marking a transient (non-persistent) property */
 
+/* Tags kept free after the bellows programs (property_table.def), so a new
+ * program or per-program property can join them without renumbering the
+ * rest and losing everyone's saved values. No property may use them. */
+#define PROPERTY_TAG_RESERVED_FIRST 28u
+#define PROPERTY_TAG_RESERVED_COUNT 12u
+
 typedef enum {
   PROPERTY_TYPE_BOOL  = 0,
   PROPERTY_TYPE_U16   = 1,
