@@ -409,6 +409,30 @@
   tr.skeleton td.desc .sk { display: block; }
   @keyframes sk-shimmer { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
   @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+  /* Phones: the five columns don't fit. Each row becomes the name, its
+   * description below it, then Value and Default on their own line (order:
+   * the description is the last cell); the header keeps only the Value and
+   * Default labels (and the reset all arrow), at the rows' Value width. */
+  @media (max-width: 640px) {
+    table.properties-table, table.properties-table thead, table.properties-table tbody { display: block; }
+    table.properties-table tr {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+    }
+    table.properties-table tr[hidden] { display: none; }
+    table.properties-table thead tr { padding: 0 0 4px; }
+    table.properties-table th:first-child, table.properties-table th.name,
+    table.properties-table th.desc { display: none; }
+    table.properties-table th, table.properties-table td { border-bottom: none; padding: 0; height: auto; }
+    table.properties-table td.index { width: auto; }
+    table.properties-table td.desc { order: 1; flex-basis: 100%; color: var(--muted); }
+    table.properties-table td.value, table.properties-table td.default { order: 2; }
+    table.properties-table th:nth-child(3), table.properties-table td.value { width: calc(var(--prop-value-w) + 26px); }
+  }
+  @media (max-width: 480px) {
+    body { padding-block: 16px; padding-inline: 8px; }
+    .card { padding: 12px; }
+  }
   .retry-btn {
     font-size: 0.8rem;
     padding: 3px 10px;
@@ -599,14 +623,20 @@
   .st-diamond.release { fill: var(--release); }
   .st-diamond.release.held { fill: none; stroke: var(--release); }
   .bp-readout {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; align-items: baseline;
-    font-family: var(--mono); font-size: 1.15rem; margin: 4px auto 0; width: fit-content;
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 20px;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; align-items: baseline;
+    font-family: var(--mono); font-size: 0.95rem; margin: 4px auto 0; width: fit-content;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 5px 14px;
   }
   .bp-readout b { font-weight: 700; font-variant-numeric: tabular-nums; }
   .bp-readout .sep { color: var(--muted); }
   .bp-readout .placeholder { color: var(--muted); } /* nothing measured yet */
   .bp-caption { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
+  /* A keycap, for "Hold Shift" hints. */
+  kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.8em; line-height: 1.3;
+    color: var(--fg); background: var(--bg); padding: 0 6px;
+    border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px;
+  }
 
   .bp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
   .bp-presets button {
@@ -686,6 +716,9 @@
     display: flex; flex-direction: column; gap: 8px;
   }
   .pedal-title { font-family: var(--mono); font-size: 0.85rem; font-weight: 600; }
+  /* Same size and colour as the bellows / key sensor status lines. */
+  .pedal-card .status-row { font-size: 0.8rem; color: var(--muted); gap: 6px; }
+  .pedal-card .dot { width: 8px; height: 8px; }
   svg.pedal-plot { width: 100%; height: auto; display: block; touch-action: none; }
   .ped-range { fill: var(--muted); opacity: 0.15; }
   .bp-vline.ped-min { stroke: var(--push); }
@@ -1168,7 +1201,7 @@
       CC#11 <b id="bp-ro-cc">—</b>
     </div>
     <div class="bp-caption-row">
-      <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold Shift while dragging for fine adjustment.</p>
+      <p class="bp-caption">Drag the vertical lines and the curves' control points to tune the response.<br>Hold <kbd>Shift</kbd> while dragging for fine adjustment.</p>
 
       <div class="bp-group bp-presets-group">
         <div class="bp-group-title">Presets</div>
@@ -1250,7 +1283,7 @@
 
   <details class="card collapsible" id="pedalsCard" open>
     <summary><span class="summary-title">Pedals</span></summary>
-    <p class="bp-caption">Drag the min / max lines (or edit the numbers) to calibrate each pedal's sensor range. Hold Shift while dragging for fine adjustment.</p>
+    <p class="bp-caption">Drag the min / max lines (or edit the numbers) to calibrate each pedal's sensor range. Hold <kbd>Shift</kbd> while dragging for fine adjustment.</p>
 
     <div class="pedal-grid">
       <div class="pedal-card">
@@ -3979,7 +4012,7 @@
           push: curve("push"), pull: curve("pull"),
         };
       }
-      bpEls.status.textContent = "Connected — live, dragging writes to the device.";
+      bpEls.status.textContent = "Connected live";
       bpEls.status.classList.add("live");
     } else {
       bpEls.status.textContent = "Connected, but this firmware's property layout doesn't match this page's build — showing defaults, editing is local-only.";
