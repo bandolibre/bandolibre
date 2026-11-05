@@ -259,11 +259,11 @@ modelado de bandoneón:
 - el ataque de cada nota sigue la velocidad con la que pulsas la tecla, y su
   final la velocidad con la que la sueltas.
 
-<img src="images/bandopm.webp" alt="BandoPM: los teclados izquierdo y derecho, el indicador del fuelle entre ambos y los ajustes de sonido" width="600">
+<p align="center"><a href="https://bandolibre.github.io/bandopm/"><img src="images/bandopm.webp" alt="BandoPM: los teclados izquierdo y derecho, el indicador del fuelle entre ambos y los ajustes de sonido" width="600"></a></p>
 
 Funciona en todos los navegadores compatibles con Web MIDI:
 
-<img src="images/web_midi_browsers.svg" alt="BandoPM funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="BandoPM funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488"></p>
 
 Firefox pide autorizar un permiso del sitio la primera vez. En iPhone y iPad,
 ningún navegador puede comunicarse con el instrumento mientras Apple no admita
@@ -335,7 +335,7 @@ La herramienta de actualización envía el nuevo firmware por MIDI, en mensajes
 SysEx: la misma conexión con la que suena el instrumento, así que no necesita
 ningún controlador. Funciona en todos los navegadores compatibles con Web MIDI:
 
-<img src="images/web_midi_browsers.svg" alt="La herramienta de actualización funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="La herramienta de actualización funciona en Chrome, Edge y Firefox en Windows, Mac y Linux, y en Chrome y Edge en Android. No funciona en Safari, en Firefox en Android ni en iPhone y iPad." width="488"></p>
 
 1. Conecta el Bandolibre y abre la
    [herramienta de actualización](https://bandolibre.github.io/bandolibre/update/)
@@ -380,14 +380,15 @@ reemplazar el bootloader, el pequeño programa que arranca el instrumento y
 realiza las dos actualizaciones anteriores. La herramienta de actualización
 llega a él por WebUSB y no por MIDI, así que menos navegadores pueden hacerlo:
 
-<img src="images/web_usb_browsers.svg" alt="El modo DFU funciona en Chrome y Edge en Windows, Mac y Linux, y en Chrome en Android. No funciona en Firefox, en Safari ni en iPhone y iPad. Edge en Android no se ha probado." width="488">
+<p align="center"><img src="images/web_usb_browsers.svg" alt="El modo DFU funciona en Chrome y Edge en Windows, Mac y Linux, y en Chrome en Android. No funciona en Firefox, en Safari ni en iPhone y iPad. Edge en Android no se ha probado." width="488"></p>
 
 Para poner el instrumento en modo DFU:
 
 - **Si suena con normalidad:** en la herramienta de actualización, abre el menú
   **⋮** de la tarjeta del instrumento y elige **Restart in DFU mode**. Los
   teclados pueden quedar conectados.
-- **Si no arranca:** desconecta el cable USB y luego desconecta los dos
+- **Si no arranca:** puede pasar con las primeras versiones del firmware y del
+  hardware. Desconecta el cable USB, abre la caja y luego desconecta los dos
   teclados del módulo principal. Mantén pulsado el **botón de función
   derecho** y vuelve a conectar el cable USB.
 
@@ -413,7 +414,7 @@ DFU a través del controlador WinUSB. Instálalo una sola vez con Zadig:
    **Install Driver**. Una vez instalado, el botón dice **Reinstall Driver**,
    como en la imagen.
 
-<img src="images/zadig_winusb.webp" alt="Zadig con DFU in FS Mode seleccionado, USB ID 0483 DF11 y el controlador WinUSB instalado" width="575">
+<p align="center"><img src="images/zadig_winusb.webp" alt="Zadig con DFU in FS Mode seleccionado, USB ID 0483 DF11 y el controlador WinUSB instalado" width="575"></p>
 
 En Mac no hay nada que instalar. En Linux, si el navegador no puede abrir la
 placa, la herramienta de actualización muestra un comando para pegar una vez

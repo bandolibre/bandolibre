@@ -267,11 +267,11 @@ mieux en modélisation du bandonéon :
 - l'attaque de chaque note suit la vitesse à laquelle vous enfoncez la touche,
   et sa fin celle à laquelle vous la relâchez.
 
-<img src="images/bandopm.webp" alt="BandoPM : les claviers gauche et droit, l'indicateur de soufflet entre les deux et les réglages du son" width="600">
+<p align="center"><a href="https://bandolibre.github.io/bandopm/"><img src="images/bandopm.webp" alt="BandoPM : les claviers gauche et droit, l'indicateur de soufflet entre les deux et les réglages du son" width="600"></a></p>
 
 Il fonctionne dans tous les navigateurs compatibles Web MIDI :
 
-<img src="images/web_midi_browsers.svg" alt="BandoPM fonctionne dans Chrome, Edge et Firefox sous Windows, Mac et Linux, et dans Chrome et Edge sous Android. Il ne fonctionne pas dans Safari, dans Firefox sous Android, ni sur iPhone et iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="BandoPM fonctionne dans Chrome, Edge et Firefox sous Windows, Mac et Linux, et dans Chrome et Edge sous Android. Il ne fonctionne pas dans Safari, dans Firefox sous Android, ni sur iPhone et iPad." width="488"></p>
 
 Firefox demande d'autoriser une permission de site la première fois. Sur iPhone
 et iPad, aucun navigateur ne peut joindre l'instrument tant qu'Apple ne prend
@@ -344,7 +344,7 @@ L'outil de mise à jour envoie le nouveau firmware par MIDI, sous forme de
 messages SysEx : la même connexion que celle sur laquelle l'instrument joue,
 donc sans pilote. Il fonctionne dans tous les navigateurs compatibles Web MIDI :
 
-<img src="images/web_midi_browsers.svg" alt="L'outil de mise à jour fonctionne dans Chrome, Edge et Firefox sous Windows, Mac et Linux, et dans Chrome et Edge sous Android. Il ne fonctionne pas dans Safari, dans Firefox sous Android, ni sur iPhone et iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="L'outil de mise à jour fonctionne dans Chrome, Edge et Firefox sous Windows, Mac et Linux, et dans Chrome et Edge sous Android. Il ne fonctionne pas dans Safari, dans Firefox sous Android, ni sur iPhone et iPad." width="488"></p>
 
 1. Branchez le Bandolibre et ouvrez
    l'[outil de mise à jour](https://bandolibre.github.io/bandolibre/update/)
@@ -389,16 +389,17 @@ remplacer le bootloader, le petit programme qui démarre l'instrument et assure
 les deux mises à jour ci-dessus. L'outil de mise à jour l'atteint par WebUSB et
 non par MIDI, si bien que moins de navigateurs en sont capables :
 
-<img src="images/web_usb_browsers.svg" alt="Le mode DFU fonctionne dans Chrome et Edge sous Windows, Mac et Linux, et dans Chrome sous Android. Il ne fonctionne pas dans Firefox, dans Safari, ni sur iPhone et iPad. Edge sous Android n'a pas été testé." width="488">
+<p align="center"><img src="images/web_usb_browsers.svg" alt="Le mode DFU fonctionne dans Chrome et Edge sous Windows, Mac et Linux, et dans Chrome sous Android. Il ne fonctionne pas dans Firefox, dans Safari, ni sur iPhone et iPad. Edge sous Android n'a pas été testé." width="488"></p>
 
 Pour mettre l'instrument en mode DFU :
 
 - **S'il joue normalement :** dans l'outil de mise à jour, ouvrez le menu
   **⋮** de la carte de l'instrument et choisissez **Restart in DFU mode**. Les
   claviers peuvent rester branchés.
-- **S'il ne démarre pas :** débranchez le câble USB, puis débranchez les deux
-  claviers du module principal. Maintenez le **bouton de fonction droit**
-  enfoncé et rebranchez le câble USB.
+- **S'il ne démarre pas :** cela peut arriver avec les premières versions du
+  firmware et du matériel. Débranchez le câble USB, ouvrez le boîtier, puis
+  débranchez les deux claviers du module principal. Maintenez le **bouton de
+  fonction droit** enfoncé et rebranchez le câble USB.
 
 Ensuite :
 
@@ -422,7 +423,7 @@ travers le pilote WinUSB. Installez-le une fois pour toutes avec Zadig :
    **Install Driver**. Une fois le pilote installé, le bouton indique
    **Reinstall Driver**, comme sur l'image.
 
-<img src="images/zadig_winusb.webp" alt="Zadig avec DFU in FS Mode sélectionné, USB ID 0483 DF11, et le pilote WinUSB installé" width="575">
+<p align="center"><img src="images/zadig_winusb.webp" alt="Zadig avec DFU in FS Mode sélectionné, USB ID 0483 DF11, et le pilote WinUSB installé" width="575"></p>
 
 Sur Mac, il n'y a rien à installer. Sous Linux, si le navigateur ne peut pas
 ouvrir la carte, l'outil de mise à jour affiche une commande à coller une fois

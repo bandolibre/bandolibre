@@ -247,11 +247,11 @@ the art in bandoneon modeling:
 - the attack of each note follows how fast you strike the key, and its end how
   fast you release it.
 
-<img src="images/bandopm.webp" alt="BandoPM: the left and right keyboards, the bellows meter between them, and the sound settings" width="600">
+<p align="center"><a href="https://bandolibre.github.io/bandopm/"><img src="images/bandopm.webp" alt="BandoPM: the left and right keyboards, the bellows meter between them, and the sound settings" width="600"></a></p>
 
 It works in every browser that supports Web MIDI:
 
-<img src="images/web_midi_browsers.svg" alt="BandoPM works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="BandoPM works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488"></p>
 
 Firefox asks you to allow a site permission the first time. On iPhone and iPad,
 no browser can reach the instrument until Apple supports Web MIDI.
@@ -320,7 +320,7 @@ The update tool sends the new firmware over MIDI, as SysEx messages: the same
 connection the instrument plays on, so it needs no driver. It works in every
 browser that supports Web MIDI:
 
-<img src="images/web_midi_browsers.svg" alt="The update tool works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488">
+<p align="center"><img src="images/web_midi_browsers.svg" alt="The update tool works in Chrome, Edge and Firefox on Windows, Mac and Linux, and in Chrome and Edge on Android. It does not work in Safari, in Firefox on Android, or on iPhone and iPad." width="488"></p>
 
 1. Connect the Bandolibre and open the
    [update tool](https://bandolibre.github.io/bandolibre/update/) in Chrome,
@@ -363,16 +363,17 @@ bootloader, the small program that starts the instrument and runs the two
 updates above. The update tool reaches it over WebUSB rather than MIDI, so
 fewer browsers can do it:
 
-<img src="images/web_usb_browsers.svg" alt="DFU mode works in Chrome and Edge on Windows, Mac and Linux, and in Chrome on Android. It does not work in Firefox, in Safari, or on iPhone and iPad. Edge on Android is untested." width="488">
+<p align="center"><img src="images/web_usb_browsers.svg" alt="DFU mode works in Chrome and Edge on Windows, Mac and Linux, and in Chrome on Android. It does not work in Firefox, in Safari, or on iPhone and iPad. Edge on Android is untested." width="488"></p>
 
 To put the instrument in DFU mode:
 
 - **If it plays normally:** in the update tool, open the **⋮** menu of the
   instrument card and choose **Restart in DFU mode**. The keyboards can stay
   plugged in.
-- **If it does not start:** unplug the USB cable, then unplug both keyboards
-  from the main module. Hold down the **right function button** and plug the
-  USB cable back in.
+- **If it does not start:** this can happen with early versions of the
+  firmware and hardware. Unplug the USB cable, open the case, then unplug both
+  keyboards from the main module. Hold down the **right function button** and
+  plug the USB cable back in.
 
 Then:
 
@@ -394,7 +395,7 @@ the WinUSB driver. Install it once with Zadig:
    Driver**. Once it is installed, the button reads **Reinstall Driver**, as
    in the picture.
 
-<img src="images/zadig_winusb.webp" alt="Zadig with DFU in FS Mode selected, USB ID 0483 DF11, and the WinUSB driver installed" width="575">
+<p align="center"><img src="images/zadig_winusb.webp" alt="Zadig with DFU in FS Mode selected, USB ID 0483 DF11, and the WinUSB driver installed" width="575"></p>
 
 On a Mac, there is nothing to install. On Linux, if the browser cannot open the
 board, the update tool shows a command to paste into a terminal once.
