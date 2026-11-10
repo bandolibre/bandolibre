@@ -547,8 +547,16 @@
   .bp-vline-hit { stroke: transparent; stroke-width: 18; cursor: ew-resize; outline: none; }
   .bp-vline-hit:hover + .bp-vline { opacity: 1; stroke-width: 3; }
   .bp-vline-label { font-family: var(--mono); font-size: 14px; fill: var(--muted); }
-  /* The bellows graph's line labels match its axis text. */
-  svg.bellow-plot:not(.velocity-plot) .bp-vline-label { font-size: 11px; }
+  /* The bellows graph is drawn at one unit per CSS pixel (layoutBellowPlot),
+   * so its text is the page's size at any width; its line labels match its
+   * axis text. */
+  svg.bellow-plot:not(.velocity-plot) .bp-axis-label,
+  svg.bellow-plot:not(.velocity-plot) .bp-vline-label { font-size: 0.75rem; }
+  /* Finger-sized grab areas on touch screens (every graph's lines and points). */
+  @media (pointer: coarse) {
+    .bp-cp-hit { r: 22px; }
+    .bp-vline-hit { stroke-width: 32; }
+  }
   .bp-cp-hit { fill: transparent; cursor: grab; outline: none; }
   .bp-cp-hit:active { cursor: grabbing; }
   .bp-cp-handle { stroke: var(--card); stroke-width: 2; pointer-events: none; }
@@ -1150,13 +1158,13 @@
     </div>
 
     <svg class="bellow-plot" viewBox="0 0 900 396" role="img" aria-label="sensor to CC conversion curve for the bellows, push and pull">
-      <line class="bp-grid" x1="70" y1="340" x2="860" y2="340"></line>
-      <line class="bp-grid" x1="70" y1="30" x2="860" y2="30"></line>
-      <text class="bp-axis-label bp-axis-label-y" x="60" y="344" text-anchor="end">0</text>
+      <line class="bp-grid" id="bp-grid-bottom" x1="70" y1="340" x2="860" y2="340"></line>
+      <line class="bp-grid" id="bp-grid-top" x1="70" y1="30" x2="860" y2="30"></line>
+      <text class="bp-axis-label bp-axis-label-y" id="y-lbl-zero" x="60" y="344" text-anchor="end">0</text>
       <text class="bp-axis-label bp-axis-label-y" id="y-lbl-top" x="60" y="34" text-anchor="end">127</text>
       <g id="bp-yticks"></g>
-      <text class="bp-axis-label bp-axis-label-y" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">expression CC#11</text>
-      <text class="bp-axis-label bp-axis-label-x" x="465" y="388" text-anchor="middle">sensor reading</text>
+      <text class="bp-axis-label bp-axis-label-y" id="y-title" x="24" y="185" text-anchor="middle" transform="rotate(-90 24 185)">expression CC#11</text>
+      <text class="bp-axis-label bp-axis-label-x" id="x-title" x="465" y="388" text-anchor="middle">sensor reading</text>
       <g id="bp-xticks"></g>
 
       <line id="vline-dead-push" class="bp-vline dead"></line>
@@ -3410,7 +3418,9 @@
     status: bp("bellowStatus"),
     xticks: bp("bp-xticks"),
     yticks: bp("bp-yticks"),
-    yLblTop: bp("y-lbl-top"),
+    yLblTop: bp("y-lbl-top"), yLblZero: bp("y-lbl-zero"),
+    gridTop: bp("bp-grid-top"), gridBottom: bp("bp-grid-bottom"),
+    yTitle: bp("y-title"), xTitle: bp("x-title"),
     vlineDeadPush: bp("vline-dead-push"),
     vlineDeadPull: bp("vline-dead-pull"),
     hitFullPush: bp("hit-fullpush"), vlineFullPush: bp("vline-fullpush"),
@@ -3460,8 +3470,36 @@
 
   // ---- Geometry: a plain linear ADC axis, 10% beyond the full push/pull
   // on each side, and a CC (0..127) axis. ----
-  const PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_TOP = 30, PLOT_BOTTOM = 340;
+  // One SVG unit is one CSS pixel, as in the velocity plots: the viewBox
+  // follows the plot's width, so its text and handles keep their size on a
+  // phone instead of shrinking with a fixed 900-unit drawing. A narrow plot
+  // (NARROW_PLOT) has tighter margins, fewer ticks and shorter line labels.
+  const PLOT_TOP = 30, NARROW_PLOT = 600;
+  let PLOT_W = 900, PLOT_LEFT = 70, PLOT_RIGHT = 860, PLOT_BOTTOM = 340;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function layoutBellowPlot() {
+    const w = bellowSvg.getBoundingClientRect().width;
+    if (!w) return false; // collapsed card: keep the last layout
+    const narrow = w < NARROW_PLOT;
+    const h = Math.max(260, Math.round(w * 0.44));
+    PLOT_W = w;
+    PLOT_LEFT = narrow ? 52 : 70;
+    PLOT_RIGHT = w - (narrow ? 16 : 40);
+    PLOT_BOTTOM = h - 56;
+    bellowSvg.setAttribute("viewBox", "0 0 " + w + " " + h);
+    for (const line of [bpEls.gridTop, bpEls.gridBottom]) {
+      line.setAttribute("x1", PLOT_LEFT); line.setAttribute("x2", PLOT_RIGHT);
+    }
+    bpEls.gridBottom.setAttribute("y1", PLOT_BOTTOM); bpEls.gridBottom.setAttribute("y2", PLOT_BOTTOM);
+    for (const label of [bpEls.yLblTop, bpEls.yLblZero]) label.setAttribute("x", PLOT_LEFT - 10);
+    bpEls.yLblZero.setAttribute("y", PLOT_BOTTOM + 4);
+    const titleX = narrow ? 12 : 24, titleY = (PLOT_TOP + PLOT_BOTTOM) / 2;
+    bpEls.yTitle.setAttribute("x", titleX); bpEls.yTitle.setAttribute("y", titleY);
+    bpEls.yTitle.setAttribute("transform", "rotate(-90 " + titleX + " " + titleY + ")");
+    bpEls.xTitle.setAttribute("x", (PLOT_LEFT + PLOT_RIGHT) / 2);
+    bpEls.xTitle.setAttribute("y", h - 8);
+    return true;
+  }
 
   // Zoom switch (top-right of the Bellow card): divides BOTH the visible
   // sensor span (re-centered on bg.center) and the CC axis (re-based at 0,
@@ -3575,11 +3613,12 @@
   }
 
   // The tick step: the smallest 1, 2 or 5 x 10^n giving at most this many
-  // ticks, so a zoomed axis keeps as many ticks as the full one.
-  const X_TICK_MAX = 10;
+  // ticks, so a zoomed axis keeps as many ticks as the full one; a tick per
+  // 60px at most, so the 5-digit labels don't overlap on a narrow plot.
   function xTickStep(span) {
+    const tickMax = clamp(Math.floor((PLOT_RIGHT - PLOT_LEFT) / 60), 3, 10);
     for (let p = 1; ; p *= 10)
-      for (const m of [1, 2, 5]) if (span / (m * p) <= X_TICK_MAX) return m * p;
+      for (const m of [1, 2, 5]) if (span / (m * p) <= tickMax) return m * p;
   }
   function renderXTicks(xMin, xMax) {
     const group = bpEls.xticks;
@@ -3619,12 +3658,12 @@
       const y = ccToPx(cc);
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
       tick.setAttribute("class", "bp-tick");
-      tick.setAttribute("x1", 64); tick.setAttribute("y1", y);
-      tick.setAttribute("x2", 70); tick.setAttribute("y2", y);
+      tick.setAttribute("x1", PLOT_LEFT - 6); tick.setAttribute("y1", y);
+      tick.setAttribute("x2", PLOT_LEFT); tick.setAttribute("y2", y);
       group.appendChild(tick);
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("class", "bp-axis-label bp-axis-label-y");
-      label.setAttribute("x", 60); label.setAttribute("y", y + 4);
+      label.setAttribute("x", PLOT_LEFT - 10); label.setAttribute("y", y + 4);
       label.setAttribute("text-anchor", "end");
       label.textContent = Math.round(cc);
       group.appendChild(label);
@@ -3650,12 +3689,18 @@
     setLine(bpEls.vlineDeadPush, deadPushPx, PLOT_TOP, deadPushPx, PLOT_BOTTOM);
     setLine(bpEls.vlineDeadPull, deadPullPx, PLOT_TOP, deadPullPx, PLOT_BOTTOM);
 
-    bpEls.lblFullPush.textContent = "push travel " + Math.round(bg.pushTravel);
-    bpEls.lblFullPush.setAttribute("x", fullPushPx);
-    bpEls.lblFullPull.textContent = "pull travel " + Math.round(bg.pullTravel);
-    bpEls.lblFullPull.setAttribute("x", fullPullPx);
-    bpEls.lblCenter.textContent = "center " + Math.round(bg.center) + "  ·  dead " + Math.round(bg.dead);
-    bpEls.lblCenter.setAttribute("x", centerPx);
+    // Shorter on a narrow plot, where the long ones overlap; each is kept
+    // inside the plot when its line is near an edge.
+    const narrow = PLOT_W < NARROW_PLOT;
+    const placeLabel = (el, text, x) => {
+      el.textContent = text;
+      const half = el.getComputedTextLength() / 2;
+      el.setAttribute("x", clamp(x, half + 2, Math.max(half + 2, PLOT_W - half - 2)));
+    };
+    placeLabel(bpEls.lblFullPush, (narrow ? "push " : "push travel ") + Math.round(bg.pushTravel), fullPushPx);
+    placeLabel(bpEls.lblFullPull, (narrow ? "pull " : "pull travel ") + Math.round(bg.pullTravel), fullPullPx);
+    placeLabel(bpEls.lblCenter, "center " + Math.round(bg.center) +
+      (narrow ? "" : "  ·  dead " + Math.round(bg.dead)), centerPx);
 
     // Flat saturation, push ramp (true Bezier), flat deadzone, pull ramp
     // (true Bezier), flat saturation. An affine remap of a Bezier's control
@@ -5602,7 +5647,9 @@
     kbdNoteModeToggle.checked = true;
   }
 
+  layoutBellowPlot();
   redrawGraph();
+  new ResizeObserver(() => { if (layoutBellowPlot()) redrawGraph(); }).observe(bellowSvg);
   redrawPedalGraph("p1");
   redrawPedalGraph("p2");
   renderKeyboard("left");
